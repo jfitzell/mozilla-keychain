@@ -151,6 +151,40 @@ MacOSKeychain::SetLoginSavingEnabled(const nsAString &aHost,
   return NS_OK;
 }
 
+NSArray*
+MacOSKeychain::FetchLogins(const nsAString & aHostname,
+                           const nsAString & aActionURL, // used only to figure out if it's a form
+                           const nsAString & aHttpRealm ) // not yet used
+{
+  if (aHostname.IsVoid()) { // a NULL value should not match any logins and should return a count of 0
+  	return [NSArray array];
+  }
+
+  NSString *hostname = NULL;
+  if (! aHostname.IsEmpty()) {
+    const PRUnichar* data;
+    PRUint32 length = NS_StringGetData(aHostname, &data);
+    NSString *urlString = [NSString stringWithCharacters: data length: length];
+    NSURL *url = [NSURL URLWithString: urlString];
+    hostname = [url host];
+  }
+  
+  SecAuthenticationType authenticationType;
+  if (aActionURL.IsVoid()) { // NULL means do not match form passwords
+    authenticationType = kSecAuthenticationTypeDefault;
+  } else { // Empty string or any value
+  	authenticationType = kSecAuthenticationTypeHTMLForm;
+  }
+  
+  NSArray* keychainArray = [KeychainItem allKeychainItemsForHost: hostname
+                                                            port: 0
+                                                        protocol: NULL
+                                              authenticationType: authenticationType
+                                                         creator: NULL];
+  
+  return keychainArray;
+}
+
 NS_IMETHODIMP
 MacOSKeychain::FindLogins(PRUint32 *count,
                           const nsAString &aHostname,
@@ -158,13 +192,7 @@ MacOSKeychain::FindLogins(PRUint32 *count,
                           const nsAString &aHttpRealm,
                           nsILoginInfo ***logins)
 {
-  nsresult rv;
-  
-  NSArray* keychainArray = [KeychainItem allKeychainItemsForHost: @"seaside.st"
-                                                            port: 0
-                                                        protocol: NULL
-                                              authenticationType: NULL
-                                                         creator: NULL];
+  NSArray* keychainArray = FetchLogins(aHostname, aActionURL, aHttpRealm);
 
   NSEnumerator *enumerator = [keychainArray objectEnumerator];
   KeychainItem *item;
@@ -172,14 +200,16 @@ MacOSKeychain::FindLogins(PRUint32 *count,
   while (item = [enumerator nextObject]) {
     nsCOMPtr<nsILoginInfo> info = do_CreateInstance(NS_LOGININFO_CONTRACTID);
     if (!info) {
-      /*(void)SecKeychainItemFreeAttributesAndData(attrList, NULL);
-      (void)CFRelease(itemRef);*/
       return NS_ERROR_OUT_OF_MEMORY;
     }
-    //nsString *hostname, *username, *password;
-    //hostname = (nsString*)NS_Alloc([item host lengthOfBytesUsingEncoding: NSUTF16BigEndianStringEncoding]);
-    rv = info->Init(NS_ConvertUTF8toUTF16((char*)[[item host] UTF8String]), EmptyString(), EmptyString(), NS_ConvertUTF8toUTF16((char*)[[item username] UTF8String]), NS_ConvertUTF8toUTF16((char*)[[item password] UTF8String]),
-                    EmptyString(), EmptyString());
+    nsresult rv;
+    rv = info->Init(NS_ConvertUTF8toUTF16((char*)[[item host] UTF8String]),
+                    EmptyString(),
+                    EmptyString(),
+                    NS_ConvertUTF8toUTF16((char*)[[item username] UTF8String]),
+                    NS_ConvertUTF8toUTF16((char*)[[item password] UTF8String]),
+                    EmptyString(),
+                    EmptyString());
     if (NS_SUCCEEDED(rv))
       (void)results.AppendObject(info);
   }
@@ -201,15 +231,11 @@ MacOSKeychain::FindLogins(PRUint32 *count,
 
 NS_IMETHODIMP
 MacOSKeychain::CountLogins(const nsAString & aHostname,
-                           const nsAString & aActionURL,
-                           const nsAString & aHttpRealm,
+                           const nsAString & aActionURL, // used only to figure out if it's a form
+                           const nsAString & aHttpRealm, // not yet used
                            PRUint32 *_retval)
 {
-  NSArray* keychainArray = [KeychainItem allKeychainItemsForHost: NULL
-                                                            port: 0
-                                                        protocol: NULL
-                                              authenticationType: NULL
-                                                         creator: NULL];
+  NSArray* keychainArray = FetchLogins(aHostname, aActionURL, aHttpRealm);
   
   *_retval = [keychainArray count];
   

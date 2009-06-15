@@ -24,6 +24,11 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSILOGINMANAGERSTORAGE
 
+protected:
+  NSArray* FetchLogins(const nsAString & aHostname,
+                       const nsAString & aActionURL,
+                       const nsAString & aHttpRealm);
+
 };
 
 #endif /* __MacOSKeychain_h */
