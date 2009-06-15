@@ -3,10 +3,13 @@
 #include "nsIGenericFactory.h"
 #include "nsMemory.h"
 #include "nsICategoryManager.h"
+#include "nsComponentManagerUtils.h"
 #include "nsCOMPtr.h"
 //#include "nsNetUtil.h"
-//#include "nsCOMArray.h"
+#include "nsCOMArray.h"
 #include "nsServiceManagerUtils.h"
+
+#include "KeychainItem.h"
 
 NS_IMPL_ISUPPORTS1(MacOSKeychain, nsILoginManagerStorage)
 
@@ -31,7 +34,49 @@ MacOSKeychain::InitWithFile(nsIFile *aInputFile,
 NS_IMETHODIMP
 MacOSKeychain::AddLogin(nsILoginInfo *aLogin)
 {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  NS_ENSURE_ARG_POINTER(aLogin);
+
+  NSString *hostname, *formSubmitURL, *httpRealm, *username, *password;
+  NSNumber *port;
+  SecProtocolType protocol;
+  SecAuthenticationType authenticationType;
+
+  nsString buffer;
+  (void)aLogin->GetHostname(buffer);
+  hostname = [NSString stringWithCharacters: buffer.get() length: buffer.Length()];
+  
+  NSURL *hostnameURL = [NSURL URLWithString: hostname];
+  
+  hostname = [hostnameURL host];
+  port = [hostnameURL port];
+  protocol = kSecProtocolTypeHTTP; // can be determined from the URL
+  authenticationType = kSecAuthenticationTypeDefault; // default
+  
+  (void)aLogin->GetFormSubmitURL(buffer);
+  if (!buffer.IsVoid()) {
+    authenticationType = kSecAuthenticationTypeHTMLForm;
+    formSubmitURL = [NSString stringWithCharacters: buffer.get() length: buffer.Length()];
+  }
+          
+  (void)aLogin->GetHttpRealm(buffer);
+  httpRealm = [NSString stringWithCharacters: buffer.get() length: buffer.Length()];
+  
+  (void)aLogin->GetUsername(buffer);
+  username = [NSString stringWithCharacters: buffer.get() length: buffer.Length()];
+
+  (void)aLogin->GetPassword(buffer);
+  password = [NSString stringWithCharacters: buffer.get() length: buffer.Length()];
+
+  KeychainItem *item = [KeychainItem addKeychainItemForHost: hostname
+                                  port: [port unsignedLongValue]
+                              protocol: protocol
+                    authenticationType: authenticationType
+                          withUsername: username
+                              password: password ];
+                               
+  [item setComment: hostname ];
+  
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -57,7 +102,8 @@ NS_IMETHODIMP
 MacOSKeychain::GetAllLogins(PRUint32 *count,
                             nsILoginInfo ***logins)
 {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  *count = 0;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -112,7 +158,45 @@ MacOSKeychain::FindLogins(PRUint32 *count,
                           const nsAString &aHttpRealm,
                           nsILoginInfo ***logins)
 {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  nsresult rv;
+  
+  NSArray* keychainArray = [KeychainItem allKeychainItemsForHost: @"seaside.st"
+                                                            port: 0
+                                                        protocol: NULL
+                                              authenticationType: NULL
+                                                         creator: NULL];
+
+  NSEnumerator *enumerator = [keychainArray objectEnumerator];
+  KeychainItem *item;
+  nsCOMArray<nsILoginInfo> results;
+  while (item = [enumerator nextObject]) {
+    nsCOMPtr<nsILoginInfo> info = do_CreateInstance(NS_LOGININFO_CONTRACTID);
+    if (!info) {
+      /*(void)SecKeychainItemFreeAttributesAndData(attrList, NULL);
+      (void)CFRelease(itemRef);*/
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+    //nsString *hostname, *username, *password;
+    //hostname = (nsString*)NS_Alloc([item host lengthOfBytesUsingEncoding: NSUTF16BigEndianStringEncoding]);
+    rv = info->Init(NS_ConvertUTF8toUTF16((char*)[[item host] UTF8String]), EmptyString(), EmptyString(), NS_ConvertUTF8toUTF16((char*)[[item username] UTF8String]), NS_ConvertUTF8toUTF16((char*)[[item password] UTF8String]),
+                    EmptyString(), EmptyString());
+    if (NS_SUCCEEDED(rv))
+      (void)results.AppendObject(info);
+  }
+
+  *count = [keychainArray count];
+  
+  if (0 == *count) {
+    *logins = nsnull;
+    return NS_OK;
+  }
+  
+  nsILoginInfo **retval = (nsILoginInfo **)NS_Alloc(sizeof(nsILoginInfo *) * *count);
+  for (PRInt32 i = 0; i < *count; i++)
+    NS_ADDREF(retval[i] = results[i]);
+  *logins = retval;
+  
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -121,7 +205,15 @@ MacOSKeychain::CountLogins(const nsAString & aHostname,
                            const nsAString & aHttpRealm,
                            PRUint32 *_retval)
 {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  NSArray* keychainArray = [KeychainItem allKeychainItemsForHost: NULL
+                                                            port: 0
+                                                        protocol: NULL
+                                              authenticationType: NULL
+                                                         creator: NULL];
+  
+  *_retval = [keychainArray count];
+  
+  return NS_OK;
 }
 
 static NS_METHOD

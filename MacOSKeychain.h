@@ -3,6 +3,7 @@
 
 #include <Security/Security.h>
 #include <CoreServices/CoreServices.h>
+#include <Foundation/Foundation.h>
 
 #define PROTYPES_H // hack so we don't get typedef conflicts
 
@@ -22,7 +23,7 @@ public:
   ~MacOSKeychain();
   NS_DECL_ISUPPORTS
   NS_DECL_NSILOGINMANAGERSTORAGE
-  
+
 };
 
 #endif /* __MacOSKeychain_h */
