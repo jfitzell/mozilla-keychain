@@ -1,0 +1,26 @@
+#include "nsISupports.idl"
+
+[scriptable, uuid(c45fa464-7a67-485d-92b9-3d2fdf66cd3c)]
+
+interface MacOSKeychainItemInterface : nsISupports {
+    attribute AString accountName;
+    attribute AString password;
+    attribute AString serverName;
+    attribute AString comment;
+    attribute AString securityDomain;
+    attribute AString label;
+    attribute short port;
+    // protocol
+    // authenticationType
+    
+    void delete();
+    
+    /*attribute AString passwordField;
+    void init(in AString aHostname,
+              in AString aFormSubmitURL, in AString aHttpRealm,
+              in AString aUsername,      in AString aPassword,
+              in AString aUsernameField, in AString aPasswordField);
+    boolean equals(in nsILoginInfo aLoginInfo);
+    boolean matches(in nsILoginInfo aLoginInfo, in boolean ignorePassword);
+    nsILoginInfo clone();*/
+};

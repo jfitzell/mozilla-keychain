@@ -1,0 +1,33 @@
+#include "nsISupports.idl"
+
+interface MacOSKeychainItemInterface;
+interface nsIArray;
+
+[scriptable, uuid(76f4a95d-4ede-4185-a8cd-34abf996cb84)]
+
+interface MacOSKeychainServiceInterface : nsISupports {
+    MacOSKeychainItemInterface addInternetPasswordItem(in AString accountName,
+                         in AString password,
+                         in AString protocol,
+                         in AString serverName,
+                         in unsigned short port,
+                         in AString path,
+                         in AString securityDomain,
+                         in AString comment,
+                         in AString label);
+    
+    nsIArray findInternetPasswordItems(in AString accountName,
+                         in AString protocol,
+                         in AString serverName,
+                         in unsigned short port,
+                         in AString securityDomain);
+    
+    /*attribute AString passwordField;
+    void init(in AString aHostname,
+              in AString aFormSubmitURL, in AString aHttpRealm,
+              in AString aUsername,      in AString aPassword,
+              in AString aUsernameField, in AString aPasswordField);
+    boolean equals(in nsILoginInfo aLoginInfo);
+    boolean matches(in nsILoginInfo aLoginInfo, in boolean ignorePassword);
+    nsILoginInfo clone();*/
+};

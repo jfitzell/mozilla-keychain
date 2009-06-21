@@ -1,0 +1,52 @@
+DEPTH   = ../../..
+topsrcdir = @top_srcdir@
+srcdir    = @srcdir@
+VPATH   = @srcdir@
+
+include $(DEPTH)/config/autoconf.mk
+
+MODULE			= macos-keychain
+LIBRARY_NAME	= macoskeychain
+EXPORT_LIBRARY	= 1
+IS_COMPONENT	= 1
+MODULE_NAME		= MacOSKeychainModule
+
+XPI_NAME		= macos-keychain
+
+REQUIRES = \
+	xpcom \
+	string \
+	loginmgr \
+	xulapp \
+	$(NULL)
+
+EXTRA_COMPONENTS = \
+	MacOSKeychainStorage.js \
+	$(NULL)
+
+#CMSRCS += \
+#	KeychainItem.m \
+#	$(NULL)
+
+CMMSRCS += \
+	MacOSKeychainService.mm \
+	MacOSKeychainItem.mm \
+	$(NULL)
+
+CPPSRCS += \
+	MacOSKeychainModule.cpp \
+	$(NULL)
+
+FRAMEWORKS += \
+	-framework Foundation \
+	-framework Security \
+	$(NULL)
+
+OS_LIBS += $(FRAMEWORKS)
+
+EXTRA_DSO_LDOPTS += \
+	$(XPCOM_GLUE_LDOPTS) \
+	$(NSPR_LIBS) \
+	#(NULL)
+
+include $(topsrcdir)/config/rules.mk
