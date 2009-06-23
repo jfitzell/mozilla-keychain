@@ -9,10 +9,6 @@ MODULE			= macos-keychain
 XPIDL_MODULE	= macos-keychain
 XPI_NAME		= macos-keychain
 
-EXTRA_COMPONENTS = \
-		_xpidlgen/$(XPIDL_MODULE).xpt \
-		$(NULL)
-
 XPIDLSRCS = \
 		MacOSKeychainItemInterface.idl \
 		MacOSKeychainServiceInterface.idl \

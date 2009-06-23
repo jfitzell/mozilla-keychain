@@ -106,8 +106,12 @@ MacOSKeychainStorage.prototype = {
     this.log("Adding login: " + login);
     //return this._legacyStorage.addLogin(login);
     var uri = this._uri(login.hostname);
+    var port = uri.port;
+    if (port == -1) // -1 indicates default port for the protocol
+      port = null;
+      
     var item = this._keychainService.addInternetPasswordItem(login.username, login.password,
-                                 uri.scheme, uri.host, uri.port, "",
+                                 uri.scheme, uri.host, port, "",
                                  login.httpRealm, "comment", "label");
   },
   
@@ -123,7 +127,11 @@ MacOSKeychainStorage.prototype = {
   
   getAllLogins: function (count) {
     this.log("Getting all logins");
-    return this._legacyStorage.getAllLogins(count);
+    //return this._legacyStorage.getAllLogins(count);
+    
+    // TODO: This is only an approximation because findLogins will never return both form and
+    //   basic auth logins at the same time.
+    return this.findLogins(count, null, null, null);
   },
   
   removeAllLogins: function () {
@@ -150,16 +158,22 @@ MacOSKeychainStorage.prototype = {
     this.log("Finding logins [" + hostname + "," + formSubmitURL + "," + httpRealm + "]");
     //return this._legacyStorage.findLogins(count, hostname, formSubmitURL, httpRealm);
     
-    var logins = new Array();
-    try {
+    var scheme = null;
+    var host = null;
+    var port = null;
+    if (hostname) {
       var uri = this._uri(hostname);
-      var items = this._keychainService.findInternetPasswordItems(null, uri.scheme, uri.host, uri.port, httpRealm);
-    } catch (e) {
-      this.log(e);
-      throw e;
+      scheme = uri.scheme;
+      host = uri.host;
+      port = uri.port;
+      if (port == -1)
+        port = null;
     }
-    
+
+this.log(scheme + ", " + host + ", " + port + ", " + httpRealm);
+    var items = this._keychainService.findInternetPasswordItems(null, scheme, host, port, httpRealm);
     var enumerator = items.enumerate();
+    var logins = new Array();
     while ( enumerator.hasMoreElements() ) {
       var item = enumerator.getNext().QueryInterface(Ci.MacOSKeychainItemInterface);
       logins.push(this._convertKeychainItemToLoginInfo(item));
