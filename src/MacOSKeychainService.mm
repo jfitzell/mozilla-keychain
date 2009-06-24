@@ -69,10 +69,12 @@ MacOSKeychainService::AddInternetPasswordItem(const nsAString & accountName,
     *_retval = item;
   }
   
-  if (! label.IsVoid()) {
+  if (label.IsVoid()) {
+    rv = item->SetDefaultLabel();
+  } else {
     rv = item->SetLabel(label);
-    NS_ENSURE_SUCCESS(rv, rv);
   }
+  NS_ENSURE_SUCCESS(rv, rv);
   
   rv = item->SetComment(comment);
   NS_ENSURE_SUCCESS(rv, rv);

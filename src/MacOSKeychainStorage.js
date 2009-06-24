@@ -110,11 +110,9 @@ MacOSKeychainStorage.prototype = {
     if (port == -1) // -1 indicates default port for the protocol
       port = null;
     
-    var label = uri.host + " (" + login.username + ")";
     var item = this._keychainService.addInternetPasswordItem(login.username, login.password,
                                  uri.scheme, uri.host, port, null,
-                                 login.httpRealm, null, label);
-    
+                                 login.httpRealm, null, null);
   },
   
   removeLogin: function (login) {

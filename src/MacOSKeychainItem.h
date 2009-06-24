@@ -17,6 +17,9 @@ public:
   nsresult MacOSKeychainItem::LoadData();
   nsresult MacOSKeychainItem::LoadPassword();
 
+  nsresult MacOSKeychainItem::SetDefaultLabel();
+
+
 private:
   ~MacOSKeychainItem();
 

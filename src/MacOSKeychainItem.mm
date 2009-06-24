@@ -163,6 +163,20 @@ nsresult MacOSKeychainItem::SetAttribute(SecKeychainAttrType type, void *value, 
   return ConvertOSStatus(oss);
 }
 
+nsresult MacOSKeychainItem::SetDefaultLabel()
+{
+  if ( IsStored() && ! mDataLoaded )
+    LoadData();
+    
+  nsAutoString label;
+  label.Append(mServerName);
+  label.Append(NS_LITERAL_STRING(" ("));
+  label.Append(mAccountName);
+  label.Append(NS_LITERAL_STRING(")"));
+  
+  return SetLabel(label);
+}
+
 /**
  *  MacOSKeychainItemInterface implementation
  *
@@ -171,7 +185,6 @@ nsresult MacOSKeychainItem::SetAttribute(SecKeychainAttrType type, void *value, 
 /* attribute AString accountName; */
 NS_IMETHODIMP MacOSKeychainItem::GetAccountName(nsAString & accountName)
 {
-  //accountName.Assign(NS_ConvertUTF8toUTF16(mAccountName));
   if ( IsStored() && ! mDataLoaded )
     LoadData();
   
@@ -181,9 +194,14 @@ NS_IMETHODIMP MacOSKeychainItem::GetAccountName(nsAString & accountName)
 }
 NS_IMETHODIMP MacOSKeychainItem::SetAccountName(const nsAString & accountName)
 {
+  if (IsStored()) {
+    nsresult rv = SetAttribute(kSecAccountItemAttr, accountName);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  
   mAccountName = accountName;
   
-  return NS_OK;
+  return SetDefaultLabel();
 }
 
 /* attribute AString password; */
@@ -198,6 +216,16 @@ NS_IMETHODIMP MacOSKeychainItem::GetPassword(nsAString & password)
 }
 NS_IMETHODIMP MacOSKeychainItem::SetPassword(const nsAString & password)
 {
+  if (IsStored()) {
+    nsCAutoString passwordUTF8 = NS_ConvertUTF16toUTF8(password);
+    const char* passwordData = passwordUTF8.get();
+    nsresult rv = SecKeychainItemModifyAttributesAndData(mKeychainItemRef,
+                                                      nsnull,
+                                                      passwordUTF8.Length(),
+                                                      passwordData);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
   mPassword = password;
   
   return NS_OK;
@@ -245,7 +273,7 @@ NS_IMETHODIMP MacOSKeychainItem::SetServerName(const nsAString & serverName)
   
   mServerName = serverName;
   
-  return NS_OK;
+  return SetDefaultLabel();
 }
 
 /* attribute short port; */
