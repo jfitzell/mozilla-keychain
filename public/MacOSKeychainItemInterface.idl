@@ -5,12 +5,12 @@
 interface MacOSKeychainItemInterface : nsISupports {
     attribute AString accountName;
     attribute AString password;
+    attribute AString protocol;
     attribute AString serverName;
-    attribute AString comment;
-    attribute AString securityDomain;
-    attribute AString label;
     attribute unsigned short port;
-    // protocol
+    attribute AString securityDomain;
+    attribute AString comment;
+    attribute AString label;
     // authenticationType
     
     void delete();

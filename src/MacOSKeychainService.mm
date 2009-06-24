@@ -6,49 +6,8 @@
 #include "nsIMutableArray.h"
 #include "nsComponentManagerUtils.h"
 
+#include "MacOSKeychainUtils.h"
 #include "MacOSKeychainItem.h"
-
-static nsresult
-ConvertOSStatus(OSStatus result)
-{
-  switch (result) {
-    case noErr:
-      return NS_OK;
-    case paramErr:
-      return NS_ERROR_INVALID_ARG;
-  };
-
-  return NS_ERROR_FAILURE;
-}
-
-static SecProtocolType
-ConvertStringToSecProtocol(const nsAString & protocol)
-{
-  if (protocol.EqualsLiteral("http"))
-    return kSecProtocolTypeHTTP;
-  else if (protocol.EqualsLiteral("ftp"))
-    return kSecProtocolTypeFTP;
-  else if (protocol.EqualsLiteral("irc"))
-    return kSecProtocolTypeIRC;
-  else if (protocol.EqualsLiteral("pop3"))
-    return kSecProtocolTypePOP3;
-  else if (protocol.EqualsLiteral("smtp"))
-    return kSecProtocolTypeSMTP;
-  else if (protocol.EqualsLiteral("imap"))
-    return kSecProtocolTypeIMAP;
-  else if (protocol.EqualsLiteral("ftps"))
-    return kSecProtocolTypeFTPS;
-  else if (protocol.EqualsLiteral("https"))
-    return kSecProtocolTypeHTTPS;
-  else if (protocol.EqualsLiteral("imaps"))
-    return kSecProtocolTypeIMAPS;
-  else if (protocol.EqualsLiteral("ircs"))
-    return kSecProtocolTypeIRCS;
-  else if (protocol.EqualsLiteral("pop3s"))
-    return kSecProtocolTypePOP3S;
-
-  return kSecProtocolTypeHTTP;
-}
 
 NS_IMPL_ISUPPORTS1(MacOSKeychainService, MacOSKeychainServiceInterface)
 
@@ -84,7 +43,7 @@ MacOSKeychainService::AddInternetPasswordItem(const nsAString & accountName,
   nsCAutoString securityDomainUTF8	= NS_ConvertUTF16toUTF8(securityDomain);
   
   SecProtocolType protocolType		= ConvertStringToSecProtocol(protocol);
-  SecAuthenticationType authenticationType = kSecAuthenticationTypeHTTPBasic;
+  SecAuthenticationType authenticationType = kSecAuthenticationTypeDefault;
   
   SecKeychainItemRef keychainItemRef;
   
@@ -115,8 +74,8 @@ MacOSKeychainService::AddInternetPasswordItem(const nsAString & accountName,
     NS_ENSURE_SUCCESS(rv, rv);
   }
   
-  //rv = item->SetComment(comment);
-  //NS_ENSURE_SUCCESS(rv, rv);
+  rv = item->SetComment(comment);
+  NS_ENSURE_SUCCESS(rv, rv);
   
   return NS_OK;
 }

@@ -3,24 +3,13 @@
 #import <Foundation/Foundation.h>
 #include "nsStringAPI.h"
 
+#include "MacOSKeychainUtils.h"
+
 // Prior to 10.5, we can't use kSecLabelItemAttr due to a bug in Keychain
 // Services (see bug 420665). The recommendation from Apple is to use the raw
 // index instead of the attribute, which for password items is 7.
 // Once we are 10.5+, we can just use kSecLabelItemAttr instead.
 static const unsigned int kRawKeychainLabelIndex = 7;
-
-static nsresult
-ConvertOSStatus(OSStatus result)
-{
-  switch (result) {
-    case noErr:
-      return NS_OK;
-    case paramErr:
-      return NS_ERROR_INVALID_ARG;
-  };
-
-  return NS_ERROR_FAILURE;
-}
 
 NS_IMPL_ISUPPORTS1(MacOSKeychainItem, MacOSKeychainItemInterface)
 
@@ -92,13 +81,13 @@ nsresult MacOSKeychainItem::LoadData()
       mServerName = NS_ConvertUTF8toUTF16((char*)attr.data, attr.length);
     }
     else if (attr.tag == kSecCommentItemAttr) {
-      
+      mComment = NS_ConvertUTF8toUTF16((char*)attr.data, attr.length);
     }
     else if (attr.tag == kSecSecurityDomainItemAttr) {
       mSecurityDomain = NS_ConvertUTF8toUTF16((char*)attr.data, attr.length);
     }
     else if (attr.tag == kRawKeychainLabelIndex || attr.tag == kSecLabelItemAttr) {
-      
+      mLabel = NS_ConvertUTF8toUTF16((char*)attr.data, attr.length);
     }
     else if (attr.tag == kSecPortItemAttr) {
       mPort = attr.data ? *((UInt16*)(attr.data)) : 0;
@@ -214,6 +203,29 @@ NS_IMETHODIMP MacOSKeychainItem::SetPassword(const nsAString & password)
   return NS_OK;
 }
 
+/* attribute AString protocol; */
+NS_IMETHODIMP MacOSKeychainItem::GetProtocol(nsAString & protocol)
+{
+  if ( IsStored() && ! mDataLoaded )
+    LoadData();
+  
+  protocol = ConvertSecProtocolToString(mProtocol);
+  
+  return NS_OK;
+}
+NS_IMETHODIMP MacOSKeychainItem::SetProtocol(const nsAString & protocol)
+{
+  SecProtocolType protocolType = ConvertStringToSecProtocol(protocol);
+  if (IsStored()) {
+    nsresult rv = SetAttribute(kSecProtocolItemAttr, (void*)&protocolType, sizeof(SecProtocolType));
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  
+  mProtocol = protocolType;
+  
+  return NS_OK;
+}
+
 /* attribute AString serverName; */
 NS_IMETHODIMP MacOSKeychainItem::GetServerName(nsAString & serverName)
 {
@@ -259,13 +271,25 @@ NS_IMETHODIMP MacOSKeychainItem::SetPort(PRUint16 port)
 }
 
 /* attribute AString comment; */
-NS_IMETHODIMP MacOSKeychainItem::GetComment(nsAString & aComment)
+NS_IMETHODIMP MacOSKeychainItem::GetComment(nsAString & comment)
 {
-    return NS_ERROR_NOT_IMPLEMENTED;
+  if ( IsStored() && ! mDataLoaded )
+    LoadData();
+  
+  comment = mComment;
+  
+  return NS_OK;
 }
-NS_IMETHODIMP MacOSKeychainItem::SetComment(const nsAString & aComment)
+NS_IMETHODIMP MacOSKeychainItem::SetComment(const nsAString & comment)
 {
-    return NS_ERROR_NOT_IMPLEMENTED;
+  if (IsStored()) {
+    nsresult rv = SetAttribute(kSecCommentItemAttr, comment);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  
+  mComment = comment;
+  
+  return NS_OK;
 }
 
 /* attribute AString securityDomain; */

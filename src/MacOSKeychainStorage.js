@@ -112,8 +112,9 @@ MacOSKeychainStorage.prototype = {
     
     var label = uri.host + " (" + login.username + ")";
     var item = this._keychainService.addInternetPasswordItem(login.username, login.password,
-                                 uri.scheme, uri.host, port, "",
-                                 login.httpRealm, "comment", label);
+                                 uri.scheme, uri.host, port, null,
+                                 login.httpRealm, null, label);
+    
   },
   
   removeLogin: function (login) {
