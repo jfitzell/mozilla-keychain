@@ -21,6 +21,9 @@ private:
   ~MacOSKeychainItem();
 
   PRBool IsStored();
+  nsresult MacOSKeychainItem::SetAttribute(SecKeychainAttrType type, PRUint16 integer);
+  nsresult MacOSKeychainItem::SetAttribute(SecKeychainAttrType type, const nsAString & string);
+  nsresult MacOSKeychainItem::SetAttribute(SecKeychainAttrType type, void *value, PRUint16 length);
 
   SecKeychainItemRef mKeychainItemRef;
   PRBool mDataLoaded;
@@ -32,6 +35,8 @@ private:
   nsString mServerName;
   PRUint16 mPort;
   nsString mSecurityDomain;
+  nsString mLabel;
+  nsString mComment;
 
 protected:
 

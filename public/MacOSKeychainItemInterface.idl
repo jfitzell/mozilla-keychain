@@ -9,7 +9,7 @@ interface MacOSKeychainItemInterface : nsISupports {
     attribute AString comment;
     attribute AString securityDomain;
     attribute AString label;
-    attribute short port;
+    attribute unsigned short port;
     // protocol
     // authenticationType
     

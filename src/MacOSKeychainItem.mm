@@ -144,6 +144,36 @@ nsresult MacOSKeychainItem::LoadPassword()
   return NS_OK;
 }
 
+nsresult MacOSKeychainItem::SetAttribute(SecKeychainAttrType type, PRUint16 integer)
+{
+  return SetAttribute(type, (void*)&integer, sizeof(PRUint16));
+}
+
+nsresult MacOSKeychainItem::SetAttribute(SecKeychainAttrType type, const nsAString & string)
+{
+  nsCAutoString stringUTF8 = NS_ConvertUTF16toUTF8(string);
+  char *stringData;
+  NS_CStringGetMutableData(stringUTF8, PR_UINT32_MAX, &stringData);
+  return SetAttribute(type, (void*)stringData, stringUTF8.Length());
+}
+
+nsresult MacOSKeychainItem::SetAttribute(SecKeychainAttrType type, void *value, PRUint16 length)
+{
+  if (! IsStored())
+    return NS_ERROR_FAILURE;
+  
+  SecKeychainAttribute attribute;
+  attribute.tag = type;
+  attribute.data = value;
+  attribute.length = length;
+  SecKeychainAttributeList attributeList;
+  attributeList.count = 1;
+  attributeList.attr = &attribute;
+  OSStatus oss = SecKeychainItemModifyAttributesAndData(mKeychainItemRef,
+                                                        &attributeList, 0, NULL);
+  return ConvertOSStatus(oss);
+}
+
 /**
  *  MacOSKeychainItemInterface implementation
  *
@@ -196,25 +226,37 @@ NS_IMETHODIMP MacOSKeychainItem::GetServerName(nsAString & serverName)
 }
 NS_IMETHODIMP MacOSKeychainItem::SetServerName(const nsAString & serverName)
 {
+  if (IsStored()) {
+    nsresult rv = SetAttribute(kSecServerItemAttr, serverName);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  
   mServerName = serverName;
   
   return NS_OK;
 }
 
 /* attribute short port; */
-NS_IMETHODIMP MacOSKeychainItem::GetPort(PRInt16 *aPort)
+NS_IMETHODIMP MacOSKeychainItem::GetPort(PRUint16 *port)
 {
-    *aPort = mPort;
+  if ( IsStored() && ! mDataLoaded )
+    LoadData();
     
-    return NS_OK;
+  *port = mPort;
+    
+  return NS_OK;
 }
-NS_IMETHODIMP MacOSKeychainItem::SetPort(PRInt16 aPort)
+NS_IMETHODIMP MacOSKeychainItem::SetPort(PRUint16 port)
 {
-    mPort = aPort;
+  if (IsStored()) {
+    nsresult rv = SetAttribute(kSecPortItemAttr, port);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  
+  mPort = port;
     
-    return NS_OK;
+  return NS_OK;
 }
-
 
 /* attribute AString comment; */
 NS_IMETHODIMP MacOSKeychainItem::GetComment(nsAString & aComment)
@@ -238,19 +280,36 @@ NS_IMETHODIMP MacOSKeychainItem::GetSecurityDomain(nsAString & securityDomain)
 }
 NS_IMETHODIMP MacOSKeychainItem::SetSecurityDomain(const nsAString & securityDomain)
 {
+  if (IsStored()) {
+    nsresult rv = SetAttribute(kSecSecurityDomainItemAttr, securityDomain);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  
   mSecurityDomain = securityDomain;
   
   return NS_OK;
 }
 
 /* attribute AString label; */
-NS_IMETHODIMP MacOSKeychainItem::GetLabel(nsAString & aLabel)
+NS_IMETHODIMP MacOSKeychainItem::GetLabel(nsAString & label)
 {
-    return NS_ERROR_NOT_IMPLEMENTED;
+  if ( IsStored() && ! mDataLoaded )
+    LoadData();
+  
+  label = mLabel;
+  
+  return NS_OK;
 }
-NS_IMETHODIMP MacOSKeychainItem::SetLabel(const nsAString & aLabel)
+NS_IMETHODIMP MacOSKeychainItem::SetLabel(const nsAString & label)
 {
-    return NS_ERROR_NOT_IMPLEMENTED;
+  if (IsStored()) {
+    nsresult rv = SetAttribute(kRawKeychainLabelIndex, label);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  
+  mLabel = label;
+  
+  return NS_OK;
 }
 
 /* void delete (); */

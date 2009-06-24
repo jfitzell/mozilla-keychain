@@ -82,8 +82,6 @@ MacOSKeychainService::AddInternetPasswordItem(const nsAString & accountName,
   nsCAutoString serverNameUTF8		= NS_ConvertUTF16toUTF8(serverName);
   nsCAutoString pathUTF8			= NS_ConvertUTF16toUTF8(path);
   nsCAutoString securityDomainUTF8	= NS_ConvertUTF16toUTF8(securityDomain);
-  nsCAutoString commentUTF8			= NS_ConvertUTF16toUTF8(comment);
-  nsCAutoString labelUTF8			= NS_ConvertUTF16toUTF8(label);
   
   SecProtocolType protocolType		= ConvertStringToSecProtocol(protocol);
   SecAuthenticationType authenticationType = kSecAuthenticationTypeHTTPBasic;
@@ -99,17 +97,28 @@ MacOSKeychainService::AddInternetPasswordItem(const nsAString & accountName,
                          passwordUTF8.Length(), passwordUTF8.get(),
                          &keychainItemRef);
   
+  nsresult rv = ConvertOSStatus(oss);
+  NS_ENSURE_SUCCESS(rv, rv);
+  
+  nsCOMPtr<MacOSKeychainItem> item = do_CreateInstance(MACOSKEYCHAINITEM_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+  item->InitWithRef(keychainItemRef);
+  NS_ENSURE_SUCCESS(rv, rv);
+  
   if (_retval) {
-    nsresult rv;
-    nsCOMPtr<MacOSKeychainItem> item = do_CreateInstance(MACOSKEYCHAINITEM_CONTRACTID, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-    item->InitWithRef(keychainItemRef);
-    NS_ENSURE_SUCCESS(rv, rv);
     NS_ADDREF(item);
     *_retval = item;
   }
   
-  return ConvertOSStatus(oss);
+  if (! label.IsVoid()) {
+    rv = item->SetLabel(label);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  
+  //rv = item->SetComment(comment);
+  //NS_ENSURE_SUCCESS(rv, rv);
+  
+  return NS_OK;
 }
 
 NS_IMETHODIMP
