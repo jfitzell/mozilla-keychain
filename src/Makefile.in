@@ -24,10 +24,6 @@ EXTRA_COMPONENTS = \
 	MacOSKeychainStorage.js \
 	$(NULL)
 
-#CMSRCS += \
-#	KeychainItem.m \
-#	$(NULL)
-
 CMMSRCS += \
 	MacOSKeychainService.mm \
 	MacOSKeychainItem.mm \
