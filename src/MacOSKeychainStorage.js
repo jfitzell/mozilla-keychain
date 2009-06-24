@@ -25,7 +25,7 @@ MacOSKeychainStorage.prototype = {
   _debug       : false, // mirrors signon.debug
   _nsLoginInfo : null, // Constructor for nsILoginInfo implementation
   _keychainService : null, // The MacOSKeychainService
-  _legacyStorage : null, // An instance of the legacy storage component
+  _mozillaStorage : null, // An instance of the mozilla storage component
   
   __logService : null,
   get _logService() {
@@ -36,15 +36,15 @@ MacOSKeychainStorage.prototype = {
   },
   
   
-  _initLegacyStorage: function () {
-    this._legacyStorage = Cc["@mozilla.org/login-manager/storage/legacy;1"].
+  _initMozillaStorage: function () {
+    this._mozillaStorage = Cc["@mozilla.org/login-manager/storage/mozStorage;1"].
                             createInstance(Ci.nsILoginManagerStorage);
      
     try {
-      this._legacyStorage.init();
+      this._mozillaStorage.init();
     } catch (e) {
-      this.log("Initialization of legacy storage component failed: " + e);
-      this._legacyStorage = null;
+      this.log("Initialization of mozilla login storage component failed: " + e);
+      this._mozillaStorage = null;
       throw e;
     }
   },
@@ -89,7 +89,7 @@ MacOSKeychainStorage.prototype = {
     this._nsLoginInfo = new Components.Constructor(
         "@mozilla.org/login-manager/loginInfo;1", Ci.nsILoginInfo);
     
-    this._initLegacyStorage();
+    this._initMozillaStorage();
     
     this._keychainService = Cc["@fitzell.ca/macos-keychain/keychainService;1"].
                               getService(Ci.MacOSKeychainServiceInterface);
@@ -104,7 +104,7 @@ MacOSKeychainStorage.prototype = {
   
   addLogin: function (login) {
     this.log("Adding login: " + login);
-    //return this._legacyStorage.addLogin(login);
+    //return this._mozillaStorage.addLogin(login);
     var uri = this._uri(login.hostname);
     var port = uri.port;
     if (port == -1) // -1 indicates default port for the protocol
@@ -117,17 +117,17 @@ MacOSKeychainStorage.prototype = {
   
   removeLogin: function (login) {
     this.log("Removing login: " + login);
-    return this._legacyStorage.removeLogin(login);
+    return this._mozillaStorage.removeLogin(login);
   },
   
   modifyLogin: function (oldLogin, newLogin) {
     this.log("Modifying oldLogin: " + oldLogin + " newLogin: " + newLogin);
-    return this._legacyStorage.modifyLogin(oldLogin, newLogin);
+    return this._mozillaStorage.modifyLogin(oldLogin, newLogin);
   },
   
   getAllLogins: function (count) {
     this.log("Getting all logins");
-    //return this._legacyStorage.getAllLogins(count);
+    //return this._mozillaStorage.getAllLogins(count);
     
     // TODO: This is only an approximation because findLogins will never return both form and
     //   basic auth logins at the same time.
@@ -136,27 +136,27 @@ MacOSKeychainStorage.prototype = {
   
   removeAllLogins: function () {
     this.log("Removing all logins");
-    return this._legacyStorage.removeAllLogins();
+    return this._mozillaStorage.removeAllLogins();
   },
   
   getAllDisabledHosts: function (count) {
     this.log("Getting all disabled hosts");
-    return this._legacyStorage.getAllDisabledHosts(count);
+    return this._mozillaStorage.getAllDisabledHosts(count);
   },
   
   getLoginSavingEnabled: function (hostname) {
     this.log("Checking whether logins can be saved for: " + hostname);
-    return this._legacyStorage.getLoginSavingEnabled(hostname);
+    return this._mozillaStorage.getLoginSavingEnabled(hostname);
   },
   
   setLoginSavingEnabled: function (hostname, enabled) {
     this.log("Setting login saving for: " + hostname + " to: " + enabled);
-    return this._legacyStorage.setLoginSavingEnabled(hostname, enabled);
+    return this._mozillaStorage.setLoginSavingEnabled(hostname, enabled);
   },
   
   findLogins: function (count, hostname, formSubmitURL, httpRealm) {
     this.log("Finding logins [" + hostname + "," + formSubmitURL + "," + httpRealm + "]");
-    //return this._legacyStorage.findLogins(count, hostname, formSubmitURL, httpRealm);
+    //return this._mozillaStorage.findLogins(count, hostname, formSubmitURL, httpRealm);
     
     var scheme = null;
     var host = null;
@@ -186,7 +186,7 @@ this.log(scheme + ", " + host + ", " + port + ", " + httpRealm);
   
   countLogins: function MOSK_countLogins(hostname, formSubmitURL, httpRealm) {
     this.log("Counting logins [" + hostname + "," + formSubmitURL + "," + httpRealm + "]");
-    //return this._legacyStorage.countLogins(hostname, formSubmitURL, httpRealm);
+    //return this._mozillaStorage.countLogins(hostname, formSubmitURL, httpRealm);
     
     var count = {};
     this.findLogins(count, hostname, formSubmitURL, httpRealm);
