@@ -11,7 +11,7 @@
 // Once we are 10.5+, we can just use kSecLabelItemAttr instead.
 static const unsigned int kRawKeychainLabelIndex = 7;
 
-NS_IMPL_ISUPPORTS1(MacOSKeychainItem, MacOSKeychainItemInterface)
+NS_IMPL_ISUPPORTS1(MacOSKeychainItem, IMacOSKeychainItem)
 
 MacOSKeychainItem::MacOSKeychainItem()
 {

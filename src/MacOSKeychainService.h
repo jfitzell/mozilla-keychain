@@ -1,11 +1,11 @@
 #include "MacOSKeychainModule.h"
-#include "MacOSKeychainServiceInterface.h"
+#include "IMacOSKeychainService.h"
 
-class MacOSKeychainService : public MacOSKeychainServiceInterface
+class MacOSKeychainService : public IMacOSKeychainService
 {
 public:
   NS_DECL_ISUPPORTS
-  NS_DECL_MACOSKEYCHAINSERVICEINTERFACE
+  NS_DECL_IMACOSKEYCHAINSERVICE
 
   MacOSKeychainService();
 

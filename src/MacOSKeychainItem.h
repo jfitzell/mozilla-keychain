@@ -1,15 +1,15 @@
 #include "MacOSKeychainModule.h"
-#include "MacOSKeychainItemInterface.h"
+#include "IMacOSKeychainItem.h"
 
 #import <Security/Security.h>
 
 #include "nsStringAPI.h"
 
-class MacOSKeychainItem : public MacOSKeychainItemInterface
+class MacOSKeychainItem : public IMacOSKeychainItem
 {
 public:
   NS_DECL_ISUPPORTS
-  NS_DECL_MACOSKEYCHAINITEMINTERFACE
+  NS_DECL_IMACOSKEYCHAINITEM
 
   MacOSKeychainItem();
   

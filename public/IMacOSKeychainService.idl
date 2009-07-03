@@ -1,12 +1,12 @@
 #include "nsISupports.idl"
 
-interface MacOSKeychainItemInterface;
+interface IMacOSKeychainItem;
 interface nsIArray;
 
 [scriptable, uuid(76f4a95d-4ede-4185-a8cd-34abf996cb84)]
 
-interface MacOSKeychainServiceInterface : nsISupports {
-    MacOSKeychainItemInterface addInternetPasswordItem(in AString accountName,
+interface IMacOSKeychainService : nsISupports {
+    IMacOSKeychainItem addInternetPasswordItem(in AString accountName,
                          in AString password,
                          in AString protocol,
                          in AString serverName,

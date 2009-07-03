@@ -8,11 +8,11 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(MacOSKeychainItem);
 static const nsModuleComponentInfo components[] =
 {
   { "Mac OS Keychain Service",
-    MACOSKEYCHAINSERVICEINTERFACE_IID,
+    IMACOSKEYCHAINSERVICE_IID,
     MACOSKEYCHAINSERVICE_CONTRACTID,
     MacOSKeychainServiceConstructor },
   { "Mac OS Keychain Item",
-    MACOSKEYCHAINITEMINTERFACE_IID,
+    IMACOSKEYCHAINITEM_IID,
     MACOSKEYCHAINITEM_CONTRACTID,
     MacOSKeychainItemConstructor },
 };

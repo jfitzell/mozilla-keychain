@@ -9,7 +9,7 @@
 #include "MacOSKeychainUtils.h"
 #include "MacOSKeychainItem.h"
 
-NS_IMPL_ISUPPORTS1(MacOSKeychainService, MacOSKeychainServiceInterface)
+NS_IMPL_ISUPPORTS1(MacOSKeychainService, IMacOSKeychainService)
 
 MacOSKeychainService::MacOSKeychainService()
 {
@@ -31,7 +31,7 @@ MacOSKeychainService::AddInternetPasswordItem(const nsAString & accountName,
                                       const nsAString & securityDomain,
                                       const nsAString & comment,
                                       const nsAString & label,
-                                      MacOSKeychainItemInterface **_retval NS_OUTPARAM)
+                                      IMacOSKeychainItem **_retval NS_OUTPARAM)
 {
   if (_retval)
     *_retval = nsnull;

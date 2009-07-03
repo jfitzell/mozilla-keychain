@@ -2,7 +2,7 @@
 
 [scriptable, uuid(c45fa464-7a67-485d-92b9-3d2fdf66cd3c)]
 
-interface MacOSKeychainItemInterface : nsISupports {
+interface IMacOSKeychainItem : nsISupports {
     attribute AString accountName;
     attribute AString password;
     attribute AString protocol;

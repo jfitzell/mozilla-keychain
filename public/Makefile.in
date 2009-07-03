@@ -10,8 +10,8 @@ XPIDL_MODULE	= macos-keychain
 XPI_NAME		= macos-keychain
 
 XPIDLSRCS = \
-		MacOSKeychainItemInterface.idl \
-		MacOSKeychainServiceInterface.idl \
+		IMacOSKeychainItem.idl \
+		IMacOSKeychainService.idl \
 		$(NULL)
 
 EXPORTS = \
