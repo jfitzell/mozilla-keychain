@@ -50,20 +50,62 @@ MacOSKeychainStorage.prototype = {
   },
   
   _convertKeychainItemToLoginInfo: function (item) {
+    this.log("_convertKeychainItemToLoginInfo()");
     var info = new this._nsLoginInfo();
     
-    info.init(item.serverName,
-              "", "",
+    //TODO: need to add the protocol and port into the hostname field here
+    var uri = this._uri(item.protocol + "://" + item.serverName + (item.port == 0 ? "" : ":"+item.port));
+    this.log("Parsed URI: " + uri.spec);
+    info.init(uri.spec,
+              null/*formSubmitUrl*/, item.securityDomain,
               item.accountName, item.password,
-              "", "");
+              null/*usernameField*/, null/*passwordField*/);
     
     return info;
   },
   
-  _uri : function (uriString) {
+  _findKeychainItemForLoginInfo: function (login) {
+    this.log("_findKeychainItemForLoginInfo()");
+    this.log("Unparsed hostname: " + login.hostname);
+    var [scheme, host, port] = this._splitLoginInfoHostname(login.hostname);
+    this.log("Calling findInternetPasswordItems with protocol: " + scheme
+                                              + " serverName: " + host
+                                              + " port: " + port
+                                              + " securityDomain: " + login.httpRealm);
+
+    var items = this._keychainService.findInternetPasswordItems(null /*accountName*/,
+                                                    scheme, host, port, login.httpRealm);
+    var enumerator = items.enumerate();
+    if ( enumerator.hasMoreElements() ) {
+      this.log("Items found: " + items.length + " (returning first item)");
+      var item = enumerator.getNext().QueryInterface(Ci.IMacOSKeychainItem);
+      return item;
+    }
+    this.log("No matching items found.");
+    
+    return null;
+  },
+  
+  _uri: function (uriString) {
     var ios = Components.classes["@mozilla.org/network/io-service;1"].
                                 getService(Components.interfaces.nsIIOService);
     return ios.newURI(uriString, null, null);
+  },
+  
+  _splitLoginInfoHostname: function (hostname) {
+    var scheme = null;
+    var host = null;
+    var port = null;
+    if (hostname) {
+      var uri = this._uri(hostname);
+      scheme = uri.scheme;
+      host = uri.host;
+      port = uri.port;
+      if (port == -1)
+        port = null;
+    }
+    
+    return [scheme, host, port];
   },
   
   log: function (message) {
@@ -92,7 +134,7 @@ MacOSKeychainStorage.prototype = {
     this._initMozillaStorage();
     
     this._keychainService = Cc["@fitzell.ca/macos-keychain/keychainService;1"].
-                              getService(Ci.MacOSKeychainServiceInterface);
+                              getService(Ci.IMacOSKeychainService);
     
     //this._keychainService.addKeychainItem("localhost", "/my/path", "jf", "foo", 'https', 8080, "none", "sec domain", "label");
   },
@@ -111,13 +153,16 @@ MacOSKeychainStorage.prototype = {
       port = null;
     
     var item = this._keychainService.addInternetPasswordItem(login.username, login.password,
-                                 uri.scheme, uri.host, port, null,
-                                 login.httpRealm, null, null);
+                                 uri.scheme, uri.host, port, null /*path*/,
+                                 login.httpRealm, null /*comment*/, null /*label*/);
   },
   
   removeLogin: function (login) {
     this.log("Removing login: " + login);
-    return this._mozillaStorage.removeLogin(login);
+    //return this._mozillaStorage.removeLogin(login);
+    var item = this._findKeychainItemForLoginInfo(login);
+    if (item)
+      item.delete();
   },
   
   modifyLogin: function (oldLogin, newLogin) {
@@ -136,7 +181,16 @@ MacOSKeychainStorage.prototype = {
   
   removeAllLogins: function () {
     this.log("Removing all logins");
-    return this._mozillaStorage.removeAllLogins();
+    //return this._mozillaStorage.removeAllLogins();
+    var items = this._keychainService.findInternetPasswordItems(null /*accountName*/,
+                                                          scheme, host, port, httpRealm);
+    var enumerator = items.enumerate();
+    var logins = new Array();
+    while ( enumerator.hasMoreElements() ) {
+      var item = enumerator.getNext().QueryInterface(Ci.IMacOSKeychainItem);
+      logins.push(this._convertKeychainItemToLoginInfo(item));
+      this.log("domain: " + item.securityDomain);
+    }
   },
   
   getAllDisabledHosts: function (count) {
@@ -158,24 +212,15 @@ MacOSKeychainStorage.prototype = {
     this.log("Finding logins [" + hostname + "," + formSubmitURL + "," + httpRealm + "]");
     //return this._mozillaStorage.findLogins(count, hostname, formSubmitURL, httpRealm);
     
-    var scheme = null;
-    var host = null;
-    var port = null;
-    if (hostname) {
-      var uri = this._uri(hostname);
-      scheme = uri.scheme;
-      host = uri.host;
-      port = uri.port;
-      if (port == -1)
-        port = null;
-    }
+    var [scheme, host, port] = this._splitLoginInfoHostname(hostname);
 
 this.log(scheme + ", " + host + ", " + port + ", " + httpRealm);
-    var items = this._keychainService.findInternetPasswordItems(null, scheme, host, port, httpRealm);
+    var items = this._keychainService.findInternetPasswordItems(null /*accountName*/,
+                                                         scheme, host, port, httpRealm);
     var enumerator = items.enumerate();
     var logins = new Array();
     while ( enumerator.hasMoreElements() ) {
-      var item = enumerator.getNext().QueryInterface(Ci.MacOSKeychainItemInterface);
+      var item = enumerator.getNext().QueryInterface(Ci.IMacOSKeychainItem);
       logins.push(this._convertKeychainItemToLoginInfo(item));
       this.log("domain: " + item.securityDomain);
     }
@@ -184,7 +229,7 @@ this.log(scheme + ", " + host + ", " + port + ", " + httpRealm);
     return logins;
   },
   
-  countLogins: function MOSK_countLogins(hostname, formSubmitURL, httpRealm) {
+  countLogins: function (hostname, formSubmitURL, httpRealm) {
     this.log("Counting logins [" + hostname + "," + formSubmitURL + "," + httpRealm + "]");
     //return this._mozillaStorage.countLogins(hostname, formSubmitURL, httpRealm);
     
