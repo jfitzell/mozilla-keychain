@@ -73,7 +73,7 @@ MacOSKeychainStorage.prototype = {
                                               + " port: " + port
                                               + " securityDomain: " + login.httpRealm);
 
-    var items = this._keychainService.findInternetPasswordItems(null /*accountName*/,
+    var items = this._keychainService.findInternetPasswordItems(login.username,
                                                     scheme, host, port, login.httpRealm);
     var enumerator = items.enumerate();
     if ( enumerator.hasMoreElements() ) {
