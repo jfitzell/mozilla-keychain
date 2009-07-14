@@ -35,7 +35,10 @@ MacOSKeychainStorage.prototype = {
     return this.__logService;
   },
   
-  
+  /**
+   * Initialize the default mozilla storage enging for login info. This is used to
+   * fall through API methods that are not implemented in the Mac OS Keychain.
+   */
   _initMozillaStorage: function () {
     this._mozillaStorage = Cc["@mozilla.org/login-manager/storage/mozStorage;1"].
                             createInstance(Ci.nsILoginManagerStorage);
@@ -49,12 +52,15 @@ MacOSKeychainStorage.prototype = {
     }
   },
   
+  /**
+   * Create and initialize a new nsILoginInfo with the data in the provided Keychain Item.
+   */
   _convertKeychainItemToLoginInfo: function (item) {
     this.log("_convertKeychainItemToLoginInfo()");
     var info = new this._nsLoginInfo();
     
-    //TODO: need to add the protocol and port into the hostname field here
-    var uri = this._uri(item.protocol + "://" + item.serverName + (item.port == 0 ? "" : ":"+item.port));
+    var uri = this._uri(item.protocol + "://" + item.serverName
+                        + (item.port == 0 ? "" : ":"+item.port));
     this.log("Parsed URI: " + uri.spec);
     info.init(uri.spec,
               null/*formSubmitUrl*/, item.securityDomain,
@@ -64,6 +70,11 @@ MacOSKeychainStorage.prototype = {
     return info;
   },
   
+  /**
+   * Search for and return a Keychain Item that matches the data in the provided
+   * nsILoginInfo object. If multiple matches are found, the first is returned. If none is
+   * found, null is returned.
+   */
   _findKeychainItemForLoginInfo: function (login) {
     this.log("_findKeychainItemForLoginInfo()");
     this.log("Unparsed hostname: " + login.hostname);
@@ -86,12 +97,21 @@ MacOSKeychainStorage.prototype = {
     return null;
   },
   
+  /**
+   * Return a new URI object for the given string
+   */
   _uri: function (uriString) {
     var ios = Components.classes["@mozilla.org/network/io-service;1"].
                                 getService(Components.interfaces.nsIIOService);
     return ios.newURI(uriString, null, null);
   },
   
+  /**
+   * The hostname field in nsILoginInfo contains the URI scheme, hostname, and port.
+   * This function takes an appropriately formatted string and returns a three-element
+   * array containing the scheme, hostname, and port. If any of the values is missing,
+   * null is provided for that position.
+   */
   _splitLoginInfoHostname: function (hostname) {
     var scheme = null;
     var host = null;
@@ -108,6 +128,9 @@ MacOSKeychainStorage.prototype = {
     return [scheme, host, port];
   },
   
+  /**
+   * Log a debug message if debugging is turned on via the signon.debug preference.
+   */
   log: function (message) {
     if (!this._debug)
       return;
