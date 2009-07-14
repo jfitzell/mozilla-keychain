@@ -238,13 +238,14 @@ MacOSKeychainStorage.prototype = {
     
     var [scheme, host, port] = this._splitLoginInfoHostname(login.hostname);
     
-    // *** TODO: comment (default) and label ***
+    var label = host + " (" + login.username + ")";
+    // *** TODO: comment (default) ***
     // *** TODO: path? ***
     // *** TODO: form or digest auth type ***
     
     var item = this._keychainService.addInternetPasswordItem(login.username, login.password,
                                  scheme, host, port, null /*path*/,
-                                 login.httpRealm, null /*comment*/, null /*label*/);
+                                 login.httpRealm, null /*comment*/, label);
   },
   
   removeLogin: function (login) {
