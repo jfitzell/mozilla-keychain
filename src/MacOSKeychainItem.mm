@@ -13,11 +13,44 @@ static const unsigned int kRawKeychainLabelIndex = 7;
 
 NS_IMPL_ISUPPORTS1(MacOSKeychainItem, IMacOSKeychainItem)
 
+PRUint16
+MacOSKeychainItem::ConvertFromSecAuthenticationType(SecAuthenticationType authType)
+{
+  switch (authType) {
+    case nsnull:
+      return nsnull;
+    case kSecAuthenticationTypeHTMLForm:
+      return IMacOSKeychainItem::AuthTypeHTMLForm;
+    case kSecAuthenticationTypeHTTPBasic:
+      return IMacOSKeychainItem::AuthTypeHTTPBasic;
+    case kSecAuthenticationTypeDefault:
+    default:
+      return IMacOSKeychainItem::AuthTypeDefault;
+  }
+}
+
+SecAuthenticationType
+MacOSKeychainItem::ConvertToSecAuthenticationType(PRUint16 authTypeInt)
+{
+  switch (authTypeInt) {
+    case nsnull:
+      return nsnull;
+    case IMacOSKeychainItem::AuthTypeHTMLForm:
+      return kSecAuthenticationTypeHTMLForm;
+    case IMacOSKeychainItem::AuthTypeHTTPBasic:
+      return kSecAuthenticationTypeHTTPBasic;
+    case IMacOSKeychainItem::AuthTypeDefault:
+    default:
+      return kSecAuthenticationTypeDefault;
+  }
+}
+
 MacOSKeychainItem::MacOSKeychainItem()
 {
   mDataLoaded = PR_FALSE;
   mPasswordLoaded = PR_FALSE;
   mPort = 0;
+  mAuthenticationType = kSecAuthenticationTypeDefault;
 }
 
 MacOSKeychainItem::~MacOSKeychainItem()
@@ -59,14 +92,14 @@ nsresult MacOSKeychainItem::LoadData()
   tags[8] = kRawKeychainLabelIndex;
   attrInfo.count = sizeof(tags)/sizeof(UInt32);
   attrInfo.tag = tags;
-  attrInfo.format = NULL;
+  attrInfo.format = nsnull;
 
   SecKeychainAttributeList *attrList;
   OSStatus result = SecKeychainItemCopyAttributesAndData(mKeychainItemRef, &attrInfo,
-                                                         NULL, &attrList, NULL, NULL);
+                                                         nsnull, &attrList, nsnull, nsnull);
   if (result != noErr) {
     if (attrList)
-      SecKeychainItemFreeAttributesAndData(attrList, NULL);
+      SecKeychainItemFreeAttributesAndData(attrList, nsnull);
     
     return ConvertOSStatus(result);
   }
@@ -96,13 +129,13 @@ nsresult MacOSKeychainItem::LoadData()
       mProtocol = attr.data ? *((SecProtocolType*)(attr.data)) : 0;
     }
     else if (attr.tag == kSecAuthenticationTypeItemAttr) {
-      //mAuthenticationType = attr.data ? *((SecAuthenticationType*)(attr.data)) : 0;
+      mAuthenticationType = attr.data ? *((SecAuthenticationType*)(attr.data)) : 0;
     }
     else if (attr.tag == kSecCreatorItemAttr) {
       //mCreator = attr.data ? *((OSType*)(attr.data)) : 0;
     }
   }
-  SecKeychainItemFreeAttributesAndData(attrList, NULL);
+  SecKeychainItemFreeAttributesAndData(attrList, nsnull);
   mDataLoaded = PR_TRUE;
   
   return NS_OK;
@@ -114,12 +147,12 @@ nsresult MacOSKeychainItem::LoadPassword()
     return NS_ERROR_FAILURE;
   UInt32 passwordLength;
   char* passwordData;
-  OSStatus rv = SecKeychainItemCopyAttributesAndData(mKeychainItemRef, NULL, NULL, NULL,
+  OSStatus rv = SecKeychainItemCopyAttributesAndData(mKeychainItemRef, nsnull, nsnull, nsnull,
                                                     &passwordLength, (void**)(&passwordData));
   
   if (rv == noErr) {
     mPassword.Assign(NS_ConvertUTF8toUTF16(passwordData, passwordLength));
-    SecKeychainItemFreeAttributesAndData(NULL, (void*)passwordData);
+    SecKeychainItemFreeAttributesAndData(nsnull, (void*)passwordData);
   }
   else {
     // Being denied access isn't a failure case, so don't log it.
@@ -159,7 +192,7 @@ nsresult MacOSKeychainItem::SetAttribute(SecKeychainAttrType type, void *value, 
   attributeList.count = 1;
   attributeList.attr = &attribute;
   OSStatus oss = SecKeychainItemModifyAttributesAndData(mKeychainItemRef,
-                                                        &attributeList, 0, NULL);
+                                                        &attributeList, 0, nsnull);
   return ConvertOSStatus(oss);
 }
 
@@ -363,6 +396,31 @@ NS_IMETHODIMP MacOSKeychainItem::SetLabel(const nsAString & label)
   
   return NS_OK;
 }
+
+/* attribute unsigned short authenticationType; */
+NS_IMETHODIMP MacOSKeychainItem::GetAuthenticationType(PRUint16 *authenticationType)
+{
+  if ( IsStored() && ! mDataLoaded )
+    LoadData();
+    
+  *authenticationType = MacOSKeychainItem::ConvertFromSecAuthenticationType(mAuthenticationType);
+  
+  return NS_OK;
+}
+NS_IMETHODIMP MacOSKeychainItem::SetAuthenticationType(PRUint16 authenticationType)
+{
+  SecAuthenticationType type = MacOSKeychainItem::ConvertToSecAuthenticationType(authenticationType);
+  if (IsStored()) {
+    nsresult rv = SetAttribute(kSecAuthenticationTypeItemAttr,
+                               (void*)&type,
+                               sizeof(SecAuthenticationType));
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  mAuthenticationType = type;
+  
+  return NS_OK;
+}
+
 
 /* void delete (); */
 NS_IMETHODIMP MacOSKeychainItem::Delete()

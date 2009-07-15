@@ -12,6 +12,7 @@ interface IMacOSKeychainService : nsISupports {
                          in AString serverName,
                          in unsigned short port,
                          in AString path,
+                         in unsigned short authTypeEnum,
                          in AString securityDomain,
                          in AString comment,
                          in AString label);
@@ -20,14 +21,6 @@ interface IMacOSKeychainService : nsISupports {
                          in AString protocol,
                          in AString serverName,
                          in unsigned short port,
+                         in unsigned short authTypeEnum,
                          in AString securityDomain);
-    
-    /*attribute AString passwordField;
-    void init(in AString aHostname,
-              in AString aFormSubmitURL, in AString aHttpRealm,
-              in AString aUsername,      in AString aPassword,
-              in AString aUsernameField, in AString aPasswordField);
-    boolean equals(in nsILoginInfo aLoginInfo);
-    boolean matches(in nsILoginInfo aLoginInfo, in boolean ignorePassword);
-    nsILoginInfo clone();*/
 };

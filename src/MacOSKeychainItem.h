@@ -14,19 +14,21 @@ public:
   MacOSKeychainItem();
   
   void InitWithRef(SecKeychainItemRef ref);
-  nsresult MacOSKeychainItem::LoadData();
-  nsresult MacOSKeychainItem::LoadPassword();
+  nsresult LoadData();
+  nsresult LoadPassword();
 
-  nsresult MacOSKeychainItem::SetDefaultLabel();
+  nsresult SetDefaultLabel();
 
+  static PRUint16 ConvertFromSecAuthenticationType(SecAuthenticationType authType);
+  static SecAuthenticationType ConvertToSecAuthenticationType(PRUint16 authTypeInt);
 
 private:
   ~MacOSKeychainItem();
 
   PRBool IsStored();
-  nsresult MacOSKeychainItem::SetAttribute(SecKeychainAttrType type, PRUint16 integer);
-  nsresult MacOSKeychainItem::SetAttribute(SecKeychainAttrType type, const nsAString & string);
-  nsresult MacOSKeychainItem::SetAttribute(SecKeychainAttrType type, void *value, PRUint16 length);
+  nsresult SetAttribute(SecKeychainAttrType type, PRUint16 integer);
+  nsresult SetAttribute(SecKeychainAttrType type, const nsAString & string);
+  nsresult SetAttribute(SecKeychainAttrType type, void *value, PRUint16 length);
 
   SecKeychainItemRef mKeychainItemRef;
   PRBool mDataLoaded;
@@ -40,6 +42,7 @@ private:
   nsString mSecurityDomain;
   nsString mLabel;
   nsString mComment;
+  SecAuthenticationType mAuthenticationType;
 
 protected:
 

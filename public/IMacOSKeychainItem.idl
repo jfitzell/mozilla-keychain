@@ -11,9 +11,13 @@ interface IMacOSKeychainItem : nsISupports {
     attribute AString securityDomain;
     attribute AString comment;
     attribute AString label;
-    // authenticationType
+    attribute unsigned short authenticationType;
     
     void delete();
+    
+    const unsigned short AuthTypeDefault = 1;
+    const unsigned short AuthTypeHTMLForm = 2;
+    const unsigned short AuthTypeHTTPBasic = 3;
     
     /*attribute AString passwordField;
     void init(in AString aHostname,

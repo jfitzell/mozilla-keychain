@@ -28,6 +28,7 @@ MacOSKeychainService::AddInternetPasswordItem(const nsAString & accountName,
                                       const nsAString & serverName,
                                       PRUint16 port,
                                       const nsAString & path,
+                                      const unsigned short authTypeEnum,
                                       const nsAString & securityDomain,
                                       const nsAString & comment,
                                       const nsAString & label,
@@ -43,11 +44,12 @@ MacOSKeychainService::AddInternetPasswordItem(const nsAString & accountName,
   nsCAutoString securityDomainUTF8	= NS_ConvertUTF16toUTF8(securityDomain);
   
   SecProtocolType protocolType		= ConvertStringToSecProtocol(protocol);
-  SecAuthenticationType authenticationType = kSecAuthenticationTypeDefault;
+  SecAuthenticationType authenticationType =
+      MacOSKeychainItem::ConvertToSecAuthenticationType(authTypeEnum);
   
   SecKeychainItemRef keychainItemRef;
   
-  OSStatus oss = SecKeychainAddInternetPassword(NULL,
+  OSStatus oss = SecKeychainAddInternetPassword(nsnull,
                          serverNameUTF8.Length(), serverNameUTF8.get(),
                          securityDomainUTF8.Length(), securityDomainUTF8.get(),
                          accountNameUTF8.Length(), accountNameUTF8.get(),
@@ -87,6 +89,7 @@ MacOSKeychainService::FindInternetPasswordItems(const nsAString & accountName,
                           const nsAString & protocol,
                           const nsAString & serverName,
                           PRUint16 port,
+                          const unsigned short authTypeEnum,
                           const nsAString & securityDomain,
                           nsIArray **_retval NS_OUTPARAM)
 {
@@ -112,7 +115,7 @@ MacOSKeychainService::FindInternetPasswordItems(const nsAString & accountName,
     attributes[usedAttributes].length = accountNameUTF8.Length();
     ++usedAttributes;
   }
-
+  
   SecProtocolType protocolType;
   if (! protocol.IsVoid()) {
     protocolType = ConvertStringToSecProtocol(protocol);
@@ -144,19 +147,22 @@ MacOSKeychainService::FindInternetPasswordItems(const nsAString & accountName,
     ++usedAttributes;
   }
   
-  if (port > 0) {
+  if (nsnull != port) {
     attributes[usedAttributes].tag = kSecPortItemAttr;
     attributes[usedAttributes].data = (void*)(&port);
     attributes[usedAttributes].length = sizeof(port);
     ++usedAttributes;
   }
   
-  /*if (authType) {
+  SecAuthenticationType authenticationType;
+  if (nsnull != authTypeEnum) {
+    authenticationType = MacOSKeychainItem::ConvertToSecAuthenticationType(authTypeEnum);
     attributes[usedAttributes].tag = kSecAuthenticationTypeItemAttr;
-    attributes[usedAttributes].data = (void*)(&authType);
-    attributes[usedAttributes].length = sizeof(authType);
+    attributes[usedAttributes].data = (void*)(&authenticationType);
+    attributes[usedAttributes].length = sizeof(authenticationType);
     ++usedAttributes;
   }
+  /*
   if (creator) {
     attributes[usedAttributes].tag = kSecCreatorItemAttr;
     attributes[usedAttributes].data = (void*)(&creator);
@@ -169,7 +175,7 @@ MacOSKeychainService::FindInternetPasswordItems(const nsAString & accountName,
   searchCriteria.attr = attributes;
 
   SecKeychainSearchRef searchRef;
-  OSStatus oss = SecKeychainSearchCreateFromAttributes(NULL,
+  OSStatus oss = SecKeychainSearchCreateFromAttributes(nsnull,
                                                           kSecInternetPasswordItemClass,
                                                           &searchCriteria,
                                                           &searchRef);

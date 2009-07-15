@@ -89,17 +89,18 @@ MacOSKeychainStorage.prototype = {
    * a simple array of Keychain Items.
    */
   _findInternetPasswordItems: function (accountName, protocol, serverName,
-                                        port, securityDomain) {
+                                        port, authType, securityDomain) {
     this.log("_findInternetPasswordItems["
              + " accountName:" + accountName
              + " protocol:" + protocol
              + " serverName:" + serverName
              + " port:" + port
+             + " authType:" + authType
              + " securityDomain:" + securityDomain + " ]");
 
     var items = this._keychainService.findInternetPasswordItems(accountName,
                                                 protocol, serverName, port,
-                                                securityDomain);
+                                                authType, securityDomain);
     var enumerator = items.enumerate();
     var itemArray = new Array();
     while ( enumerator.hasMoreElements() ) {
@@ -128,10 +129,13 @@ MacOSKeychainStorage.prototype = {
     
     var [scheme, host, port] = this._splitLoginInfoHostname(hostname);
     
-    // *** TODO: formSubmitURL is ignored ***
-    // *** TODO: form or digest auth type ***
+    var authType = Ci.IMacOSKeychainItem.AuthTypeDefault;
+    if (formSubmitURL)
+      authType = Ci.IMacOSKeychainItem.AuthTypeHTMLForm;
+    else if (httpRealm)
+      authType = Ci.IMacOSKeychainItem.AuthTypeHTTPBasic;
     
-    return this._findInternetPasswordItems(username, scheme, host, port, httpRealm);
+    return this._findInternetPasswordItems(username, scheme, host, port, authType, httpRealm);
   },
   
   /**
@@ -241,11 +245,19 @@ MacOSKeychainStorage.prototype = {
     var label = host + " (" + login.username + ")";
     // *** TODO: comment (default) ***
     // *** TODO: path? ***
-    // *** TODO: form or digest auth type ***
-    
+
+    var authType = Ci.IMacOSKeychainItem.AuthTypeDefault;
+    if (login.formSubmitURL)
+      authType = Ci.IMacOSKeychainItem.AuthTypeHTMLForm;
+    else if (login.httpRealm)
+      authType = Ci.IMacOSKeychainItem.AuthTypeHTTPBasic;
+
     var item = this._keychainService.addInternetPasswordItem(login.username, login.password,
                                  scheme, host, port, null /*path*/,
-                                 login.httpRealm, null /*comment*/, label);
+                                 authType, login.httpRealm,
+                                 null /*comment*/, label);
+    
+    this.log("---" + item.authenticationType);
   },
   
   removeLogin: function (login) {
@@ -275,6 +287,7 @@ MacOSKeychainStorage.prototype = {
                                                 null /*protocol*/,
                                                 null /*serverName*/, 
                                                 null /*port*/,
+                                                null /*authType*/,
                                                 null /*securityDomain*/);
     
     var logins = new Array();
@@ -294,6 +307,7 @@ MacOSKeychainStorage.prototype = {
                                                 null /*protocol*/,
                                                 null /*serverName*/, 
                                                 null /*port*/,
+                                                null /*authType*/,
                                                 null /*securityDomain*/);
     
     for ( var i in items ) {
