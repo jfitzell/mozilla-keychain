@@ -42,6 +42,7 @@ private:
   nsString mSecurityDomain;
   nsString mLabel;
   nsString mComment;
+  nsString mDescription;
   SecAuthenticationType mAuthenticationType;
 
 protected:

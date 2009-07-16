@@ -11,6 +11,7 @@ interface IMacOSKeychainItem : nsISupports {
     attribute AString securityDomain;
     attribute AString comment;
     attribute AString label;
+    attribute AString description;
     attribute unsigned short authenticationType;
     
     void delete();

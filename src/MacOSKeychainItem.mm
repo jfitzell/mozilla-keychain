@@ -80,7 +80,7 @@ nsresult MacOSKeychainItem::LoadData()
     return NS_ERROR_FAILURE;
     
   SecKeychainAttributeInfo attrInfo;
-  UInt32 tags[9];
+  UInt32 tags[10];
   tags[0] = kSecAccountItemAttr;
   tags[1] = kSecServerItemAttr;
   tags[2] = kSecPortItemAttr;
@@ -89,7 +89,8 @@ nsresult MacOSKeychainItem::LoadData()
   tags[5] = kSecSecurityDomainItemAttr;
   tags[6] = kSecCreatorItemAttr;
   tags[7] = kSecCommentItemAttr;
-  tags[8] = kRawKeychainLabelIndex;
+  tags[8] = kSecDescriptionItemAttr;
+  tags[9] = kRawKeychainLabelIndex;
   attrInfo.count = sizeof(tags)/sizeof(UInt32);
   attrInfo.tag = tags;
   attrInfo.format = nsnull;
@@ -115,6 +116,9 @@ nsresult MacOSKeychainItem::LoadData()
     }
     else if (attr.tag == kSecCommentItemAttr) {
       mComment = NS_ConvertUTF8toUTF16((char*)attr.data, attr.length);
+    }
+    else if (attr.tag == kSecDescriptionItemAttr) {
+      mDescription = NS_ConvertUTF8toUTF16((char*)attr.data, attr.length);
     }
     else if (attr.tag == kSecSecurityDomainItemAttr) {
       mSecurityDomain = NS_ConvertUTF8toUTF16((char*)attr.data, attr.length);
@@ -353,6 +357,27 @@ NS_IMETHODIMP MacOSKeychainItem::SetComment(const nsAString & comment)
   return NS_OK;
 }
 
+/* attribute AString description; */
+NS_IMETHODIMP MacOSKeychainItem::GetDescription(nsAString & description)
+{
+  if ( IsStored() && ! mDataLoaded )
+    LoadData();
+  
+  description = mDescription;
+  
+  return NS_OK;
+}
+NS_IMETHODIMP MacOSKeychainItem::SetDescription(const nsAString & description)
+{
+  if (IsStored()) {
+    nsresult rv = SetAttribute(kSecDescriptionItemAttr, description);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  
+  mDescription = description;
+  
+  return NS_OK;
+}
 /* attribute AString securityDomain; */
 NS_IMETHODIMP MacOSKeychainItem::GetSecurityDomain(nsAString & securityDomain)
 {

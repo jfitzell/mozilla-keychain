@@ -8,8 +8,9 @@ const Ci = Components.interfaces;
   + fall-through to mozStorage
   + store items so other browsers can access
   + allow storage of master password instead of all passwords
-  + allow setting of description via kSecDescriptionItemAttr
   + implement exception list using kSecNegativeItemAttr?
+  + set (and honor?) the item comment to "default" like Safari
+  + username field and password field could possibly be stored in the comments if needed
 */
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -84,8 +85,7 @@ MacOSKeychainStorage.prototype = {
       formSubmitURL = uri.spec;
       httpRealm = null;
     } 
-    
-    // *** TODO: can any more of these fields be completed? ***
+    this.log(item.description);
     info.init(uri.spec,
               formSubmitURL, httpRealm,
               item.accountName, item.password,
@@ -268,21 +268,22 @@ MacOSKeychainStorage.prototype = {
     var [scheme, host, port] = this._splitLoginInfoHostname(login.hostname);
     
     var label = host + " (" + login.username + ")";
-    // *** TODO: comment (default) ***
-    // *** TODO: path? ***
 
     var authType = Ci.IMacOSKeychainItem.AuthTypeDefault;
-    if (login.formSubmitURL)
+    // Should we simply use "Internet password" and "Web form password" as Safari does?
+    var description = "Mozilla password";
+    if (login.formSubmitURL) {
       authType = Ci.IMacOSKeychainItem.AuthTypeHTMLForm;
-    else if (login.httpRealm)
+      description = "Mozilla form password"
+    } else if (login.httpRealm) {
       authType = Ci.IMacOSKeychainItem.AuthTypeHTTPBasic;
+    }
 
     var item = this._keychainService.addInternetPasswordItem(login.username, login.password,
                                  scheme, host, port, null /*path*/,
                                  authType, login.httpRealm,
                                  null /*comment*/, label);
-    
-    this.log("---" + item.authenticationType);
+    item.description = description;
   },
   
   removeLogin: function (login) {
