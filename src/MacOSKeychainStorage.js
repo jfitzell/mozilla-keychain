@@ -8,6 +8,8 @@ const Ci = Components.interfaces;
   + fall-through to mozStorage
   + store items so other browsers can access
   + allow storage of master password instead of all passwords
+  + allow setting of description via kSecDescriptionItemAttr
+  + implement exception list using kSecNegativeItemAttr?
 */
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -34,7 +36,6 @@ MacOSKeychainStorage.prototype = {
   _debug       : false, // mirrors signon.debug
   _nsLoginInfo : null, // Constructor for nsILoginInfo implementation
   _keychainService : null, // The MacOSKeychainService
-  _mozillaStorage : null, // An instance of the mozilla storage component
   
   __logService : null,
   get _logService() {
@@ -45,20 +46,25 @@ MacOSKeychainStorage.prototype = {
   },
   
   /**
-   * Initialize the default mozilla storage enging for login info. This is used to
-   * fall through API methods that are not implemented in the Mac OS Keychain.
+   * An instance of the mozilla storage component used to fall through API methods
+   * that are not implemented in the Mac OS Keychain.
    */
-  _initMozillaStorage: function () {
-    this._mozillaStorage = Cc["@mozilla.org/login-manager/storage/mozStorage;1"].
-                            createInstance(Ci.nsILoginManagerStorage);
+  __mozillaStorage : null,
+  get _mozillaStorage() {
+    if (!this.__mozillaStorage) {
+      this.__mozillaStorage = Cc["@mozilla.org/login-manager/storage/mozStorage;1"].
+                               createInstance(Ci.nsILoginManagerStorage);
      
-    try {
-      this._mozillaStorage.init();
-    } catch (e) {
-      this.log("Initialization of mozilla login storage component failed: " + e);
-      this._mozillaStorage = null;
-      throw e;
+      try {
+        this.__mozillaStorage.init();
+      } catch (e) {
+        this.log("Initialization of mozilla login storage component failed: " + e);
+        this.__mozillaStorage = null;
+        throw e;
+      }
     }
+    
+    return this.__mozillaStorage;
   },
   
   /**
@@ -84,7 +90,7 @@ MacOSKeychainStorage.prototype = {
               formSubmitURL, httpRealm,
               item.accountName, item.password,
               null/*usernameField*/, null/*passwordField*/);
-    this.log("  --" + info.formSubmitURL + " -- " + info.httpRealm);
+    
     return info;
   },
   
@@ -229,17 +235,30 @@ MacOSKeychainStorage.prototype = {
     this._nsLoginInfo = new Components.Constructor(
         "@mozilla.org/login-manager/loginInfo;1", Ci.nsILoginInfo);
     
-    this._initMozillaStorage();
-    
     this._keychainService = Cc["@fitzell.ca/macos-keychain/keychainService;1"].
                               getService(Ci.IMacOSKeychainService);    
   },
   
+  /**
+   * initWithFile()
+   * Just pass the filenames on to our mozilla storage instance. The filenames are kind
+   * of useless to this implementation of the storage interface so I don't know what else
+   * we'd do with them.
+   */
   initWithFile: function (aInputFile, aOutputFile) {
     this.log("initWithFile(" + aInputFile + "," + aOutputFile + ")");
-    this.init();
     
-    // *** TODO ***
+    this.__mozillaStorage = Cc["@mozilla.org/login-manager/storage/mozStorage;1"].
+                              createInstance(Ci.nsILoginManagerStorage);
+    try {
+      this.__mozillaStorage.initWithFile(aInputFile, aOutputFile);
+    } catch (e) {
+      this.log("Initialization of mozilla login storage component failed: " + e);
+      this.__mozillaStorage = null;
+      throw e;
+    }
+    
+    this.init();
   },
   
   addLogin: function (login) {
