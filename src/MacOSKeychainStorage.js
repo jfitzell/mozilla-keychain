@@ -8,9 +8,12 @@ const Ci = Components.interfaces;
   + fall-through to mozStorage
   + store items so other browsers can access
   + allow storage of master password instead of all passwords
-  + implement exception list using kSecNegativeItemAttr?
+  + implement exception list using kSecNegativeItemAttr? (but Safari doesn't use it - check for a password of " " or "" or a specific username string
   + set (and honor?) the item comment to "default" like Safari
   + username field and password field could possibly be stored in the comments if needed
+  + creator code (and only remove items created by us on remove all?)
+  + camino caches the items to avoid prompting the user again on compare of the password they entered
+  + camino searches without port or domain because safari sometimes sets neither
 */
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -85,7 +88,7 @@ MacOSKeychainStorage.prototype = {
       formSubmitURL = uri.spec;
       httpRealm = null;
     } 
-    this.log(item.description);
+    
     info.init(uri.spec,
               formSubmitURL, httpRealm,
               item.accountName, item.password,
@@ -144,8 +147,6 @@ MacOSKeychainStorage.prototype = {
     var authType = Ci.IMacOSKeychainItem.AuthTypeDefault;
     if (formSubmitURL)
       authType = Ci.IMacOSKeychainItem.AuthTypeHTMLForm;
-    else if (httpRealm)
-      authType = Ci.IMacOSKeychainItem.AuthTypeHTTPBasic;
     
     return this._findInternetPasswordItems(username, scheme, host, port, authType, httpRealm);
   },
@@ -270,20 +271,16 @@ MacOSKeychainStorage.prototype = {
     var label = host + " (" + login.username + ")";
 
     var authType = Ci.IMacOSKeychainItem.AuthTypeDefault;
-    // Should we simply use "Internet password" and "Web form password" as Safari does?
-    var description = "Mozilla password";
-    if (login.formSubmitURL) {
+    if (login.formSubmitURL)
       authType = Ci.IMacOSKeychainItem.AuthTypeHTMLForm;
-      description = "Mozilla form password"
-    } else if (login.httpRealm) {
-      authType = Ci.IMacOSKeychainItem.AuthTypeHTTPBasic;
-    }
 
     var item = this._keychainService.addInternetPasswordItem(login.username, login.password,
                                  scheme, host, port, null /*path*/,
                                  authType, login.httpRealm,
                                  null /*comment*/, label);
-    item.description = description;
+    
+    if (login.formSubmitURL)
+      item.description = "Web form password";
   },
   
   removeLogin: function (login) {
