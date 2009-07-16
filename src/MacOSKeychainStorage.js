@@ -72,13 +72,19 @@ MacOSKeychainStorage.prototype = {
                         + (item.port == 0 ? "" : ":"+item.port));
     this.log("  Parsed URI: " + uri.spec);
     
-    // *** TODO: can any more of these fields be completed? ***
+    var formSubmitURL = null;
+    var httpRealm = item.securityDomain;
+    if (Ci.IMacOSKeychainItem.AuthTypeHTMLForm == item.authenticationType) {
+      formSubmitURL = uri.spec;
+      httpRealm = null;
+    } 
     
+    // *** TODO: can any more of these fields be completed? ***
     info.init(uri.spec,
-              null/*formSubmitUrl*/, item.securityDomain,
+              formSubmitURL, httpRealm,
               item.accountName, item.password,
               null/*usernameField*/, null/*passwordField*/);
-    
+    this.log("  --" + info.formSubmitURL + " -- " + info.httpRealm);
     return info;
   },
   
