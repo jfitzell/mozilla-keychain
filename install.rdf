@@ -17,7 +17,7 @@
 	
     <!-- front-end metadata -->
     <em:name>Mac OS Keychain</em:name>
-    <em:description>Login storage using the Mac OS Keychain.</em:description>
+    <em:description>Store usernames and passwords with the Mac OS Keychain.</em:description>
     <em:creator>Julian Fitzell</em:creator>
     <em:homepageURL>http://fitzell.ca/</em:homepageURL>
   </Description>
