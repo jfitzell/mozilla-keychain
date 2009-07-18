@@ -19,6 +19,6 @@
     <em:name>Mac OS Keychain</em:name>
     <em:description>Store usernames and passwords with the Mac OS Keychain.</em:description>
     <em:creator>Julian Fitzell</em:creator>
-    <em:homepageURL>http://fitzell.ca/</em:homepageURL>
+    <em:homepageURL>http://blog.fitzell.ca/</em:homepageURL>
   </Description>
 </RDF>
