@@ -1,0 +1,8 @@
+1.0a3:
+- fixed bug that left a trailing slash on the hostname when creating LoginInfos and caused LoginManager to always prompt to save passwords
+
+1.0a2:
+- fixed a bug was causing Form logins not to be found when searching
+
+1.0a1:
+- inital alpha release

@@ -81,20 +81,29 @@ MacOSKeychainStorage.prototype = {
     var info = new this._nsLoginInfo();
     
     var uri = this._uri(item.protocol + "://" + item.serverName
-                        + (item.port == 0 ? "" : ":"+item.port));
-    this.log("  Parsed URI: " + uri.spec);
+                             + (item.port == 0 ? "" : ":"+item.port));
+    this.log("  Parsed URI: " + hostname);
+	var hostname = uri.spec.substring(0, uri.spec.length - 1);
     
     var formSubmitURL = null;
     var httpRealm = item.securityDomain;
     if (Ci.IMacOSKeychainItem.AuthTypeHTMLForm == item.authenticationType) {
-      formSubmitURL = uri.spec;
+      formSubmitURL = hostname;
       httpRealm = null;
     } 
     
-    info.init(uri.spec,
+    info.init(hostname,
               formSubmitURL, httpRealm,
               item.accountName, item.password,
               null/*usernameField*/, null/*passwordField*/);
+    
+    this.log("  hostname:" + hostname +
+             " formSubmitURL:" + formSubmitURL +
+             " httpRealm:" + httpRealm +
+             " accountName:" + item.accountName +
+             " password:" + "****" +
+             " usernameField:" + null +
+             " passwordField:" + null);
     
     return info;
   },
