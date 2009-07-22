@@ -149,7 +149,7 @@ MacOSKeychainStorage.prototype = {
     var [scheme, host, port] = this._splitLoginInfoHostname(hostname);
     
     var authType = Ci.IMacOSKeychainItem.AuthTypeDefault;
-    if (formSubmitURL)
+    if (null == httpRealm)
       authType = Ci.IMacOSKeychainItem.AuthTypeHTMLForm;
     
     return this._findInternetPasswordItems(username, scheme, host, port, authType, httpRealm);
@@ -281,7 +281,7 @@ MacOSKeychainStorage.prototype = {
     var label = host + " (" + login.username + ")";
 
     var authType = Ci.IMacOSKeychainItem.AuthTypeDefault;
-    if (login.formSubmitURL)
+    if (null == login.httpRealm)
       authType = Ci.IMacOSKeychainItem.AuthTypeHTMLForm;
 
     var item = this._keychainService.addInternetPasswordItem(login.username, login.password,
@@ -289,7 +289,7 @@ MacOSKeychainStorage.prototype = {
                                  authType, login.httpRealm,
                                  null /*comment*/, label);
     
-    if (login.formSubmitURL)
+    if (null == login.httpRealm)
       item.description = "Web form password";
   },
   
@@ -333,7 +333,7 @@ MacOSKeychainStorage.prototype = {
       
       item.securityDomain = newLoginData.httpRealm;
       
-      if (newLoginData.formSubmitURL) {
+      if (null == newLoginData.httpRealm) {
         item.description = "Web form password";
         item.authenticationType = Ci.IMacOSKeychainItem.AuthTypeHTMLForm;
       } else {
@@ -362,8 +362,8 @@ MacOSKeychainStorage.prototype = {
             
           case "httpRealm":
           case "formSubmitURL":
-            if ((prop.name == "formSubmitURL" && prop.value) ||
-                (prop.name == "httpRealm" && !prop.value)) {
+            if ((prop.name == "formSubmitURL" && null != prop.value) ||
+                (prop.name == "httpRealm" && null == prop.value)) {
               item.authenticationType = Ci.IMacOSKeychainItem.AuthTypeHTMLForm;
             } else {
               item.authenticationType = Ci.IMacOSKeychainItem.AuthTypeDefault;
