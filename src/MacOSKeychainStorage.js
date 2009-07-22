@@ -473,7 +473,7 @@ MacOSKeychainStorage.prototype = {
     var items = this._findKeychainItems(null /*username*/, hostname, formSubmitURL, httpRealm);
     // Safari seems not to store the HTTP Realm in the securityDomain field so we try
     //  the search again without it.
-    if (items.length == 0)
+    if (items.length == 0 && httpRealm != null)
       items = this._findKeychainItems(null /*username*/, hostname, formSubmitURL, null /*httpRealm*/);
       
     var logins = new Array();
