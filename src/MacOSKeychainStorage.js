@@ -112,7 +112,7 @@ MacOSKeychainStorage.prototype = {
     this.log("  hostname:" + info.hostname +
              " formSubmitURL:" + info.formSubmitURL +
              " httpRealm:" + info.httpRealm +
-             " username:" + info.usernname +
+             " username:" + info.username +
              " password:" + (info.password == null ? null : "****") +
              " usernameField:" + info.usernameField +
              " passwordField:" + info.passwordField);
