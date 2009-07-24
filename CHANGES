@@ -1,5 +1,12 @@
+1.0a4:
+- fixed bug that caused you to be prompted to save an autofilled password again
+  when the form action "hostname" was different from that of the current page
+- fixed some bugs caused by confusion between null and "" when searching for
+  logins
+
 1.0a3:
-- fixed bug that left a trailing slash on the hostname when creating LoginInfos and caused LoginManager to always prompt to save passwords
+- fixed bug that left a trailing slash on the hostname when creating LoginInfos
+  and caused LoginManager to always prompt to save passwords
 
 1.0a2:
 - fixed a bug was causing Form logins not to be found when searching

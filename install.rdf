@@ -4,7 +4,7 @@
      xmlns:em="http://www.mozilla.org/2004/em-rdf#">
   <Description about="urn:mozilla:install-manifest">
     <em:id>macos-keychain@fitzell.ca</em:id>
-    <em:version>1.0a3</em:version>
+    <em:version>1.0a4</em:version>
 	
     <em:targetApplication>
       <!-- Firefox -->

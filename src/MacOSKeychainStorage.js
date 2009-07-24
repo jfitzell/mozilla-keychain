@@ -74,7 +74,9 @@ MacOSKeychainStorage.prototype = {
 
   
   /**
-   * Create and initialize a new nsILoginInfo with the data in the provided Keychain Item.
+   * Create and initialize a new nsILoginInfo with the data in the provided
+   *  Keychain Item.
+   *
    */
   _convertKeychainItemToLoginInfo: function (item) {
     this.log("_convertKeychainItemToLoginInfo[ item:" + item + " ]");
@@ -82,28 +84,38 @@ MacOSKeychainStorage.prototype = {
     
     var uri = this._uri(item.protocol + "://" + item.serverName
                              + (item.port == 0 ? "" : ":"+item.port));
-    this.log("  Parsed URI: " + hostname);
 	var hostname = uri.spec.substring(0, uri.spec.length - 1);
+    this.log("  Parsed URI: " + hostname);
     
-    var formSubmitURL = null;
-    var httpRealm = item.securityDomain;
+    var formSubmitURL, httpRealm;
     if (Ci.IMacOSKeychainItem.AuthTypeHTMLForm == item.authenticationType) {
-      formSubmitURL = hostname;
+      // nsLoginInfo.matches() allows two instances to match on the
+      //  formSubmitURL field as long as one of them is blank (but not null).
+      //  Since we have nowhere to store that field in the keychain, we take
+      //  this route.
+      formSubmitURL = "";
       httpRealm = null;
-    } 
+    } else { // non-form logins
+      formSubmitURL = null;
+      httpRealm = item.securityDomain;
+    }
     
+   // We cannot store the usernameField and passwordField. According to:
+   //  https://developer.mozilla.org/en/nsILoginInfo
+   //  they should be specify an empty string for non-form logins so that
+   //  is what we return
     info.init(hostname,
               formSubmitURL, httpRealm,
               item.accountName, item.password,
-              null/*usernameField*/, null/*passwordField*/);
+              "" /*usernameField*/, "" /*passwordField*/);
     
-    this.log("  hostname:" + hostname +
-             " formSubmitURL:" + formSubmitURL +
-             " httpRealm:" + httpRealm +
-             " accountName:" + item.accountName +
-             " password:" + "****" +
-             " usernameField:" + null +
-             " passwordField:" + null);
+    this.log("  hostname:" + info.hostname +
+             " formSubmitURL:" + info.formSubmitURL +
+             " httpRealm:" + info.httpRealm +
+             " username:" + info.usernname +
+             " password:" + (info.password == null ? null : "****") +
+             " usernameField:" + info.usernameField +
+             " passwordField:" + info.passwordField);
     
     return info;
   },
@@ -114,6 +126,9 @@ MacOSKeychainStorage.prototype = {
    *
    * This method deals with enumerators and query interfaces in order to return
    * a simple array of Keychain Items.
+   *
+   * A value of null for any parameter is interpreted as matching ALL values
+   *  (ie. the parameter is not included in the search criteria)
    */
   _findInternetPasswordItems: function (accountName, protocol, serverName,
                                         port, authType, securityDomain) {
@@ -145,8 +160,14 @@ MacOSKeychainStorage.prototype = {
    * Find and return Keychain Items that match the values provided by the
    * Mozilla login storage API.
    *
-   * This method converts the Mozilla API values into the values expected by the
-   *  lower level native components.
+   * This method converts the Mozilla API values into the values expected by
+   *  the lower level native components.
+   *
+   * Note: as specified in the Mozilla documentation at:
+   *   https://developer.mozilla.org/en/NsILoginManagerStorage#findLogins%28%29
+   *  hostname, formSubmitURL, and httpRealm support an empty string to match
+   *  ALL values and a null value to match NO values (except null)
+   * We also take the same approach with the username field.
    */
   _findKeychainItems: function (username, hostname, formSubmitURL, httpRealm) {
     this.log("_findKeychainItems["
@@ -155,20 +176,47 @@ MacOSKeychainStorage.prototype = {
              + " formSubmitURL:" + formSubmitURL
              + " httpRealm:" + httpRealm + " ]");
     
-    var [scheme, host, port] = this._splitLoginInfoHostname(hostname);
+    var accountName;
+    if (null == username) // match only entries with no username
+      accountName = "";
+    else if ("" == username) // match ALL usernames
+      accountName = null;
+    else
+      accountName = username;
     
-    var authType = Ci.IMacOSKeychainItem.AuthTypeDefault;
-    if (null == httpRealm)
+    var scheme, host, port;
+    if (null == hostname) // a null hostname matches NO entries
+      return [];
+    else if ("" == hostname) // an empty hostname matches ALL entries
+      scheme = host = port = null;
+    else
+      [scheme, host, port] = this._splitLoginInfoHostname(hostname);
+    
+    var securityDomain;
+    if ("" == httpRealm) // match ALL realms
+      securityDomain = null;
+    else if (null == httpRealm) // match only entries with NO realm
+      securityDomain = "";
+    else
+      securityDomain = httpRealm;
+    
+    var authType;
+    if ("" == formSubmitURL && "" == httpRealm) // match ANY type
+      authType = null;
+    else if (null != formSubmitURL) // match form logins only
       authType = Ci.IMacOSKeychainItem.AuthTypeHTMLForm;
+    else // match non-form logins only
+      authType = Ci.IMacOSKeychainItem.AuthTypeDefault;
     
-    return this._findInternetPasswordItems(username, scheme, host, port, authType, httpRealm);
+    return this._findInternetPasswordItems(accountName, scheme, host,
+                                           port, authType, securityDomain);
   },
   
   
   /**
-   * Search for and return a Keychain Item that matches the data in the provided
-   * nsILoginInfo object. If multiple matches are found, the first is returned. If none is
-   * found, null is returned.
+   * Search for and return a Keychain Item that matches the data in the
+   *  provided nsILoginInfo object. If multiple matches are found, the first
+   *  is returned. If none is found, null is returned.
    */
   _findKeychainItemForLoginInfo: function (login) {
     this.log("_findKeychainItemForLoginInfo[ login:" + login + " ]");
@@ -196,10 +244,10 @@ MacOSKeychainStorage.prototype = {
   
   
   /**
-   * The hostname field in nsILoginInfo contains the URI scheme, hostname, and port.
-   * This function takes an appropriately formatted string and returns a three-element
-   * array containing the scheme, hostname, and port. If any of the values is missing,
-   * null is provided for that position.
+   * The hostname field in nsILoginInfo contains the URI scheme, hostname,
+   *  and port. This function takes an appropriately formatted string and
+   *  returns a three-element array containing the scheme, hostname, and port.
+   *  If any of the values is missing, null is provided for that position.
    */
   _splitLoginInfoHostname: function (hostname) {
     this.log("_splitLoginInfoHostname[ hostname:" + hostname + " ]");
@@ -221,7 +269,8 @@ MacOSKeychainStorage.prototype = {
   
   
   /**
-   * Log a debug message if debugging is turned on via the signon.debug preference.
+   * Log a debug message if debugging is turned on via the signon.debug
+   *  preference.
    */
   log: function (message) {
     if (!this._debug)
@@ -260,9 +309,9 @@ MacOSKeychainStorage.prototype = {
   
   /**
    * initWithFile()
-   * Just pass the filenames on to our mozilla storage instance. The filenames are kind
-   * of useless to this implementation of the storage interface so I don't know what else
-   * we'd do with them.
+   * Just pass the filenames on to our mozilla storage instance. The filenames
+   *  are kind of useless to this implementation of the storage interface so I
+   *  don't know what else we'd do with them.
    */
   initWithFile: function (aInputFile, aOutputFile) {
     this.log("initWithFile(" + aInputFile + "," + aOutputFile + ")");
@@ -289,16 +338,16 @@ MacOSKeychainStorage.prototype = {
     
     var label = host + " (" + login.username + ")";
 
-    var authType = Ci.IMacOSKeychainItem.AuthTypeDefault;
-    if (null == login.httpRealm)
-      authType = Ci.IMacOSKeychainItem.AuthTypeHTMLForm;
+    var authType = Ci.IMacOSKeychainItem.AuthTypeHTMLForm;
+    if (null == login.formSubmitUrl)
+      authType = Ci.IMacOSKeychainItem.AuthTypeDefault;
 
     var item = this._keychainService.addInternetPasswordItem(login.username, login.password,
                                  scheme, host, port, null /*path*/,
                                  authType, login.httpRealm,
                                  null /*comment*/, label);
     
-    if (null == login.httpRealm)
+    if (null != login.formSubmitURL)
       item.description = "Web form password";
   },
   
@@ -342,7 +391,7 @@ MacOSKeychainStorage.prototype = {
       
       item.securityDomain = newLoginData.httpRealm;
       
-      if (null == newLoginData.httpRealm) {
+      if (null != newLoginData.formSubmitURL) {
         item.description = "Web form password";
         item.authenticationType = Ci.IMacOSKeychainItem.AuthTypeHTMLForm;
       } else {
@@ -368,18 +417,16 @@ MacOSKeychainStorage.prototype = {
             item.serverName = host;
             item.port = port;
             break;
+          
+          case "formSubmitURL":
+            if (null != prop.value)
+              item.authenticationType = Ci.IMacOSKeychainItem.AuthTypeHTMLForm;
+            else
+              item.authenticationType = Ci.IMacOSKeychainItem.AuthTypeDefault;
+            break;
             
           case "httpRealm":
-          case "formSubmitURL":
-            if ((prop.name == "formSubmitURL" && null != prop.value) ||
-                (prop.name == "httpRealm" && null == prop.value)) {
-              item.authenticationType = Ci.IMacOSKeychainItem.AuthTypeHTMLForm;
-            } else {
-              item.authenticationType = Ci.IMacOSKeychainItem.AuthTypeDefault;
-            }
-            
-            if (prop.name == "httpRealm")
-              item.securityDomain = prop.value;
+            item.securityDomain = prop.value;
             break;
             
           case "username":
@@ -471,7 +518,12 @@ MacOSKeychainStorage.prototype = {
     return this._mozillaStorage.setLoginSavingEnabled(hostname, enabled);
   },
   
-  
+  /**
+   * Note: as specified in the Mozilla documentation at:
+   *   https://developer.mozilla.org/en/NsILoginManagerStorage#findLogins%28%29
+   *  An empty string for hostname, formSubmitURL, and httpRealm means match
+   *  ALL values and a null value means match only items with NO value
+   */
   findLogins: function (count, hostname, formSubmitURL, httpRealm) {
     this.log("findLogins["
              + " hostname:" + hostname
@@ -479,14 +531,20 @@ MacOSKeychainStorage.prototype = {
              + " httpRealm:" + httpRealm + " ]");
     //return this._mozillaStorage.findLogins(count, hostname, formSubmitURL, httpRealm);
     
-    var items = this._findKeychainItems(null /*username*/, hostname, formSubmitURL, httpRealm);
-    // Safari seems not to store the HTTP Realm in the securityDomain field so we try
-    //  the search again without it.
-    if (items.length == 0 && httpRealm != null)
-      items = this._findKeychainItems(null /*username*/, hostname, formSubmitURL, null /*httpRealm*/);
+    var items = this._findKeychainItems("" /*username*/, hostname,
+                                        formSubmitURL, httpRealm);
+    
+    // Safari seems not to store the HTTP Realm in the securityDomain
+    //  field so we try the search again without it.
+    if (items.length == 0 && httpRealm != null && httpRealm != "") {
+      items = this._findKeychainItems("" /*username*/, hostname,
+                                      formSubmitURL, "" /*httpRealm*/);
+      for (var i in items) {
+        items[i].securityDomain = httpRealm;
+      }
+    }
       
     var logins = new Array();
-
     for ( var i in items ) {
       logins.push(this._convertKeychainItemToLoginInfo(items[i]));
     }
