@@ -1,5 +1,5 @@
-#include "MacOSKeychainModule.h"
-#include "IMacOSKeychainItem.h"
+#include "public/MacOSKeychainModule.h"
+#include "public/IMacOSKeychainItem.h"
 
 #import <Security/Security.h>
 

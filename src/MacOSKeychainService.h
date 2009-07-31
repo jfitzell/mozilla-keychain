@@ -1,5 +1,5 @@
-#include "MacOSKeychainModule.h"
-#include "IMacOSKeychainService.h"
+#include "public/MacOSKeychainModule.h"
+#include "public/IMacOSKeychainService.h"
 
 class MacOSKeychainService : public IMacOSKeychainService
 {
