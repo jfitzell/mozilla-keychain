@@ -1,3 +1,7 @@
+1.0a5:
+- compile against a universal binary gecko SDK to generate a universal binary
+  dynamic library (previous versions didn't work on older PPC macs)
+
 1.0a4:
 - fixed bug that caused you to be prompted to save an autofilled password again
   when the form action "hostname" was different from that of the current page
