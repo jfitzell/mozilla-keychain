@@ -1,3 +1,7 @@
+1.0a6:
+- fix double-prompting for authorization to access a stored password when
+  visiting a page with a login form and a matching login.
+
 1.0a5:
 - compile against a universal binary gecko SDK to generate a universal binary
   dynamic library (previous versions didn't work on older PPC macs)
