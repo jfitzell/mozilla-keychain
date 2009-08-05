@@ -1,3 +1,8 @@
+1.0a7:
+- fix problem causing all new keychain items to be created as "default"
+  even if they should have been "web form" type (thanks to Josh for the
+  bug report)
+
 1.0a6:
 - fix double-prompting for authorization to access a stored password when
   visiting a page with a login form and a matching login.

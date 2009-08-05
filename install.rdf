@@ -4,7 +4,7 @@
      xmlns:em="http://www.mozilla.org/2004/em-rdf#">
   <Description about="urn:mozilla:install-manifest">
     <em:id>macos-keychain@fitzell.ca</em:id>
-    <em:version>1.0a6</em:version>
+    <em:version>1.0a7</em:version>
 
     <em:targetPlatform>Darwin_x86-gcc3</em:targetPlatform>
     <em:targetPlatform>Darwin_ppc-gcc3</em:targetPlatform>	

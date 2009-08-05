@@ -79,7 +79,8 @@ MacOSKeychainStorage.prototype = {
    *
    */
   _convertKeychainItemToLoginInfo: function (item) {
-    this.log("_convertKeychainItemToLoginInfo[ item:" + item + " ]");
+    this.log("_convertKeychainItemToLoginInfo[ item: (" +
+             this._debugStringForKeychainItem(item) + ") ]");
     var info = new this._nsLoginInfo();
     
     var uri = this._uri(item.protocol + "://" + item.serverName
@@ -109,13 +110,7 @@ MacOSKeychainStorage.prototype = {
               item.accountName, item.password,
               "" /*usernameField*/, "" /*passwordField*/);
     
-    this.log("  hostname:" + info.hostname +
-             " formSubmitURL:" + info.formSubmitURL +
-             " httpRealm:" + info.httpRealm +
-             " username:" + info.username +
-             " password:" + (info.password == null ? null : "****") +
-             " usernameField:" + info.usernameField +
-             " passwordField:" + info.passwordField);
+    this.log("  " + this._debugStringForLoginInfo(info));
     
     return info;
   },
@@ -268,6 +263,31 @@ MacOSKeychainStorage.prototype = {
   },
   
   
+  _debugStringForLoginInfo: function (login) {
+    return "hostname:" + login.hostname +
+          " formSubmitURL:" + login.formSubmitURL +
+          " httpRealm:" + login.httpRealm +
+          " username:" + login.username +
+          " password:" + (login.password == null ? null : "****") +
+          " usernameField:" + login.usernameField +
+          " passwordField:" + login.passwordField;
+  },
+  
+  
+  _debugStringForKeychainItem: function (item) {
+    return "protocol:" + item.protocol +
+          " serverName:" + item.serverName +
+          " port:" + item.port +
+          " securityDomain:" + item.securityDomain +
+          " accountName:" + item.accountName +
+          " password:(omitted)" +
+          " authenticationType:" + item.authenticationType +
+          " comment:" + item.comment +
+          " label:" + item.label +
+          " description:" + item.description;
+  },
+  
+  
   /**
    * Log a debug message if debugging is turned on via the signon.debug
    *  preference.
@@ -331,7 +351,7 @@ MacOSKeychainStorage.prototype = {
   
   
   addLogin: function (login) {
-    this.log("addLogin[ login:" + login + " ]");
+    this.log("addLogin[ login: (" + this._debugStringForLoginInfo(login) + ") ]");
     //return this._mozillaStorage.addLogin(login);
     
     var [scheme, host, port] = this._splitLoginInfoHostname(login.hostname);
@@ -339,13 +359,15 @@ MacOSKeychainStorage.prototype = {
     var label = host + " (" + login.username + ")";
 
     var authType = Ci.IMacOSKeychainItem.AuthTypeHTMLForm;
-    if (null == login.formSubmitUrl)
+    if (null == login.formSubmitURL)
       authType = Ci.IMacOSKeychainItem.AuthTypeDefault;
 
     var item = this._keychainService.addInternetPasswordItem(login.username, login.password,
                                  scheme, host, port, null /*path*/,
                                  authType, login.httpRealm,
                                  null /*comment*/, label);
+    
+    this.log("  keychain item: (" + this._debugStringForKeychainItem(item) + ")");
     
     if (null != login.formSubmitURL)
       item.description = "Web form password";
