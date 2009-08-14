@@ -4,7 +4,7 @@
      xmlns:em="http://www.mozilla.org/2004/em-rdf#">
   <Description about="urn:mozilla:install-manifest">
     <em:id>macos-keychain@fitzell.ca</em:id>
-    <em:version>1.0a7</em:version>
+    <em:version>1.0a8pre</em:version>
 
     <em:targetPlatform>Darwin_x86-gcc3</em:targetPlatform>
     <em:targetPlatform>Darwin_ppc-gcc3</em:targetPlatform>	
@@ -18,8 +18,8 @@
     </em:targetApplication>
 	
     <!-- front-end metadata -->
-    <em:name>Mac OS Keychain</em:name>
-    <em:description>Store usernames and passwords with the Mac OS Keychain.</em:description>
+    <em:name>Keychain Services Integration</em:name>
+    <em:description>Store usernames and passwords in Apple's Keychain Services.</em:description>
     <em:creator>Julian Fitzell</em:creator>
     <em:homepageURL>http://blog.fitzell.ca/</em:homepageURL>
   </Description>

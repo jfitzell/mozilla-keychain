@@ -184,8 +184,15 @@ MacOSKeychainStorage.prototype = {
       return [];
     else if ("" == hostname) // an empty hostname matches ALL entries
       scheme = host = port = null;
-    else
-      [scheme, host, port] = this._splitLoginInfoHostname(hostname);
+    else {
+      try {
+        [scheme, host, port] = this._splitLoginInfoHostname(hostname);
+      } catch (e) {
+        // we don't yet support storing things with hostnames that are not
+        //  valid URLs. We could store them as Generic items in the future.
+        return [];
+      }
+    }
     
     var securityDomain;
     if ("" == httpRealm) // match ALL realms
@@ -232,9 +239,28 @@ MacOSKeychainStorage.prototype = {
    * Return a new URI object for the given string
    */
   _uri: function (uriString) {
-    var ios = Components.classes["@mozilla.org/network/io-service;1"].
-                                getService(Components.interfaces.nsIIOService);
-    return ios.newURI(uriString, null, null);
+    try {
+      var ios = Components.classes["@mozilla.org/network/io-service;1"].
+                                  getService(Components.interfaces.nsIIOService);
+      return ios.newURI(uriString, null, null);
+    } catch (e) {
+      this.log(e);
+      throw "Invalid URI";
+    }
+  },
+  
+  /**
+   * Return a new URL object for the given string
+   */
+  _url: function (urlString) {
+    var uri = this._uri(urlString);
+    try {
+      var url = uri.QueryInterface(Ci.nsIURL);
+      return url;
+    } catch (e) {
+      this.log(e);
+      throw "Invalid URL";
+    }
   },
   
   
@@ -250,10 +276,14 @@ MacOSKeychainStorage.prototype = {
     var host = null;
     var port = null;
     if (hostname) {
-      var uri = this._uri(hostname);
-      scheme = uri.scheme;
-      host = uri.host;
-      port = uri.port;
+      try {
+        var url = this._url(hostname);
+        scheme = url.scheme;
+        host = url.host;
+        port = url.port;
+      } catch (e) {
+        throw "Unable to split hostname: " + e;
+      }
       if (port == -1) // -1 indicates default port for the protocol
         port = null;
     }
@@ -354,7 +384,14 @@ MacOSKeychainStorage.prototype = {
     this.log("addLogin[ login: (" + this._debugStringForLoginInfo(login) + ") ]");
     //return this._mozillaStorage.addLogin(login);
     
-    var [scheme, host, port] = this._splitLoginInfoHostname(login.hostname);
+    try {
+      var [scheme, host, port] = this._splitLoginInfoHostname(login.hostname);
+    } catch (e) {
+      // we don't yet support storing things with hostnames that are not
+      //  valid URLs. We could store them as Generic items in the future.
+      this.log("Failed to store login with invalid URL. Storing in legacy storage...");
+      return this._mozillaStorage.addLogin(login);
+    }
     
     var label = host + " (" + login.username + ")";
 
@@ -565,6 +602,11 @@ MacOSKeychainStorage.prototype = {
         items[i].securityDomain = httpRealm;
       }
     }
+    
+    if (items.length == 0 /* && an appropriate preference is set*/) {
+      this.log("No items found. Checking mozilla storage...");
+      return this._mozillaStorage.findLogins(count, hostname, formSubmitURL, httpRealm);
+    }
       
     var logins = new Array();
     for ( var i in items ) {
@@ -591,6 +633,11 @@ MacOSKeychainStorage.prototype = {
     if (items.length == 0 && httpRealm != null && httpRealm != "")
       items = this._findKeychainItems("" /*username*/, hostname,
                                       formSubmitURL, "" /*httpRealm*/);
+    
+    if (items.length == 0 /* && an appropriate preference is set*/) {
+      this.log("No items found. Checking mozilla storage...");
+      return this._mozillaStorage.countLogins(hostname, formSubmitURL, httpRealm);
+    }
     
     return items.length;
   }

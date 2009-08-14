@@ -1,3 +1,11 @@
+??:
+- improve logging when creating URIs/URLs fails
+- handle failure of URL creation from hostname gracefully by storing in
+  legacy storage instead (these can later be stored as generic items maybe)
+- If no items are found while searching, try searching the legacy storage db.
+  This should allow some kind of migration and allows us to find items stored
+  with the legacy handler due to invalid URLs.
+
 1.0a7:
 - fix problem causing all new keychain items to be created as "default"
   even if they should have been "web form" type (thanks to Josh for the
