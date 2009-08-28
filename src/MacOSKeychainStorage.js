@@ -51,25 +51,42 @@ MacOSKeychainStorage.prototype = {
 
   
   /**
-   * An instance of the mozilla storage component used to fall through API methods
-   * that are not implemented in the Mac OS Keychain.
+   * An instance of the default storage component
    */
-  __mozillaStorage : null,
-  get _mozillaStorage() {
-    if (!this.__mozillaStorage) {
-      this.__mozillaStorage = Cc["@mozilla.org/login-manager/storage/mozStorage;1"].
-                               createInstance(Ci.nsILoginManagerStorage);
-     
-      try {
-        this.__mozillaStorage.init();
-      } catch (e) {
-        this.log("Initialization of mozilla login storage component failed: " + e);
-        this.__mozillaStorage = null;
-        throw e;
-      }
+  __defaultStorage : null,
+  get _defaultStorage() {
+    if (!this.__defaultStorage) {
+      this._initDefaultStorage();
     }
     
-    return this.__mozillaStorage;
+    return this.__defaultStorage;
+  },
+  
+  
+  /**
+   * Initialize an instance of the default storage component that Mozilla would have
+   *  used if this component was not registered. This has to try various contract IDs
+   *  to account for different versions of Mozilla
+   */
+  _initDefaultStorage: function (inFile, outFile) {
+    try {
+      if ("@mozilla.org/login-manager/storage/mozStorage;1" in Cc) {
+        this.__defaultStorage = Cc["@mozilla.org/login-manager/storage/mozStorage;1"].
+                                createInstance(Ci.nsILoginManagerStorage);
+      } else {
+        this.__defaultStorage = Cc["@mozilla.org/login-manager/storage/legacy;1"].
+                                createInstance(Ci.nsILoginManagerStorage);
+      }
+   
+      if (inFile || outFile)
+        this.__defaultStorage.initWithFile(inFile, outFile);
+      else
+        this.__defaultStorage.init();
+    } catch (e) {
+      this.log("Initialization of mozilla login storage component failed: " + e);
+      this.__defaultStorage = null;
+      throw e;
+    }
   },
 
   
@@ -366,15 +383,7 @@ MacOSKeychainStorage.prototype = {
   initWithFile: function (aInputFile, aOutputFile) {
     this.log("initWithFile(" + aInputFile + "," + aOutputFile + ")");
     
-    this.__mozillaStorage = Cc["@mozilla.org/login-manager/storage/mozStorage;1"].
-                              createInstance(Ci.nsILoginManagerStorage);
-    try {
-      this.__mozillaStorage.initWithFile(aInputFile, aOutputFile);
-    } catch (e) {
-      this.log("Initialization of mozilla login storage component failed: " + e);
-      this.__mozillaStorage = null;
-      throw e;
-    }
+    this._initDefaultStorage(aInputFile, aOutputFile);
     
     this.init();
   },
@@ -382,7 +391,7 @@ MacOSKeychainStorage.prototype = {
   
   addLogin: function (login) {
     this.log("addLogin[ login: (" + this._debugStringForLoginInfo(login) + ") ]");
-    //return this._mozillaStorage.addLogin(login);
+    //return this._defaultStorage.addLogin(login);
     
     try {
       var [scheme, host, port] = this._splitLoginInfoHostname(login.hostname);
@@ -390,7 +399,7 @@ MacOSKeychainStorage.prototype = {
       // we don't yet support storing things with hostnames that are not
       //  valid URLs. We could store them as Generic items in the future.
       this.log("Failed to store login with invalid URL. Storing in legacy storage...");
-      return this._mozillaStorage.addLogin(login);
+      return this._defaultStorage.addLogin(login);
     }
     
     var label = host + " (" + login.username + ")";
@@ -413,7 +422,7 @@ MacOSKeychainStorage.prototype = {
   
   removeLogin: function (login) {
     this.log("removeLogin()");
-    //return this._mozillaStorage.removeLogin(login);
+    //return this._defaultStorage.removeLogin(login);
     
     var item = this._findKeychainItemForLoginInfo(login);
     if (item) {
@@ -427,7 +436,7 @@ MacOSKeychainStorage.prototype = {
   
   modifyLogin: function (oldLogin, newLoginData) {
     this.log("modifyLogin[ oldLogin:" + oldLogin + " newLogin:" + newLoginData + " ]");
-    //return this._mozillaStorage.modifyLogin(oldLogin, newLogin);
+    //return this._defaultStorage.modifyLogin(oldLogin, newLogin);
     var item = this._findKeychainItemForLoginInfo(oldLogin);
     if (! item) {
       this.log("  No matching login found");
@@ -523,7 +532,7 @@ MacOSKeychainStorage.prototype = {
   
   getAllLogins: function (count) {
     this.log("getAllLogins()");
-    //return this._mozillaStorage.getAllLogins(count);
+    //return this._defaultStorage.getAllLogins(count);
     
     var items = this._findInternetPasswordItems(null /*accountName*/,
                                                 null /*protocol*/,
@@ -545,7 +554,7 @@ MacOSKeychainStorage.prototype = {
   
   removeAllLogins: function () {
     this.log("removeAllLogins()");
-    //return this._mozillaStorage.removeAllLogins();
+    //return this._defaultStorage.removeAllLogins();
     var items = this._findInternetPasswordItems(null /*accountName*/,
                                                 null /*protocol*/,
                                                 null /*serverName*/, 
@@ -562,19 +571,19 @@ MacOSKeychainStorage.prototype = {
   
   getAllDisabledHosts: function (count) {
     this.log("getAllDisabledHosts()");
-    return this._mozillaStorage.getAllDisabledHosts(count);
+    return this._defaultStorage.getAllDisabledHosts(count);
   },
   
   
   getLoginSavingEnabled: function (hostname) {
     this.log("getLoginSavingEnabled[ hostname:" + hostname + " ]");
-    return this._mozillaStorage.getLoginSavingEnabled(hostname);
+    return this._defaultStorage.getLoginSavingEnabled(hostname);
   },
   
   
   setLoginSavingEnabled: function (hostname, enabled) {
     this.log("setLoginSavingEnabled[ hostname:" + hostname + " enabled:" + enabled + " ]");
-    return this._mozillaStorage.setLoginSavingEnabled(hostname, enabled);
+    return this._defaultStorage.setLoginSavingEnabled(hostname, enabled);
   },
   
   /**
@@ -588,7 +597,7 @@ MacOSKeychainStorage.prototype = {
              + " hostname:" + hostname
              + " formSubmitURL:" + formSubmitURL
              + " httpRealm:" + httpRealm + " ]");
-    //return this._mozillaStorage.findLogins(count, hostname, formSubmitURL, httpRealm);
+    //return this._defaultStorage.findLogins(count, hostname, formSubmitURL, httpRealm);
     
     var items = this._findKeychainItems("" /*username*/, hostname,
                                         formSubmitURL, httpRealm);
@@ -605,7 +614,7 @@ MacOSKeychainStorage.prototype = {
     
     if (items.length == 0 /* && an appropriate preference is set*/) {
       this.log("No items found. Checking mozilla storage...");
-      return this._mozillaStorage.findLogins(count, hostname, formSubmitURL, httpRealm);
+      return this._defaultStorage.findLogins(count, hostname, formSubmitURL, httpRealm);
     }
       
     var logins = new Array();
@@ -623,7 +632,7 @@ MacOSKeychainStorage.prototype = {
              + " hostname:" + hostname
              + " formSubmitURL:" + formSubmitURL
              + " httpRealm:" + httpRealm + " ]");
-    //return this._mozillaStorage.countLogins(hostname, formSubmitURL, httpRealm);
+    //return this._defaultStorage.countLogins(hostname, formSubmitURL, httpRealm);
     
     var items = this._findKeychainItems("" /*username*/, hostname,
                                         formSubmitURL, httpRealm);
@@ -636,7 +645,7 @@ MacOSKeychainStorage.prototype = {
     
     if (items.length == 0 /* && an appropriate preference is set*/) {
       this.log("No items found. Checking mozilla storage...");
-      return this._mozillaStorage.countLogins(hostname, formSubmitURL, httpRealm);
+      return this._defaultStorage.countLogins(hostname, formSubmitURL, httpRealm);
     }
     
     return items.length;
