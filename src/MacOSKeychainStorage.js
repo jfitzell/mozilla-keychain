@@ -3,7 +3,6 @@ const Ci = Components.interfaces;
 
 /**
  POSSIBLE TODO:
-  + delay lookup of passwords to prevent prompting user
   + conversion between keychain and mozStorage
   + fall-through to mozStorage
   + store items so other browsers can access
@@ -124,8 +123,10 @@ MacOSKeychainStorage.prototype = {
    //  is what we return
     info.init(hostname,
               formSubmitURL, httpRealm,
-              item.accountName, item.password,
+              item.accountName, null,
               "" /*usernameField*/, "" /*passwordField*/);
+    
+    info.wrappedJSObject.__defineGetter__("password", function() {return item.password});
     
     this.log("  " + this._debugStringForLoginInfo(info));
     
@@ -315,7 +316,7 @@ MacOSKeychainStorage.prototype = {
           " formSubmitURL:" + login.formSubmitURL +
           " httpRealm:" + login.httpRealm +
           " username:" + login.username +
-          " password:" + (login.password == null ? null : "****") +
+          " password:(omitted)" +
           " usernameField:" + login.usernameField +
           " passwordField:" + login.passwordField;
   },
