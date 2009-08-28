@@ -482,7 +482,7 @@ MacOSKeychainStorage.prototype = {
   init: function () {
     this.log("init()");
     
-    this._observer._keychainStorage = this;
+    //this._observer._keychainStorage = this;
     
     // Connect to the correct preferences branch.
     var prefService = Cc["@mozilla.org/preferences-service;1"].
