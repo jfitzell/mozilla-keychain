@@ -1,4 +1,4 @@
-??:
+1.0b1:
 - improve logging when creating URIs/URLs fails
 - handle failure of URL creation from hostname gracefully by storing in
   legacy storage instead (these can later be stored as generic items maybe)
@@ -9,6 +9,7 @@
 - Add a getter to nsLoginInfo classes to have them lookup the password as needed
   from the converted KeychainItem. This avoids prompting the user for permission
   until Mozilla actually *needs* the password.
+- Implement a basic migration when the extension is first loaded
 
 1.0a7:
 - fix problem causing all new keychain items to be created as "default"

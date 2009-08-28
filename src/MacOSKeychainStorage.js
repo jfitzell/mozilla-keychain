@@ -37,9 +37,12 @@
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
+const extensionId = "macos-keychain@fitzell.ca";
+const prefImportPrompt = "startup-import-prompt";
+
 /**
  POSSIBLE TODO:
-  + conversion between keychain and mozStorage
+  + two-way conversion between keychain and mozStorage
   + fall-through to mozStorage
   + store items so other browsers can access
   + allow storage of master password instead of all passwords
@@ -76,13 +79,21 @@ MacOSKeychainStorage.prototype = {
   _nsLoginInfo : null, // Constructor for nsILoginInfo implementation
   _keychainService : null, // The MacOSKeychainService
   
-  __logService : null,
+  __logService : null,
   get _logService() {
     if (!this.__logService)
       this.__logService = Cc["@mozilla.org/consoleservice;1"].
                             getService(Ci.nsIConsoleService);
     return this.__logService;
   },
+
+  /*__observerService : null, // Observer Service, for notifications
+  get _observerService() {
+    if (!this.__observerService)
+      this.__observerService = Cc["@mozilla.org/observer-service;1"].
+                               getService(Ci.nsIObserverService);
+    return this.__observerService;
+  },*/
 
   
   /**
@@ -386,6 +397,83 @@ MacOSKeychainStorage.prototype = {
   
   
   /**
+   * Import logins from the old login storage provider into the keychain.
+   */
+  importLogins: function () {
+    this.log("importLogins()");
+    var logins = this._defaultStorage.getAllLogins({});
+    
+    for (var i in logins) {
+      var login = logins[i];
+      try {
+        var items = this._findKeychainItems(login.username, login.hostname,
+                                            login.formSubmitURL, login.httpRealm);
+        if (items.length == 0) {
+          this.log("  No matching keychain item found... importing.");
+          this.addLogin(login);
+        } else {
+          this.log("  Matching keychain item found... skipping import.");
+        }
+      } catch (e) {
+        this.log("  Exception caught... skipping import.");
+      }
+    }
+  },
+  
+  
+  /**
+   * Check whether we should prompt the user to import their old logins.
+   *  If we should and they confirm it, then start the import process.
+   */
+  confirmImport: function () {
+    var import;
+    try {
+      import = this._prefBranch.getBoolPref(prefImportPrompt);
+    } catch (e) {
+      import = false;
+    }
+    
+    if (import) {
+      var promptSvc = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
+                                .getService(Ci.nsIPromptService);
+      var flags = promptSvc.BUTTON_POS_0 * promptSvc.BUTTON_TITLE_IS_STRING +
+                  promptSvc.BUTTON_POS_1 * promptSvc.BUTTON_TITLE_IS_STRING  +
+                  promptSvc.BUTTON_POS_2 * promptSvc.BUTTON_TITLE_IS_STRING;
+      var result = promptSvc.confirmEx(null,
+                        "Import saved logins into Keychain Services?",
+                        "The Keychain Service Integration extension can import your existing saved logins into Keychain Services. This allows them to be shared with other applications on your computer. Your original logins will be left in place and will still be available if you disable this extension later. Do you want to import your saved logins now?",
+                        flags, "Yes", "No", "Ask me later",
+                        null, {});
+      
+      if (result == 0)
+        this.importLogins();
+      
+      if (result != 2)
+        this._prefBranch.setBoolPref(prefImportPrompt, false);
+    } 
+  },
+  
+  /**
+   =======================================
+    nsIObserver implementation
+   =======================================
+   */
+  /*_observer : {
+    _keychainStorage : null,
+    QueryInterface : XPCOMUtils.generateQI([Ci.nsIObserver]),
+    
+    observe: function (subject, topic, data) {
+      this.log("observing " + subject + " " + topic + " " + data);
+      switch(topic) {
+        case "final-ui-startup":
+          this._keychainStorage.confirmImport();
+          break;
+      }
+    }
+  },*/
+  
+  
+  /**
    =======================================
     Mozilla Storage API implementations
    =======================================
@@ -394,20 +482,28 @@ MacOSKeychainStorage.prototype = {
   init: function () {
     this.log("init()");
     
+    this._observer._keychainStorage = this;
+    
     // Connect to the correct preferences branch.
-    this._prefBranch = Cc["@mozilla.org/preferences-service;1"].
+    var prefService = Cc["@mozilla.org/preferences-service;1"].
                          getService(Ci.nsIPrefService);
-    this._prefBranch = this._prefBranch.getBranch("signon.");
+    var signonPrefs = prefService.getBranch("signon.");
+    signonPrefs.QueryInterface(Ci.nsIPrefBranch2);
+    this._debug = signonPrefs.getBoolPref("debug");
+    
+    this._prefBranch = prefService.getBranch("extensions." + extensionId + ".");
     this._prefBranch.QueryInterface(Ci.nsIPrefBranch2);
-
-    this._debug = this._prefBranch.getBoolPref("debug");
     
     // Get constructor for nsILoginInfo
     this._nsLoginInfo = new Components.Constructor(
         "@mozilla.org/login-manager/loginInfo;1", Ci.nsILoginInfo);
     
     this._keychainService = Cc["@fitzell.ca/macos-keychain/keychainService;1"].
-                              getService(Ci.IMacOSKeychainService);    
+                              getService(Ci.IMacOSKeychainService);
+    
+    this.log("Done initializing.");
+    //this._observerService.addObserver(this._observer, "final-ui-startup", false);
+    this.confirmImport();
   },
   
   

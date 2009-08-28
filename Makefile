@@ -64,7 +64,7 @@ LIB_DIRS := -L$(GECKO_SDK)/lib
 
 XPI_ROOT_FILES := install.rdf chrome.manifest CHANGES
 XPI_COMPONENT_FILES := $(LIB_NAME) $(XPT_NAME)
-
+XPI_PREFS := prefs.js
 
 ## BEGINNING OF RULES
 #
@@ -118,12 +118,14 @@ $(LIB_NAME): $(OBJS)
 $(XPT_NAME) : $(XPTS)
 	$(GECKO_SDK)/bin/xpt_link $@ $^
 
-$(XPI_DIR) : $(XPI_COMPONENT_FILES) $(XPI_ROOT_FILES)
+$(XPI_DIR) : $(XPI_COMPONENT_FILES) $(XPI_ROOT_FILES) $(XPI_PREFS)
 	mkdir -p $(XPI_DIR)/
 	touch $(XPI_DIR)
 	cp $(XPI_ROOT_FILES) $(XPI_DIR)/
 	mkdir -p $(XPI_DIR)/components/
 	cp $(XPI_COMPONENT_FILES) $(XPI_DIR)/components/
+	mkdir -p $(XPI_DIR)/defaults/preferences/
+	cp $(XPI_PREFS) $(XPI_DIR)/defaults/preferences/
 
 $(XPI_NAME) : $(XPI_DIR)
 	rm -f $(XPI_NAME)

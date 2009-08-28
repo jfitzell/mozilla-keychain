@@ -1,0 +1,1 @@
+pref('extensions.macos-keychain@fitzell.ca.startup-import-prompt',true);
