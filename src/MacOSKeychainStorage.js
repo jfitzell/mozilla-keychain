@@ -64,7 +64,8 @@ MacOSKeychainStorage.prototype = {
   classDescription: "MacOSKeychain Login Storage",
   contractID: "@fitzell.ca/macos-keychain/storage;1",
   classID: Components.ID("{87d15ebf-2a51-4e54-9290-315a54feea25}"),
-  QueryInterface : XPCOMUtils.generateQI([Ci.nsILoginManagerStorage]),
+  QueryInterface : XPCOMUtils.generateQI([Ci.nsILoginManagerStorage,
+                                          Ci.IMacOSKeychainStartupImporter]),
   
   // Register ourselves as a storage component
   _xpcom_categories: [
@@ -86,15 +87,7 @@ MacOSKeychainStorage.prototype = {
                             getService(Ci.nsIConsoleService);
     return this.__logService;
   },
-
-  /*__observerService : null, // Observer Service, for notifications
-  get _observerService() {
-    if (!this.__observerService)
-      this.__observerService = Cc["@mozilla.org/observer-service;1"].
-                               getService(Ci.nsIObserverService);
-    return this.__observerService;
-  },*/
-
+  
   
   /**
    * An instance of the default storage component
@@ -422,58 +415,6 @@ MacOSKeychainStorage.prototype = {
   
   
   /**
-   * Check whether we should prompt the user to import their old logins.
-   *  If we should and they confirm it, then start the import process.
-   */
-  confirmImport: function () {
-    var import;
-    try {
-      import = this._prefBranch.getBoolPref(prefImportPrompt);
-    } catch (e) {
-      import = false;
-    }
-    
-    if (import) {
-      var promptSvc = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
-                                .getService(Ci.nsIPromptService);
-      var flags = promptSvc.BUTTON_POS_0 * promptSvc.BUTTON_TITLE_IS_STRING +
-                  promptSvc.BUTTON_POS_1 * promptSvc.BUTTON_TITLE_IS_STRING  +
-                  promptSvc.BUTTON_POS_2 * promptSvc.BUTTON_TITLE_IS_STRING;
-      var result = promptSvc.confirmEx(null,
-                        "Import saved logins into Keychain Services?",
-                        "The Keychain Service Integration extension can import your existing saved logins into Keychain Services. This allows them to be shared with other applications on your computer. Your original logins will be left in place and will still be available if you disable this extension later. Do you want to import your saved logins now?",
-                        flags, "Yes", "No", "Ask me later",
-                        null, {});
-      
-      if (result == 0)
-        this.importLogins();
-      
-      if (result != 2)
-        this._prefBranch.setBoolPref(prefImportPrompt, false);
-    } 
-  },
-  
-  /**
-   =======================================
-    nsIObserver implementation
-   =======================================
-   */
-  /*_observer : {
-    _keychainStorage : null,
-    QueryInterface : XPCOMUtils.generateQI([Ci.nsIObserver]),
-    
-    observe: function (subject, topic, data) {
-      this.log("observing " + subject + " " + topic + " " + data);
-      switch(topic) {
-        case "final-ui-startup":
-          this._keychainStorage.confirmImport();
-          break;
-      }
-    }
-  },*/
-  
-  
-  /**
    =======================================
     Mozilla Storage API implementations
    =======================================
@@ -481,8 +422,6 @@ MacOSKeychainStorage.prototype = {
    
   init: function () {
     this.log("init()");
-    
-    //this._observer._keychainStorage = this;
     
     // Connect to the correct preferences branch.
     var prefService = Cc["@mozilla.org/preferences-service;1"].
@@ -502,8 +441,6 @@ MacOSKeychainStorage.prototype = {
                               getService(Ci.IMacOSKeychainService);
     
     this.log("Done initializing.");
-    //this._observerService.addObserver(this._observer, "final-ui-startup", false);
-    this.confirmImport();
   },
   
   

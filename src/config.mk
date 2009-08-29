@@ -44,6 +44,7 @@ SOURCES += src/MacOSKeychainModule.cpp \
 	src/MacOSKeychainItem.mm \
 	src/MacOSKeychainService.mm
 
-XPI_COMPONENT_FILES += src/MacOSKeychainStorage.js
+XPI_COMPONENT_FILES += src/MacOSKeychainStorage.js \
+	src/MacOSKeychainStartupImporter.js
 
 

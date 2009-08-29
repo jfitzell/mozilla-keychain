@@ -35,4 +35,5 @@
 # ***** END LICENSE BLOCK *****
 
 IDLS += public/IMacOSKeychainItem.idl \
-	public/IMacOSKeychainService.idl
+	public/IMacOSKeychainService.idl \
+	public/IMacOSKeychainStartupImporter.idl
