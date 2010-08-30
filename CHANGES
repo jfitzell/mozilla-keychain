@@ -1,3 +1,12 @@
+1.0.1:
+- update component registration to work with Gecko 2.0 (Firefox 4.0)
+- I can't figure out how to get the component working in FF 3.6 at
+  the same time and don't have the resources to maintain compatibility
+  across intel/ppc, 3 versions of OS X, and several versions of FF.
+  This version works only on intel architectures. It works in OS X 10.6
+  and hopefully in 10.5 (somebody please test). It will only work with
+  Firefox 4.
+
 1.0b1:
 - improve logging when creating URIs/URLs fails
 - handle failure of URL creation from hostname gracefully by storing in

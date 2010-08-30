@@ -34,8 +34,13 @@
  *
  * ***** END LICENSE BLOCK ***** */
  
-#include "public/MacOSKeychainModule.h"
 #include "public/IMacOSKeychainService.h"
+
+#define MACOSKEYCHAINSERVICE_CONTRACTID "@fitzell.ca/macos-keychain/keychainService;1"
+#define MACOSKEYCHAINSERVICE_CLASSNAME "MacOSKeychain Native Interface Service"
+#define MACOSKEYCHAINSERVICE_CID { 0x178b1e35, 0x143a, 0x4f52, \
+  { 0xae, 0xb3, 0x71, 0x2b, 0x0c, 0x34, 0x46, 0xc2 } }
+// 178b1e35-143a-4f52-aeb3-712b0c3446c2
 
 class MacOSKeychainService : public IMacOSKeychainService
 {

@@ -46,18 +46,30 @@ function MacOSKeychainStartupImporter() {
 }
 
 MacOSKeychainStartupImporter.prototype = {
-  classDescription: "MacOSKeychain Startup Importer",
-  contractID: "@fitzell.ca/macos-keychain/startup-importer;1",
   classID: Components.ID("{494c2389-8d87-42cd-98b4-95b26a2f9ef3}"),
   QueryInterface : XPCOMUtils.generateQI([Ci.nsIObserver]),
   
-  // Register ourselves as a storage component
+  /*
+   * This information is for compatibility with the component registration
+   * performed by XPCOMUtils in versions prior to Gecko 2.0 (Firefox 4).
+   * From that version on, this information is contained in the
+   * Chrome manifest file.
+   */
+  classDescription: "MacOSKeychain Startup Importer",
+  contractID: "@fitzell.ca/macos-keychain/startup-importer;1",
+  /* End of compatibility info */
+  
+  /* This method of registering category entries is for backwards compatibility
+   * with versions before Gecko 2.0 (Firefox 4). Versions from 2.0 onwards use
+   * the Chrome manifest.
+   * "app-startup" is for compatibility with versions before Gecko 1.9.1
+   * (Firefox 3.5), though it is still supported in all versions prior to
+   * Gecko 2.0.
+   */
   _xpcom_categories: [
-    {
-      category: "app-startup",
-      service: true
-    }
+    { category: "app-startup", service: true }
   ],
+  /* End of compatibility registration */
   
   _debug       : false, // mirrors signon.debug
   
@@ -112,15 +124,18 @@ MacOSKeychainStartupImporter.prototype = {
   },
   
   
+  readDebugPreference: function() {
+  	var signonPrefs = this._prefService.getBranch("signon.");
+    signonPrefs.QueryInterface(Ci.nsIPrefBranch2);
+    this._debug = signonPrefs.getBoolPref("debug");
+  },
+  
+  
   /**
    * Check whether we should prompt the user to import their old logins.
    *  If we should and they confirm it, then start the import process.
    */
   confirmImport: function () {
-    var signonPrefs = this._prefService.getBranch("signon.");
-    signonPrefs.QueryInterface(Ci.nsIPrefBranch2);
-    this._debug = signonPrefs.getBoolPref("debug");
-    
     this.log("confirmImport()");
     
     var prefs = this._prefService.getBranch("extensions." + extensionId + ".");
@@ -169,19 +184,25 @@ MacOSKeychainStartupImporter.prototype = {
   observe: function (subject, topic, data) {
     this.log("Observed " + subject + " " + topic + " " + data);
     switch(topic) {
+      case "profile-after-change":
+      /* "app-startup" is for compatibility with versions before Gecko 1.9.1 (Firefox 3.5) */
       case "app-startup":
+      	this.readDebugPreference();
         this._observerService.addObserver(this, "final-ui-startup", false);
-        //this._observerService.remove
         break;
       case "final-ui-startup":
-        //this._observerService.remove
+        this._observerService.removeObserver(this, "final-ui-startup");
         this.confirmImport();
         break;
     }
   },
 };
 
-var component = [MacOSKeychainStartupImporter];
-function NSGetModule(compMgr, fileSpec) {
-    return XPCOMUtils.generateModule(component);
-}
+/**
+* XPCOMUtils.generateNSGetFactory was introduced in Mozilla 2 (Firefox 4).
+* XPCOMUtils.generateNSGetModule is for Mozilla 1.9.2 (Firefox 3.6).
+*/
+if (XPCOMUtils.generateNSGetFactory)
+    var NSGetFactory = XPCOMUtils.generateNSGetFactory([MacOSKeychainStartupImporter]);
+else
+    var NSGetModule = XPCOMUtils.generateNSGetModule([MacOSKeychainStartupImporter]);

@@ -34,12 +34,17 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-#include "public/MacOSKeychainModule.h"
 #include "public/IMacOSKeychainItem.h"
 
 #import <Security/Security.h>
 
 #include "nsStringAPI.h"
+
+#define MACOSKEYCHAINITEM_CONTRACTID "@fitzell.ca/macos-keychain/keychainItem;1"
+#define MACOSKEYCHAINITEM_CLASSNAME "MacOSKeychain Item"
+#define MACOSKEYCHAINITEM_CID { 0xe70cd226, 0xee48, 0x45f3, \
+  { 0xba, 0xf3, 0x6c, 0xd1, 0x4f, 0x7e, 0xc4, 0x79 } }
+// e70cd226-ee48-45f3-baf3-6cd14f7ec479
 
 class MacOSKeychainItem : public IMacOSKeychainItem
 {
