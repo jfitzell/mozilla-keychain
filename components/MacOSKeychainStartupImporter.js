@@ -46,132 +46,132 @@ function MacOSKeychainStartupImporter() {
 }
 
 MacOSKeychainStartupImporter.prototype = {
-  classID: Components.ID("{494c2389-8d87-42cd-98b4-95b26a2f9ef3}"),
-  QueryInterface : XPCOMUtils.generateQI([Ci.nsIObserver]),
-  
-  _debug       : false, // mirrors signon.debug
-  
-  __logService : null,
-  get _logService() {
-    if (!this.__logService)
-      this.__logService = Cc["@mozilla.org/consoleservice;1"].
-                            getService(Ci.nsIConsoleService);
-    
-    return this.__logService;
-  },
+	classID: Components.ID("{494c2389-8d87-42cd-98b4-95b26a2f9ef3}"),
+	QueryInterface : XPCOMUtils.generateQI([Ci.nsIObserver]),
+	
+	_debug			 : false, // mirrors signon.debug
+	
+	__logService : null,
+	get _logService() {
+		if (!this.__logService)
+			this.__logService = Cc["@mozilla.org/consoleservice;1"].
+									getService(Ci.nsIConsoleService);
+		
+		return this.__logService;
+	},
 
-  __observerService : null, // Observer Service, for notifications
-  get _observerService() {
-    if (!this.__observerService)
-      this.__observerService = Cc["@mozilla.org/observer-service;1"].
-                               getService(Ci.nsIObserverService);
-    
-    return this.__observerService;
-  },
-  
-  __keychainStorage : null,
-  get _keychainStorage() {
-    if (!this.__keychainStorage) {
-      this.__keychainStorage = Cc["@fitzell.ca/macos-keychain/storage;1"].
-                               createInstance(Ci.nsILoginManagerStorage);
-      this.__keychainStorage.init();
-    }
-    
-    return this.__keychainStorage;
-  },
-  
-  __prefService : null,
-  get _prefService() {
-    if (!this.__prefService)
-      this.__prefService = Cc["@mozilla.org/preferences-service;1"].
-                           getService(Ci.nsIPrefService);
-    
-    return this.__prefService;
-  },
+	__observerService : null, // Observer Service, for notifications
+	get _observerService() {
+		if (!this.__observerService)
+			this.__observerService = Cc["@mozilla.org/observer-service;1"].
+										 getService(Ci.nsIObserverService);
+		
+		return this.__observerService;
+	},
+	
+	__keychainStorage : null,
+	get _keychainStorage() {
+		if (!this.__keychainStorage) {
+			this.__keychainStorage = Cc["@fitzell.ca/macos-keychain/storage;1"].
+										 createInstance(Ci.nsILoginManagerStorage);
+			this.__keychainStorage.init();
+		}
+		
+		return this.__keychainStorage;
+	},
+	
+	__prefService : null,
+	get _prefService() {
+		if (!this.__prefService)
+			this.__prefService = Cc["@mozilla.org/preferences-service;1"].
+									 getService(Ci.nsIPrefService);
+		
+		return this.__prefService;
+	},
 
-  /**
-   * Log a debug message if debugging is turned on via the signon.debug
-   *  preference.
-   */
-  log: function (message) {
-    if (!this._debug)
-      return;
-      
-    dump("MacOSKeychainStartupImporter: " + message + "\n");
-    this._logService.logStringMessage("MacOSKeychainStartupImporter: " + message);
-  },
-  
-  
-  readDebugPreference: function() {
-  	var signonPrefs = this._prefService.getBranch("signon.");
-    signonPrefs.QueryInterface(Ci.nsIPrefBranch2);
-    this._debug = signonPrefs.getBoolPref("debug");
-  },
-  
-  
-  /**
-   * Check whether we should prompt the user to import their old logins.
-   *  If we should and they confirm it, then start the import process.
-   */
-  confirmImport: function () {
-    this.log("confirmImport()");
-    
-    var prefs = this._prefService.getBranch("extensions." + extensionId + ".");
-    prefs.QueryInterface(Ci.nsIPrefBranch2);
-    
-    var import;
-    try {
-      import = prefs.getBoolPref(prefImportPrompt);
-    } catch (e) {
-      import = false;
-    }
-    
-    if (import) {
-      var promptSvc = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
-                                .getService(Ci.nsIPromptService);
-      var flags = promptSvc.BUTTON_POS_0 * promptSvc.BUTTON_TITLE_IS_STRING +
-                  promptSvc.BUTTON_POS_1 * promptSvc.BUTTON_TITLE_IS_STRING  +
-                  promptSvc.BUTTON_POS_2 * promptSvc.BUTTON_TITLE_IS_STRING;
-      var result = promptSvc.confirmEx(null,
-                        "Import saved logins into Keychain Services?",
-                        "The Keychain Service Integration extension can import your existing saved logins into Keychain Services. This allows them to be shared with other applications on your computer. Your original logins will be left in place and will still be available if you disable this extension later. Do you want to import your saved logins now?",
-                        flags, "Yes", "No", "Ask me later",
-                        null, {});
-      
-      if (result == 0) {
-        try {
-          var s = this._keychainStorage.QueryInterface(Ci.IMacOSKeychainStartupImporter);
-          s.importLogins();
-        } catch (e) {
-          this.log(e);
-        }
-      }
-      
-      if (result != 2)
-        prefs.setBoolPref(prefImportPrompt, false);
-    } 
-  },
-  
-  /**
-   =======================================
-    nsIObserver implementation
-   =======================================
-   */
-  
-    
-  observe: function (subject, topic, data) {
-    this.log("Observed " + subject + " " + topic + " " + data);
-    switch(topic) {
-      case "profile-after-change":
-      	this.readDebugPreference();
-        this._observerService.addObserver(this, "final-ui-startup", false);
-        break;
-      case "final-ui-startup":
-        this._observerService.removeObserver(this, "final-ui-startup");
-        this.confirmImport();
-        break;
-    }
-  },
+	/**
+	 * Log a debug message if debugging is turned on via the signon.debug
+	 *	preference.
+	 */
+	log: function (message) {
+		if (!this._debug)
+			return;
+			
+		dump("MacOSKeychainStartupImporter: " + message + "\n");
+		this._logService.logStringMessage("MacOSKeychainStartupImporter: " + message);
+	},
+	
+	
+	readDebugPreference: function() {
+		var signonPrefs = this._prefService.getBranch("signon.");
+		signonPrefs.QueryInterface(Ci.nsIPrefBranch2);
+		this._debug = signonPrefs.getBoolPref("debug");
+	},
+	
+	
+	/**
+	 * Check whether we should prompt the user to import their old logins.
+	 *	If we should and they confirm it, then start the import process.
+	 */
+	confirmImport: function () {
+		this.log("confirmImport()");
+		
+		var prefs = this._prefService.getBranch("extensions." + extensionId + ".");
+		prefs.QueryInterface(Ci.nsIPrefBranch2);
+		
+		var import;
+		try {
+			import = prefs.getBoolPref(prefImportPrompt);
+		} catch (e) {
+			import = false;
+		}
+		
+		if (import) {
+			var promptSvc = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
+																.getService(Ci.nsIPromptService);
+			var flags = promptSvc.BUTTON_POS_0 * promptSvc.BUTTON_TITLE_IS_STRING +
+						promptSvc.BUTTON_POS_1 * promptSvc.BUTTON_TITLE_IS_STRING +
+						promptSvc.BUTTON_POS_2 * promptSvc.BUTTON_TITLE_IS_STRING;
+			var result = promptSvc.confirmEx(null,
+							"Import saved logins into Keychain Services?",
+							"The Keychain Service Integration extension can import your existing saved logins into Keychain Services. This allows them to be shared with other applications on your computer. Your original logins will be left in place and will still be available if you disable this extension later. Do you want to import your saved logins now?",
+							flags, "Yes", "No", "Ask me later",
+							null, {});
+			
+			if (result == 0) {
+				try {
+					var s = this._keychainStorage.QueryInterface(Ci.IMacOSKeychainStartupImporter);
+					s.importLogins();
+				} catch (e) {
+					this.log(e);
+				}
+			}
+			
+			if (result != 2)
+				prefs.setBoolPref(prefImportPrompt, false);
+		} 
+	},
+	
+	/**
+	 =======================================
+		nsIObserver implementation
+	 =======================================
+	 */
+	
+		
+	observe: function (subject, topic, data) {
+		this.log("Observed " + subject + " " + topic + " " + data);
+		switch(topic) {
+			case "profile-after-change":
+				this.readDebugPreference();
+				this._observerService.addObserver(this, "final-ui-startup", false);
+				break;
+			case "final-ui-startup":
+				this._observerService.removeObserver(this, "final-ui-startup");
+				this.confirmImport();
+				break;
+		}
+	},
 };
 
 var NSGetFactory = XPCOMUtils.generateNSGetFactory([MacOSKeychainStartupImporter]);
