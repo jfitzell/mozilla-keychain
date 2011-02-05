@@ -617,6 +617,11 @@ MacOSKeychainStorage.prototype = {
 		
 		var items = KeychainItem.findInternetPasswords(null /*accountName*/,
 														null /*protocol*/,
+														null /*serverName*/, 
+														null /*port*/,
+														null /*authType*/,
+														null /*securityDomain*/);
+
 		var logins = this._convertKeychainItemsToLoginInfos(items);
 		
 		this.log('  Found ' + logins.length + ' logins');
