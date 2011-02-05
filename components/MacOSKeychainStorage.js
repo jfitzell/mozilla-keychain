@@ -69,25 +69,6 @@ MacOSKeychainStorage.prototype = {
   classID: Components.ID("{87d15ebf-2a51-4e54-9290-315a54feea25}"),
   QueryInterface : XPCOMUtils.generateQI([Ci.nsILoginManagerStorage,
                                           Ci.IMacOSKeychainStartupImporter]),
-
-  /*
-   * This information is for compatibility with the component registration
-   * performed by XPCOMUtils in versions prior to Gecko 2.0 (Firefox 4).
-   * From that version on, this information is contained in the
-   * Chrome manifest file.
-   */
-  classDescription: "MacOSKeychain Login Storage",
-  contractID: "@fitzell.ca/macos-keychain/storage;1",
-  /* End of compatibility info */
-  
-  /* This method of registering category entries is for backwards compatibility
-   * with versions before Gecko 2.0 (Firefox 4). Versions from 2.0 onwards use
-   * the Chrome manifest.
-   */
-  _xpcom_categories: [
-    { category: "login-manager-storage", entry: "nsILoginManagerStorage" }
-  ],
-  /* End of compatibility registration */
   
   _prefBranch  : null,  // Preferences service
   _debug       : false, // mirrors signon.debug
@@ -753,11 +734,4 @@ MacOSKeychainStorage.prototype = {
 
 
 
-/**
-* XPCOMUtils.generateNSGetFactory was introduced in Mozilla 2 (Firefox 4).
-* XPCOMUtils.generateNSGetModule is for Mozilla 1.9.2 (Firefox 3.6).
-*/
-if (XPCOMUtils.generateNSGetFactory)
-    var NSGetFactory = XPCOMUtils.generateNSGetFactory([MacOSKeychainStorage]);
-else
-    var NSGetModule = XPCOMUtils.generateNSGetModule([MacOSKeychainStorage]);
+var NSGetFactory = XPCOMUtils.generateNSGetFactory([MacOSKeychainStorage]);
