@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<overlay id="mine" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+	<script src="preferences-security-overlay.js"/>
+
+	<groupbox id="passwordsGroup">
+		<description position="1">Passwords are being managed by the Keychain Services Integration add-on.</description>
+		<hbox id="showPasswordsBox">
+			<button id="showPasswords" showelement="false" hidden="true"/>
+       		<button id="macosKeychain-launchKeychainAccess"
+       	         label="Manage Passwords..."
+       	         oncommand="KeychainServices.launchKeychainAccess();"/>
+      	</hbox>
+	</groupbox>
+</overlay>
+

@@ -33,6 +33,11 @@
  * the terms of any one of the MPL, the GPL or the LGPL.
  *
  * ***** END LICENSE BLOCK ***** */
+
+Components.utils.import("resource://gre/modules/ctypes.jsm");    
+Components.utils.import("resource://macos-keychain/CoreFoundation.jsm");
+Components.utils.import("resource://macos-keychain/Security.jsm");
+Components.utils.import("resource://macos-keychain/KeychainItem.jsm");
  
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -87,7 +92,6 @@ MacOSKeychainStorage.prototype = {
   _prefBranch  : null,  // Preferences service
   _debug       : false, // mirrors signon.debug
   _nsLoginInfo : null, // Constructor for nsILoginInfo implementation
-  _keychainService : null, // The MacOSKeychainService
   
   __logService : null,
   get _logService() {
@@ -137,6 +141,19 @@ MacOSKeychainStorage.prototype = {
     }
   },
 
+  _convertKeychainItemsToLoginInfos: function (items) {
+  	this.debug('_convertKeychainItemToLoginInfo(...)');
+    var logins = new Array();
+    for ( var i in items ) {
+      try {
+        logins.push(this._convertKeychainItemToLoginInfo(items[i]));
+      } catch (e) {
+        this.log('Ignoring Keychain Item. Conversion failed with: ' + e);
+      }
+    }
+    
+    return logins;
+  },
   
   /**
    * Create and initialize a new nsILoginInfo with the data in the provided
@@ -144,17 +161,22 @@ MacOSKeychainStorage.prototype = {
    *
    */
   _convertKeychainItemToLoginInfo: function (item) {
-    this.log("_convertKeychainItemToLoginInfo[ item: (" +
+    this.debug("_convertKeychainItemToLoginInfo[ item: (" +
              this._debugStringForKeychainItem(item) + ") ]");
     var info = new this._nsLoginInfo();
-    
-    var uri = this._uri(item.protocol + "://" + item.serverName
-                             + (item.port == 0 ? "" : ":"+item.port));
+
+	//this.debug(item._attributes.toSource());
+    var uriString = item.uriString;
+    this.debug("  URI String: " + uriString);
+    var uri = this._uri(uriString);
+    // Remove the trailing slash from the URI since LoginManager doesn't put
+    //  it there and uses a strict string comparison when checking the results
+    //  of a find operation to determine if any of the LoginInfos is an exact match.
 	var hostname = uri.spec.substring(0, uri.spec.length - 1);
-    this.log("  Parsed URI: " + hostname);
+    this.debug("  Parsed URI: " + hostname);
     
     var formSubmitURL, httpRealm;
-    if (Ci.IMacOSKeychainItem.AuthTypeHTMLForm == item.authenticationType) {
+    if (Security.kSecAuthenticationTypeHTMLForm == item.authenticationType) {
       // nsLoginInfo.matches() allows two instances to match on the
       //  formSubmitURL field as long as one of them is blank (but not null).
       //  Since we have nowhere to store that field in the keychain, we take
@@ -172,7 +194,7 @@ MacOSKeychainStorage.prototype = {
    //  is what we return
     info.init(hostname,
               formSubmitURL, httpRealm,
-              item.accountName, null,
+              item.account, null,
               "" /*usernameField*/, "" /*passwordField*/);
     
     info.wrappedJSObject.__defineGetter__("password", function() {return item.password});
@@ -180,41 +202,6 @@ MacOSKeychainStorage.prototype = {
     this.log("  " + this._debugStringForLoginInfo(info));
     
     return info;
-  },
-
-  
-  /**
-   * Wrapper method for MacOSKeychainService::findInterPasswordItems()
-   *
-   * This method deals with enumerators and query interfaces in order to return
-   * a simple array of Keychain Items.
-   *
-   * A value of null for any parameter is interpreted as matching ALL values
-   *  (ie. the parameter is not included in the search criteria)
-   */
-  _findInternetPasswordItems: function (accountName, protocol, serverName,
-                                        port, authType, securityDomain) {
-    this.log("_findInternetPasswordItems["
-             + " accountName:" + accountName
-             + " protocol:" + protocol
-             + " serverName:" + serverName
-             + " port:" + port
-             + " authType:" + authType
-             + " securityDomain:" + securityDomain + " ]");
-
-    var items = this._keychainService.findInternetPasswordItems(accountName,
-                                                protocol, serverName, port,
-                                                authType, securityDomain);
-    var enumerator = items.enumerate();
-    var itemArray = new Array();
-    while ( enumerator.hasMoreElements() ) {
-      var item = enumerator.getNext().QueryInterface(Ci.IMacOSKeychainItem);
-      itemArray.push(item);
-    }
-    
-    this.log("  Items found: " + itemArray.length);
-    
-    return itemArray;
   },
 
 
@@ -232,7 +219,7 @@ MacOSKeychainStorage.prototype = {
    * We also take the same approach with the username field.
    */
   _findKeychainItems: function (username, hostname, formSubmitURL, httpRealm) {
-    this.log("_findKeychainItems["
+    this.debug("_findKeychainItems["
              + " username:" + username
              + " hostname:" + hostname
              + " formSubmitURL:" + formSubmitURL
@@ -273,12 +260,25 @@ MacOSKeychainStorage.prototype = {
     if ("" == formSubmitURL && "" == httpRealm) // match ANY type
       authType = null;
     else if (null != formSubmitURL) // match form logins only
-      authType = Ci.IMacOSKeychainItem.AuthTypeHTMLForm;
+      authType = Security.kSecAuthenticationTypeHTMLForm;
     else // match non-form logins only
-      authType = Ci.IMacOSKeychainItem.AuthTypeDefault;
+      authType = Security.kSecAuthenticationTypeDefault;
     
-    return this._findInternetPasswordItems(accountName, scheme, host,
+    var protocolType = Security.protocolForScheme(scheme);
+    
+    this.debug("About to call KeychainItem.findInternetPasswords["
+             + " account:" + accountName
+             + " protocol:" + protocolType
+             + " server:" + host
+             + " port:" + port
+             + " authenticationType:" + authType
+             + " securityDomain:" + securityDomain + " ]");
+    var items = KeychainItem.findInternetPasswords(accountName, protocolType, host,
                                            port, authType, securityDomain);
+                                           
+    this.log("  Items found: " + items.length);
+    
+    return items;
   },
   
   
@@ -288,7 +288,7 @@ MacOSKeychainStorage.prototype = {
    *  is returned. If none is found, null is returned.
    */
   _findKeychainItemForLoginInfo: function (login) {
-    this.log("_findKeychainItemForLoginInfo[ login:" + login + " ]");
+    this.debug("_findKeychainItemForLoginInfo[ login:" + login + " ]");
     
     var items = this._findKeychainItems(login.username,
                                         login.hostname,
@@ -312,7 +312,7 @@ MacOSKeychainStorage.prototype = {
       return ios.newURI(uriString, null, null);
     } catch (e) {
       this.log(e);
-      throw "Invalid URI";
+      throw Error('Invalid URI');
     }
   },
   
@@ -326,7 +326,7 @@ MacOSKeychainStorage.prototype = {
       return url;
     } catch (e) {
       this.log(e);
-      throw "Invalid URL";
+      throw Error('Invalid URL');
     }
   },
   
@@ -338,7 +338,7 @@ MacOSKeychainStorage.prototype = {
    *  If any of the values is missing, null is provided for that position.
    */
   _splitLoginInfoHostname: function (hostname) {
-    this.log("_splitLoginInfoHostname[ hostname:" + hostname + " ]");
+    this.debug("_splitLoginInfoHostname[ hostname:" + hostname + " ]");
     var scheme = null;
     var host = null;
     var port = null;
@@ -349,13 +349,13 @@ MacOSKeychainStorage.prototype = {
         host = url.host;
         port = url.port;
       } catch (e) {
-        throw "Unable to split hostname: " + e;
+        throw Error("Unable to split hostname: " + e);
       }
       if (port == -1) // -1 indicates default port for the protocol
         port = null;
     }
     
-    this.log("  scheme:" + scheme + " host:" + host + " port:" + port);
+    this.debug("  scheme:" + scheme + " host:" + host + " port:" + port);
     return [scheme, host, port];
   },
   
@@ -372,11 +372,14 @@ MacOSKeychainStorage.prototype = {
   
   
   _debugStringForKeychainItem: function (item) {
-    return "protocol:" + item.protocol +
-          " serverName:" + item.serverName +
+  	if (item === null)
+  		return 'null';
+  		
+	return "protocol:" + item.protocol +
+          " server:" + item.server +
           " port:" + item.port +
-          " securityDomain:" + item.securityDomain +
-          " accountName:" + item.accountName +
+//          " securityDomain:" + item.securityDomain +
+          " account:" + item.account +
           " password:(omitted)" +
           " authenticationType:" + item.authenticationType +
           " comment:" + item.comment +
@@ -397,12 +400,16 @@ MacOSKeychainStorage.prototype = {
     this._logService.logStringMessage("MacOSKeychainStorage: " + message);
   },
   
+  debug: function (message) {
+  	this.log(message);
+  },
+  
   
   /**
    * Import logins from the old login storage provider into the keychain.
    */
   importLogins: function () {
-    this.log("importLogins()");
+    this.debug("importLogins()");
     var logins = this._defaultStorage.getAllLogins({});
     
     for (var i in logins) {
@@ -422,6 +429,95 @@ MacOSKeychainStorage.prototype = {
     }
   },
   
+	updateItemWithLoginInfo: function (item, loginInfo) {
+		// I hate the duplication here with addLogin()
+      
+		item.accountName = loginInfo.username;
+		item.password = loginInfo.password;
+		
+		var [scheme, host, port] = this._splitLoginInfoHostname(loginInfo.hostname);
+		
+		item.protocol = scheme;
+		item.serverName = host;
+		item.port = port;
+		item.label = host + ' (' + loginInfo.username + ')';
+		
+		item.securityDomain = loginInfo.httpRealm;
+		
+		if (null != loginInfo.formSubmitURL) {
+			item.description = 'Web form password';
+			item.authenticationType = Security.kSecAuthenticationTypeHTMLForm;
+		} else {
+			item.description = null;
+			item.authenticationType = Security.kSecAuthenticationTypeDefault;
+		}
+		
+		//item.path = ;
+		//item.comment = ;
+	},
+
+	updateItemWithProperties: function (item, properties) {
+		var httpRealm = null;
+		var formSubmitURL = null;
+		var unknownProps = new Array();
+		
+		var propEnum = properties.enumerator;
+		while (propEnum.hasMoreElements()) {
+			var prop = propEnum.getNext().QueryInterface(Ci.nsIProperty);
+			this.debug('Setting property: ' + prop.name);
+			switch (prop.name) {
+				// nsILoginInfo properties...
+				case "hostname":
+					var [scheme, host, port] = this._splitLoginInfoHostname(prop.value);
+					item.protocol = scheme;
+					item.serverName = host;
+					item.port = port;
+					break;
+					
+				case "formSubmitURL":
+					if (null != prop.value)
+						item.authenticationType = Security.kSecAuthenticationTypeHTMLForm;
+					else
+						item.authenticationType = Security.kSecAuthenticationTypeDefault;
+					break;
+				
+				case "httpRealm":
+					item.securityDomain = prop.value;
+					break;
+				
+				case "username":
+					item.accountName = prop.value;
+					break;
+				
+				case "password":
+					item.password = prop.value;
+					break;
+				
+				case "usernameField":
+				case "passwordField":
+				case "timesUsedIncrement":
+				case "timeLastUsed":
+				case "timePasswordChanged":
+					this.debug('--Unsupported property: ' + prop.name);
+					// not supported
+					break;
+	
+				// nsILoginMetaInfo properties...
+				case "guid":
+					// ???
+					break;
+	
+				// Fail if caller requests setting an unknown property.
+				default:
+					this.debug('**Unknown property: ' + prop.name);
+					unknownProps.push(prop.name);
+			}
+		}
+      
+		if (unknownProps.length > 0) {
+			throw Error('Unexpected propertybag items: ' + unknownProps);
+		}
+	},
   
   /**
    =======================================
@@ -430,7 +526,7 @@ MacOSKeychainStorage.prototype = {
    */
    
   init: function () {
-    this.log("init()");
+    this.debug("init()");
     
     // Connect to the correct preferences branch.
     var prefService = Cc["@mozilla.org/preferences-service;1"].
@@ -446,9 +542,6 @@ MacOSKeychainStorage.prototype = {
     this._nsLoginInfo = new Components.Constructor(
         "@mozilla.org/login-manager/loginInfo;1", Ci.nsILoginInfo);
     
-    this._keychainService = Cc["@fitzell.ca/macos-keychain/keychainService;1"].
-                              getService(Ci.IMacOSKeychainService);
-    
     this.log("Done initializing.");
   },
   
@@ -460,7 +553,7 @@ MacOSKeychainStorage.prototype = {
    *  don't know what else we'd do with them.
    */
   initWithFile: function (aInputFile, aOutputFile) {
-    this.log("initWithFile(" + aInputFile + "," + aOutputFile + ")");
+    this.debug("initWithFile(" + aInputFile + "," + aOutputFile + ")");
     
     this._initDefaultStorage(aInputFile, aOutputFile);
     
@@ -469,7 +562,7 @@ MacOSKeychainStorage.prototype = {
   
   
   addLogin: function (login) {
-    this.log("addLogin[ login: (" + this._debugStringForLoginInfo(login) + ") ]");
+    this.debug("addLogin[ login: (" + this._debugStringForLoginInfo(login) + ") ]");
     //return this._defaultStorage.addLogin(login);
     
     try {
@@ -483,16 +576,20 @@ MacOSKeychainStorage.prototype = {
     
     var label = host + " (" + login.username + ")";
 
-    var authType = Ci.IMacOSKeychainItem.AuthTypeHTMLForm;
+    var authType = Security.kSecAuthenticationTypeHTMLForm;
     if (null == login.formSubmitURL)
-      authType = Ci.IMacOSKeychainItem.AuthTypeDefault;
+      authType = Security.kSecAuthenticationTypeDefault;
 
-    var item = this._keychainService.addInternetPasswordItem(login.username, login.password,
-                                 scheme, host, port, null /*path*/,
+	var protocolType = Security.protocolForScheme(scheme);
+	if (! protocolType)
+		throw Error('Unable to determine ProtocolType for scheme: ' + scheme);
+
+    var item = KeychainItem.addInternetPassword(login.username, login.password,
+                                 protocolType, host, port, null /*path*/,
                                  authType, login.httpRealm,
                                  null /*comment*/, label);
     
-    this.log("  keychain item: (" + this._debugStringForKeychainItem(item) + ")");
+    this.debug("  keychain item: (" + this._debugStringForKeychainItem(item) + ")");
     
     if (null != login.formSubmitURL)
       item.description = "Web form password";
@@ -500,7 +597,7 @@ MacOSKeychainStorage.prototype = {
   
   
   removeLogin: function (login) {
-    this.log("removeLogin()");
+    this.debug("removeLogin()");
     //return this._defaultStorage.removeLogin(login);
     
     var item = this._findKeychainItemForLoginInfo(login);
@@ -514,117 +611,39 @@ MacOSKeychainStorage.prototype = {
   
   
   modifyLogin: function (oldLogin, newLoginData) {
-    this.log("modifyLogin[ oldLogin:" + oldLogin + " newLogin:" + newLoginData + " ]");
+    this.debug('modifyLogin[ oldLogin:' + oldLogin + ' newLogin:' + newLoginData + ' ]');
     //return this._defaultStorage.modifyLogin(oldLogin, newLogin);
     var item = this._findKeychainItemForLoginInfo(oldLogin);
     if (! item) {
-      this.log("  No matching login found");
-      throw "No matching login found";
+      this.log('  No matching login found');
+      throw Error('No matching login found');
       return;
     }
     
     if (newLoginData instanceof Ci.nsILoginInfo) {
-      // I hate the duplication here with addLogin()
-      
-      item.accountName = newLoginData.username;
-      item.password = newLoginData.password;
-      
-      var [scheme, host, port] = this._splitLoginInfoHostname(newLoginData.hostname);
-      
-      item.protocol = scheme;
-      item.serverName = host;
-      item.port = port;
-      item.label = host + " (" + newLoginData.username + ")";
-      
-      item.securityDomain = newLoginData.httpRealm;
-      
-      if (null != newLoginData.formSubmitURL) {
-        item.description = "Web form password";
-        item.authenticationType = Ci.IMacOSKeychainItem.AuthTypeHTMLForm;
-      } else {
-        item.description = null;
-        item.authenticationType = Ci.IMacOSKeychainItem.AuthTypeDefault;
-      }
-
-      //item.path = ;
-      //item.comment = ;
+      this.updateItemWithLoginInfo(item, newLoginData);
     } else if (newLoginData instanceof Ci.nsIPropertyBag) {
-      var httpRealm = null;
-      var formSubmitURL = null;
-      var unknownProps = new Array();
-    
-      var propEnum = newLoginData.enumerator;
-      while (propEnum.hasMoreElements()) {
-        var prop = propEnum.getNext().QueryInterface(Ci.nsIProperty);
-        switch (prop.name) {
-          // nsILoginInfo properties...
-          case "hostname":
-            var [scheme, host, port] = this._splitLoginInfoHostname(prop.value);
-            item.protocol = scheme;
-            item.serverName = host;
-            item.port = port;
-            break;
-          
-          case "formSubmitURL":
-            if (null != prop.value)
-              item.authenticationType = Ci.IMacOSKeychainItem.AuthTypeHTMLForm;
-            else
-              item.authenticationType = Ci.IMacOSKeychainItem.AuthTypeDefault;
-            break;
-            
-          case "httpRealm":
-            item.securityDomain = prop.value;
-            break;
-            
-          case "username":
-            item.accountName = prop.value;
-            break;
-            
-          case "password":
-            item.password = prop.value;
-            break;
-            
-          case "usernameField":
-          case "passwordField":
-            // not supported
-            break;
-
-          // nsILoginMetaInfo properties...
-          case "guid":
-            // ???
-            break;
-
-          // Fail if caller requests setting an unknown property.
-          default:
-            unknownProps.push(prop.name);
-        }
-      }
-      
-      if (unknownProps.length > 0) {
-        throw "Unexpected propertybag items: " + unknownProps;
-      }
+      this.updateItemWithProperties(item, newLoginData);
     } else {
-      throw "Unsupported parameter type provided for new login data";
+      throw Error('Unsupported parameter type provided for new login data');
     }
   },
   
   
   getAllLogins: function (count) {
-    this.log("getAllLogins()");
+    this.debug('getAllLogins()');
     //return this._defaultStorage.getAllLogins(count);
     
-    var items = this._findInternetPasswordItems(null /*accountName*/,
+    var items = KeychainItem.findInternetPasswords(null /*accountName*/,
                                                 null /*protocol*/,
                                                 null /*serverName*/, 
                                                 null /*port*/,
                                                 null /*authType*/,
                                                 null /*securityDomain*/);
     
-    var logins = new Array();
-
-    for ( var i in items ) {
-      logins.push(this._convertKeychainItemToLoginInfo(items[i]));
-    }
+    var logins = this._convertKeychainItemsToLoginInfos(items);
+    
+    this.log('  Found ' + logins.length + ' logins');
     
     count.value = logins.length;
     return logins;
@@ -632,9 +651,9 @@ MacOSKeychainStorage.prototype = {
   
   
   removeAllLogins: function () {
-    this.log("removeAllLogins()");
+    this.debug('removeAllLogins()');
     //return this._defaultStorage.removeAllLogins();
-    var items = this._findInternetPasswordItems(null /*accountName*/,
+    var items = KeychainItem.findInternetPasswords(null /*accountName*/,
                                                 null /*protocol*/,
                                                 null /*serverName*/, 
                                                 null /*port*/,
@@ -642,26 +661,26 @@ MacOSKeychainStorage.prototype = {
                                                 null /*securityDomain*/);
     
     for ( var i in items ) {
-      this.log("  Deleting " + items[i].serverName);
+      this.log('  Deleting ' + items[i].serverName);
       items[i].delete();
     }
   },
   
   
   getAllDisabledHosts: function (count) {
-    this.log("getAllDisabledHosts()");
+    this.debug('getAllDisabledHosts()');
     return this._defaultStorage.getAllDisabledHosts(count);
   },
   
   
   getLoginSavingEnabled: function (hostname) {
-    this.log("getLoginSavingEnabled[ hostname:" + hostname + " ]");
+    this.debug('getLoginSavingEnabled[ hostname:' + hostname + ' ]');
     return this._defaultStorage.getLoginSavingEnabled(hostname);
   },
   
   
   setLoginSavingEnabled: function (hostname, enabled) {
-    this.log("setLoginSavingEnabled[ hostname:" + hostname + " enabled:" + enabled + " ]");
+    this.debug('setLoginSavingEnabled[ hostname:' + hostname + ' enabled:' + enabled + ' ]');
     return this._defaultStorage.setLoginSavingEnabled(hostname, enabled);
   },
   
@@ -672,34 +691,31 @@ MacOSKeychainStorage.prototype = {
    *  ALL values and a null value means match only items with NO value
    */
   findLogins: function (count, hostname, formSubmitURL, httpRealm) {
-    this.log("findLogins["
-             + " hostname:" + hostname
-             + " formSubmitURL:" + formSubmitURL
-             + " httpRealm:" + httpRealm + " ]");
+    this.debug('findLogins['
+             + ' hostname:' + hostname
+             + ' formSubmitURL:' + formSubmitURL
+             + ' httpRealm:' + httpRealm + ' ]');
     //return this._defaultStorage.findLogins(count, hostname, formSubmitURL, httpRealm);
     
-    var items = this._findKeychainItems("" /*username*/, hostname,
+    var items = this._findKeychainItems('' /*username*/, hostname,
                                         formSubmitURL, httpRealm);
     
     // Safari seems not to store the HTTP Realm in the securityDomain
     //  field so we try the search again without it.
-    if (items.length == 0 && httpRealm != null && httpRealm != "") {
-      items = this._findKeychainItems("" /*username*/, hostname,
-                                      formSubmitURL, "" /*httpRealm*/);
+    if (items.length == 0 && httpRealm != null && httpRealm != '') {
+      items = this._findKeychainItems('' /*username*/, hostname,
+                                      formSubmitURL, '' /*httpRealm*/);
       for (var i in items) {
         items[i].securityDomain = httpRealm;
       }
     }
     
     if (items.length == 0 /* && an appropriate preference is set*/) {
-      this.log("No items found. Checking mozilla storage...");
+      this.log('No items found. Checking mozilla storage...');
       return this._defaultStorage.findLogins(count, hostname, formSubmitURL, httpRealm);
     }
       
-    var logins = new Array();
-    for ( var i in items ) {
-      logins.push(this._convertKeychainItemToLoginInfo(items[i]));
-    }
+    var logins = this._convertKeychainItemsToLoginInfos(items);
     
     count.value = logins.length;
     return logins;
@@ -707,27 +723,31 @@ MacOSKeychainStorage.prototype = {
   
   
   countLogins: function (hostname, formSubmitURL, httpRealm) {
-    this.log("countLogins["
-             + " hostname:" + hostname
-             + " formSubmitURL:" + formSubmitURL
-             + " httpRealm:" + httpRealm + " ]");
+    this.debug('countLogins['
+             + ' hostname:' + hostname
+             + ' formSubmitURL:' + formSubmitURL
+             + ' httpRealm:' + httpRealm + ' ]');
     //return this._defaultStorage.countLogins(hostname, formSubmitURL, httpRealm);
     
-    var items = this._findKeychainItems("" /*username*/, hostname,
+    var items = this._findKeychainItems('' /*username*/, hostname,
                                         formSubmitURL, httpRealm);
     
     // Safari seems not to store the HTTP Realm in the securityDomain
     //  field so we try the search again without it.
-    if (items.length == 0 && httpRealm != null && httpRealm != "")
-      items = this._findKeychainItems("" /*username*/, hostname,
-                                      formSubmitURL, "" /*httpRealm*/);
+    if (items.length == 0 && httpRealm != null && httpRealm != '')
+      items = this._findKeychainItems('' /*username*/, hostname,
+                                      formSubmitURL, '' /*httpRealm*/);
     
     if (items.length == 0 /* && an appropriate preference is set*/) {
-      this.log("No items found. Checking mozilla storage...");
+      this.log('No items found. Checking mozilla storage...');
       return this._defaultStorage.countLogins(hostname, formSubmitURL, httpRealm);
     }
     
     return items.length;
+  },
+  
+  get uiBusy() {
+  	return false;
   }
 };
 
