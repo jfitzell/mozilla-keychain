@@ -561,9 +561,9 @@ MacOSKeychainStorage.prototype = {
 		if (null == login.formSubmitURL)
 			authType = Security.kSecAuthenticationTypeDefault;
 
-	var protocolType = Security.protocolForScheme(scheme);
-	if (! protocolType)
-		throw Error('Unable to determine ProtocolType for scheme: ' + scheme);
+		var protocolType = Security.protocolForScheme(scheme);
+		if (! protocolType)
+			throw Error('Unable to determine ProtocolType for scheme: ' + scheme);
 
 		var item = KeychainItem.addInternetPassword(login.username, login.password,
 													 protocolType, host, port, null /*path*/,
