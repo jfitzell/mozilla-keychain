@@ -40,6 +40,12 @@ const Ci = Components.interfaces;
 const extensionId = "macos-keychain@fitzell.ca";
 const prefImportPrompt = "startup-import-prompt";
 
+const contractConsoleService = '@mozilla.org/consoleservice;1';
+const contractKeychainStorage = '@fitzell.ca/macos-keychain/storage;1';
+const contractObserverService = '@mozilla.org/observer-service;1';
+const contractPreferencesSerivce = '@mozilla.org/preferences-service;1';
+const contractPromptService = '@mozilla.org/embedcomp/prompt-service;1';
+
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 function MacOSKeychainStartupImporter() {
@@ -51,40 +57,32 @@ MacOSKeychainStartupImporter.prototype = {
 	
 	_debug			 : false, // mirrors signon.debug
 	
-	__logService : null,
 	get _logService() {
 		if (!this.__logService)
-			this.__logService = Cc["@mozilla.org/consoleservice;1"].
-									getService(Ci.nsIConsoleService);
+			this.__logService = Cc[contractConsoleService].getService(Ci.nsIConsoleService);
 		
 		return this.__logService;
 	},
 
-	__observerService : null, // Observer Service, for notifications
 	get _observerService() {
 		if (!this.__observerService)
-			this.__observerService = Cc["@mozilla.org/observer-service;1"].
-										 getService(Ci.nsIObserverService);
+			this.__observerService = Cc[contractObserverService].getService(Ci.nsIObserverService);
 		
 		return this.__observerService;
 	},
 	
-	__keychainStorage : null,
 	get _keychainStorage() {
 		if (!this.__keychainStorage) {
-			this.__keychainStorage = Cc["@fitzell.ca/macos-keychain/storage;1"].
-										 createInstance(Ci.nsILoginManagerStorage);
+			this.__keychainStorage = Cc[contractKeychainStorage].createInstance(Ci.nsILoginManagerStorage);
 			this.__keychainStorage.init();
 		}
 		
 		return this.__keychainStorage;
 	},
 	
-	__prefService : null,
 	get _prefService() {
 		if (!this.__prefService)
-			this.__prefService = Cc["@mozilla.org/preferences-service;1"].
-									 getService(Ci.nsIPrefService);
+			this.__prefService = Cc[contractPreferencesSerivce].getService(Ci.nsIPrefService);
 		
 		return this.__prefService;
 	},
@@ -127,8 +125,7 @@ MacOSKeychainStartupImporter.prototype = {
 		}
 		
 		if (import) {
-			var promptSvc = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
-																.getService(Ci.nsIPromptService);
+			var promptSvc = Cc[contractPromptService].getService(Ci.nsIPromptService);
 			var flags = promptSvc.BUTTON_POS_0 * promptSvc.BUTTON_TITLE_IS_STRING +
 						promptSvc.BUTTON_POS_1 * promptSvc.BUTTON_TITLE_IS_STRING +
 						promptSvc.BUTTON_POS_2 * promptSvc.BUTTON_TITLE_IS_STRING;
