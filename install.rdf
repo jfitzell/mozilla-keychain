@@ -39,7 +39,7 @@
      xmlns:em="http://www.mozilla.org/2004/em-rdf#">
   <Description about="urn:mozilla:install-manifest">
     <em:id>macos-keychain@fitzell.ca</em:id>
-    <em:version>1.1pre1</em:version>
+    <em:version>1.1pre2</em:version>
 
     <em:targetPlatform>Darwin</em:targetPlatform>
     <em:targetApplication>
