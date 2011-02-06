@@ -89,53 +89,90 @@ sec.errSecNoTrustSettings = -25263;
 sec.errSecPkcs12VerifyFailure = -25264;
 sec.errSecDecode = -26275;
 
-
+sec.itemAttrFromString = MacTypes.fourCharCodeFromString;
+sec.stringFromItemAttr = MacTypes.stringFromFourCharCode;
 
 // SecItemAttr	
-sec.kSecCreationDateItemAttr        = MacTypes.fourCharCodeFromString('cdat');
-sec.kSecModDateItemAttr             = MacTypes.fourCharCodeFromString('mdat');
-sec.kSecDescriptionItemAttr         = MacTypes.fourCharCodeFromString('desc');
-sec.kSecCommentItemAttr             = MacTypes.fourCharCodeFromString('icmt');
-sec.kSecCreatorItemAttr             = MacTypes.fourCharCodeFromString('crtr');
-sec.kSecTypeItemAttr                = MacTypes.fourCharCodeFromString('type');
-sec.kSecScriptCodeItemAttr          = MacTypes.fourCharCodeFromString('scrp');
-sec.kSecLabelItemAttr               = MacTypes.fourCharCodeFromString('labl');
-sec.kSecInvisibleItemAttr           = MacTypes.fourCharCodeFromString('invi');
-sec.kSecNegativeItemAttr            = MacTypes.fourCharCodeFromString('nega');
-sec.kSecCustomIconItemAttr          = MacTypes.fourCharCodeFromString('cusi');
-sec.kSecAccountItemAttr             = MacTypes.fourCharCodeFromString('acct');
-sec.kSecServiceItemAttr             = MacTypes.fourCharCodeFromString('svce');
-sec.kSecGenericItemAttr             = MacTypes.fourCharCodeFromString('gena');
-sec.kSecSecurityDomainItemAttr      = MacTypes.fourCharCodeFromString('sdmn');
-sec.kSecServerItemAttr              = MacTypes.fourCharCodeFromString('srvr');
-sec.kSecAuthenticationTypeItemAttr  = MacTypes.fourCharCodeFromString('atyp');
-sec.kSecPortItemAttr                = MacTypes.fourCharCodeFromString('port');
-sec.kSecPathItemAttr                = MacTypes.fourCharCodeFromString('path');
-sec.kSecVolumeItemAttr              = MacTypes.fourCharCodeFromString('vlme');
-sec.kSecAddressItemAttr             = MacTypes.fourCharCodeFromString('addr');
-sec.kSecSignatureItemAttr           = MacTypes.fourCharCodeFromString('ssig');
-sec.kSecProtocolItemAttr            = MacTypes.fourCharCodeFromString('ptcl');
-sec.kSecCertificateType             = MacTypes.fourCharCodeFromString('ctyp');
-sec.kSecCertificateEncoding         = MacTypes.fourCharCodeFromString('cenc');
-sec.kSecCrlType                     = MacTypes.fourCharCodeFromString('crtp');
-sec.kSecCrlEncoding                 = MacTypes.fourCharCodeFromString('crnc');
-sec.kSecAlias                       = MacTypes.fourCharCodeFromString('alis');
+sec.kSecCreationDateItemAttr        = Security.itemAttrFromString('cdat');
+sec.kSecModDateItemAttr             = Security.itemAttrFromString('mdat');
+sec.kSecDescriptionItemAttr         = Security.itemAttrFromString('desc');
+sec.kSecCommentItemAttr             = Security.itemAttrFromString('icmt');
+sec.kSecCreatorItemAttr             = Security.itemAttrFromString('crtr');
+sec.kSecTypeItemAttr                = Security.itemAttrFromString('type');
+sec.kSecScriptCodeItemAttr          = Security.itemAttrFromString('scrp');
+sec.kSecLabelItemAttr               = Security.itemAttrFromString('labl');
+sec.kSecInvisibleItemAttr           = Security.itemAttrFromString('invi');
+sec.kSecNegativeItemAttr            = Security.itemAttrFromString('nega');
+sec.kSecCustomIconItemAttr          = Security.itemAttrFromString('cusi');
+sec.kSecAccountItemAttr             = Security.itemAttrFromString('acct');
+sec.kSecServiceItemAttr             = Security.itemAttrFromString('svce');
+sec.kSecGenericItemAttr             = Security.itemAttrFromString('gena');
+sec.kSecSecurityDomainItemAttr      = Security.itemAttrFromString('sdmn');
+sec.kSecServerItemAttr              = Security.itemAttrFromString('srvr');
+sec.kSecAuthenticationTypeItemAttr  = Security.itemAttrFromString('atyp');
+sec.kSecPortItemAttr                = Security.itemAttrFromString('port');
+sec.kSecPathItemAttr                = Security.itemAttrFromString('path');
+sec.kSecVolumeItemAttr              = Security.itemAttrFromString('vlme');
+sec.kSecAddressItemAttr             = Security.itemAttrFromString('addr');
+sec.kSecSignatureItemAttr           = Security.itemAttrFromString('ssig');
+sec.kSecProtocolItemAttr            = Security.itemAttrFromString('ptcl');
+sec.kSecCertificateType             = Security.itemAttrFromString('ctyp');
+sec.kSecCertificateEncoding         = Security.itemAttrFromString('cenc');
+sec.kSecCrlType                     = Security.itemAttrFromString('crtp');
+sec.kSecCrlEncoding                 = Security.itemAttrFromString('crnc');
+sec.kSecAlias                       = Security.itemAttrFromString('alis');
 // Prior to 10.5, we can't use kSecLabelItemAttr due to a bug in Keychain
 // Services (see bug 420665). The recommendation from Apple is to use the raw
 // index instead of the attribute, which for password items is 7.
 // Once we are 10.5+, we can just use kSecLabelItemAttr instead.
 sec.kRawKeychainLabelIndex = 7;
 
+
+/******************
+ * SecAuthenticationType constants depend on endianness. See:
+ * /System/Library/Frameworks/Security.framework/Versions/Current/Headers/SecKeychain.h
+ ******************/
+
+var __littleEndian;
+function _littleEndian() {
+	if (undefined === __littleEndian) {
+		var uint32 = new ctypes.uint32_t(1);
+		var uint8 = ctypes.cast(uint32.address(), ctypes.uint8_t.ptr).contents;
+		__littleEndian = (1 == uint8);
+	}
+	
+	return __littleEndian;
+}
+
+sec.authenticationTypeFromString = function(string) {	
+	var code = string;
+	if (code && _littleEndian())
+		code = code.split('').reverse().join('');
+		
+	return MacTypes.fourCharCodeFromString(code);
+};
+
+sec.stringFromAuthenticationType = function(uint32) {
+	var code = MacTypes.stringFromFourCharCode(uint32);
+	if (code && _littleEndian())
+		code = code.split('').reverse().join('');
+	
+	return code;
+}
+
 // SecAuthenticationType
-sec.kSecAuthenticationTypeNTLM			= MacTypes.fourCharCodeFromString('ntlm');
-sec.kSecAuthenticationTypeMSN			= MacTypes.fourCharCodeFromString('msna');
-sec.kSecAuthenticationTypeDPA			= MacTypes.fourCharCodeFromString('dpaa');
-sec.kSecAuthenticationTypeRPA			= MacTypes.fourCharCodeFromString('rpaa');
-sec.kSecAuthenticationTypeHTTPBasic		= MacTypes.fourCharCodeFromString('http');
-sec.kSecAuthenticationTypeHTTPDigest	= MacTypes.fourCharCodeFromString('httd');
-sec.kSecAuthenticationTypeHTMLForm		= MacTypes.fourCharCodeFromString('form');
-sec.kSecAuthenticationTypeDefault		= MacTypes.fourCharCodeFromString('dflt');
+sec.kSecAuthenticationTypeNTLM			= Security.authenticationTypeFromString('ntlm');
+sec.kSecAuthenticationTypeMSN			= Security.authenticationTypeFromString('msna');
+sec.kSecAuthenticationTypeDPA			= Security.authenticationTypeFromString('dpaa');
+sec.kSecAuthenticationTypeRPA			= Security.authenticationTypeFromString('rpaa');
+sec.kSecAuthenticationTypeHTTPBasic		= Security.authenticationTypeFromString('http');
+sec.kSecAuthenticationTypeHTTPDigest	= Security.authenticationTypeFromString('httd');
+sec.kSecAuthenticationTypeHTMLForm		= Security.authenticationTypeFromString('form');
+sec.kSecAuthenticationTypeDefault		= Security.authenticationTypeFromString('dflt');
 sec.kSecAuthenticationTypeAny			= 0;
+
+sec.protocolTypeFromString = MacTypes.fourCharCodeFromString;
+sec.stringFromProtocolType = MacTypes.stringFromFourCharCode;
 
 // SecProtocolType
 var protocolTypes = [
@@ -182,7 +219,7 @@ for (var i in protocolTypes) {
 	var label = protocolTypes[i][0];
 	var fourCharString = protocolTypes[i][1];
 	var schemeString = protocolTypes[i][2];
-	var fourCharInteger = MacTypes.fourCharCodeFromString(fourCharString);
+	var fourCharInteger = Security.protocolTypeFromString(fourCharString);
 	
 	sec[label] = fourCharInteger;
 	if (schemeString) {

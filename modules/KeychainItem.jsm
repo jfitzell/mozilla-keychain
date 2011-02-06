@@ -218,7 +218,7 @@ KeychainItem.prototype = {
 		if (scheme)
 			return scheme;
 		else
-			return MacTypes.stringFromFourCharCode(this.protocol);
+			return Security.stringFromProtocolType(this.protocol);
 	},
 	
 	get uriString() {
@@ -409,11 +409,10 @@ KeychainItem.readBoolean = function (attribute) {
 KeychainItem.readFourCharCode = function (attribute) {
 	if (attribute.length == 0) return null;
 		
-	if (attribute.length != 4)
+	if (attribute.length != MacTypes.FourCharCode.size)
 		throw Error('Attribute ' + attribute.tag + ' should be a FourCharCode but is ' + attribute.length + ' bytes.');
 		
-	var bytes = ctypes.cast(attribute.data, MacTypes.UInt8.array(4).ptr).contents;
-	return (bytes[3] << 24) + (bytes[2] << 16) + (bytes[1] << 8) + bytes[0];
+	return ctypes.cast(attribute.data, MacTypes.FourCharCode.ptr).contents;
 };
 KeychainItem.readUInt32 = function (attribute) {
 	if (attribute.length == 0) return null;
@@ -434,16 +433,14 @@ KeychainItem.writeString = function (attribute, value) {
 	attribute.length = string.length;
 };
 KeychainItem.writeFourCharCode = function (attribute, value) {
-	if (value === null) return;
+	var code;
+	if (!value) {
+		code = new MacTypes.FourCharCode();
+	} else {
+		code = new MacTypes.FourCharCode(value);
+	}
 	
-	var bytes = [
-		value & 0xFF,
-		value >> 8 & 0xFF,
-		value >> 16 & 0xFF,
-		value >> 24 & 0xFF,
-	];
-	var data = MacTypes.UInt8.array(4)(bytes);
-	attribute.data = ctypes.cast(data.address(), ctypes.voidptr_t);
+	attribute.data = ctypes.cast(code.address(), ctypes.voidptr_t);
 	attribute.length = 4;
 };
 

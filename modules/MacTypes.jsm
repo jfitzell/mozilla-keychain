@@ -22,6 +22,8 @@ MacTypes.UTF16Char = ctypes.jschar; // uint16 with automatic conversion
 MacTypes.UTF8Char = ctypes.char; // uint8 with automatic conversion
 
 MacTypes.stringFromFourCharCode = function(uint32) {
+	if (! uint32) return null;
+		
 	return String.fromCharCode(
 		uint32 >> 24,
 		(uint32 >> 16) & 0xFF,
@@ -30,6 +32,8 @@ MacTypes.stringFromFourCharCode = function(uint32) {
 };
 
 MacTypes.fourCharCodeFromString = function(string) {
+	if (! (string && 4 == string.length)) return 0;
+	
 	return (string.charCodeAt(0) << 24) + (string.charCodeAt(1) << 16)
 		+ (string.charCodeAt(2) << 8) + string.charCodeAt(3);
 };

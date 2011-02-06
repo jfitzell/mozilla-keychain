@@ -34,7 +34,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-Components.utils.import("resource://gre/modules/ctypes.jsm");		 
+Components.utils.import("resource://gre/modules/ctypes.jsm");
 Components.utils.import("resource://macos-keychain/CoreFoundation.jsm");
 Components.utils.import("resource://macos-keychain/Security.jsm");
 Components.utils.import("resource://macos-keychain/KeychainItem.jsm");
@@ -249,10 +249,10 @@ MacOSKeychainStorage.prototype = {
 		
 		this.debug("About to call KeychainItem.findInternetPasswords["
 						 + " account:" + accountName
-						 + " protocol:" + protocolType
+						 + " protocol:" + Security.stringFromProtocolType(protocolType)
 						 + " server:" + host
 						 + " port:" + port
-						 + " authenticationType:" + authType
+						 + " authenticationType:" + Security.stringFromAuthenticationType(authType)
 						 + " securityDomain:" + securityDomain + " ]");
 		var items = KeychainItem.findInternetPasswords(accountName, protocolType, host,
 													 port, authType, securityDomain);
@@ -356,13 +356,13 @@ MacOSKeychainStorage.prototype = {
 		if (item === null)
 			return 'null';
 			
-	return "protocol:" + item.protocol +
+	return "protocol:" + Security.stringFromProtocolType(item.protocol) +
 					" server:" + item.server +
 					" port:" + item.port +
-//					" securityDomain:" + item.securityDomain +
+					" securityDomain:" + item.securityDomain +
 					" account:" + item.account +
 					" password:(omitted)" +
-					" authenticationType:" + item.authenticationType +
+					" authenticationType:" + Security.stringFromAuthenticationType(item.authenticationType) +
 					" comment:" + item.comment +
 					" label:" + item.label +
 					" description:" + item.description;
