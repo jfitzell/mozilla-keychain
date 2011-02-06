@@ -1,3 +1,15 @@
+1.1pre1
+- CAUTION: This version has been heavily rewritten and only lightly
+  tested. I recommend BACKING UP YOUR KEYCHAIN before using it.
+- Change to using js-ctypes instead of binary components. This
+  should eliminate binary compatibility issues, and means the
+  add-on should now work with recent FF 4.x betas. However this version
+  currently depends on carbon APIs that are only available in
+  OS X 10.6.
+- Introduce XUL overlay to remove 'Show Passwords' button in the
+  preferences dialog and provide a button that launches Keychain
+  Access.
+
 1.0.1:
 - update component registration to work with Gecko 2.0 (Firefox 4.0)
 - I can't figure out how to get the component working in FF 3.6 at
