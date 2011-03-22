@@ -545,6 +545,10 @@ MacOSKeychainStorage.prototype = {
 	addLogin: function (login) {
 		this.debug("addLogin[ login: (" + this._debugStringForLoginInfo(login) + ") ]");
 		//return this._defaultStorage.addLogin(login);
+		if (/^chrome:\/\//.test(login.hostname)) {
+			this.log('Chrome URLs are not currently supported. Falling back on mozilla storage...');
+			return this._defaultStorage.addLogin(login);
+		}
 		
 		try {
 			var [scheme, host, port] = this._splitLoginInfoHostname(login.hostname);
@@ -580,6 +584,10 @@ MacOSKeychainStorage.prototype = {
 	removeLogin: function (login) {
 		this.debug("removeLogin()");
 		//return this._defaultStorage.removeLogin(login);
+		if (/^chrome:\/\//.test(login.hostname)) {
+			this.log('Chrome URLs are not currently supported. Falling back on mozilla storage...');
+			return this._defaultStorage.removeLogin(login);
+		}
 		
 		var item = this._findKeychainItemForLoginInfo(login);
 		if (item) {
@@ -594,6 +602,11 @@ MacOSKeychainStorage.prototype = {
 	modifyLogin: function (oldLogin, newLoginData) {
 		this.debug('modifyLogin[ oldLogin:' + oldLogin + ' newLogin:' + newLoginData + ' ]');
 		//return this._defaultStorage.modifyLogin(oldLogin, newLogin);
+		if (/^chrome:\/\//.test(oldLogin.hostname)) {
+			this.log('Chrome URLs are not currently supported. Falling back on mozilla storage...');
+			return this._defaultStorage.modifyLogin(oldLogin, newLogin);
+		}
+		
 		var item = this._findKeychainItemForLoginInfo(oldLogin);
 		if (! item) {
 			this.log('  No matching login found');
@@ -676,7 +689,10 @@ MacOSKeychainStorage.prototype = {
 						 + ' hostname:' + hostname
 						 + ' formSubmitURL:' + formSubmitURL
 						 + ' httpRealm:' + httpRealm + ' ]');
-		//return this._defaultStorage.findLogins(count, hostname, formSubmitURL, httpRealm);
+		if (/^chrome:\/\//.test(hostname)) {
+			this.log('Chrome URLs are not currently supported. Falling back on mozilla storage...');
+			return this._defaultStorage.findLogins(count, hostname, formSubmitURL, httpRealm);
+		}
 		
 		var items = this._findKeychainItems('' /*username*/, hostname,
 											formSubmitURL, httpRealm);
@@ -708,7 +724,10 @@ MacOSKeychainStorage.prototype = {
 						 + ' hostname:' + hostname
 						 + ' formSubmitURL:' + formSubmitURL
 						 + ' httpRealm:' + httpRealm + ' ]');
-		//return this._defaultStorage.countLogins(hostname, formSubmitURL, httpRealm);
+		if (/^chrome:\/\//.test(hostname)) {
+			this.log('Chrome URLs are not currently supported. Falling back on mozilla storage...');
+			return this._defaultStorage.countLogins(hostname, formSubmitURL, httpRealm);
+		}
 		
 		var items = this._findKeychainItems('' /*username*/, hostname,
 											formSubmitURL, httpRealm);
@@ -725,6 +744,11 @@ MacOSKeychainStorage.prototype = {
 		}
 		
 		return items.length;
+	},
+	
+	searchLogins: function() {
+		// to be implemented (See Issue 36)
+		throw Error('Not yet implemented: searchLogins()');
 	},
 	
 	get uiBusy() {
