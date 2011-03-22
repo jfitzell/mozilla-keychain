@@ -222,10 +222,14 @@ KeychainItem.prototype = {
 	},
 	
 	get uriString() {
-		return this.protocolString
-				+ '://'
-				+ this.server
-				+ (this.port == 0 ? '' : ':' + this.port);
+		try {
+			return this.protocolString
+					+ '://'
+					+ this.server
+					+ (this.port == 0 ? '' : ':' + this.port);
+		} catch (e) {
+			return this.service.replace(/^mozilla\.[^.]*\./, '');
+		}
 	},
 	
 	delete: function() {
@@ -270,6 +274,65 @@ function lengthOrZero(object) {
 	}
 };
 
+function findKeychainItems(itemClass, attributePairs) {
+	var attributes = new Array();
+
+	for (var i in attributePairs) {
+		var tag = attributePairs[i][0];
+		var value = attributePairs[i][1];
+		
+		if (value !== null) {
+			var writer = KeychainItem.writerFor(tag);
+			if (writer)
+				attributes.push(writer(value));
+		}
+	}
+	
+//	this.debug(attributes.toSource());
+	
+	var searchCriteria = new Security.SecKeychainAttributeList();
+	searchCriteria.count = attributes.length;
+	if (attributes.length > 0) {
+		var array = Security.SecKeychainAttribute.array()(attributes);
+		searchCriteria.attr = array[0].address();
+	} else {
+		// It should be initialized to null anyway, but let's be clear what's goin on...
+		searchCriteria.attr = null;
+	}
+	
+	var searchRef = new Security.SecKeychainSearchRef;
+	var status = Security.SecKeychainSearchCreateFromAttributes(null,
+														  itemClass,
+														  searchCriteria.address(),
+														  searchRef.address());
+
+	if (status != Security.errSecSuccess) {
+//		this.log('Error searching: ' + Security.stringForStatus(status));
+		throw Error('Error searching: ' + Security.stringForStatus(status));
+	}
+	
+	var results = new Array();
+	
+	var keychainItemRef = new Security.SecKeychainItemRef();
+	while ((status = Security.SecKeychainSearchCopyNext(searchRef, keychainItemRef.address())) == Security.errSecSuccess) {
+		results[results.length] = new KeychainItem(keychainItemRef);
+	}
+	
+	if (! searchRef.isNull())
+		CoreFoundation.CFRelease(searchRef);
+			
+	if (status != Security.errSecItemNotFound) {
+		for (var i in results) {
+			results[i].release();
+		}
+		if (! keychainItemRef.isNull())
+			CoreFoundation.CFRelease(keychainItemRef);
+		throw Error('Error obtaining search results: ' + Security.stringForStatus(status));
+	}
+
+	return results;
+}
+
 KeychainItem.addInternetPassword = function(accountName,
 									password,
 									protocolType,
@@ -300,13 +363,13 @@ KeychainItem.addInternetPassword = function(accountName,
 	var item = new KeychainItem(keychainItemRef);
 	item.comment = comment;
 	
-	if (! label)
-		item.setDefaultLabel();
-	else
+	if (label) {
 		item.label = label;
+	}
 	
 	return item;
 };
+
 
 /**
    * A value of null for any parameter is interpreted as matching ALL values
@@ -331,64 +394,43 @@ KeychainItem.findInternetPasswords = function (account, protocol, server,
 		[Security.kSecSecurityDomainItemAttr, securityDomain],
 	];
 
-	var attributes = new Array();
-
-	for (var i in pairs) {
-		var tag = pairs[i][0];
-		var value = pairs[i][1];
-		
-		if (value !== null) {
-			var writer = KeychainItem.writerFor(tag);
-			if (writer)
-				attributes.push(writer(value));
-		}
-	}
-	
-//	this.debug(attributes.toSource());
-	
-	var searchCriteria = new Security.SecKeychainAttributeList();
-	searchCriteria.count = attributes.length;
-	if (attributes.length > 0) {
-		var array = Security.SecKeychainAttribute.array()(attributes);
-		searchCriteria.attr = array[0].address();
-	} else {
-		// It should be initialized to null anyway, but let's be clear what's goin on...
-		searchCriteria.attr = null;
-	}
-	
-	var searchRef = new Security.SecKeychainSearchRef;
-	var status = Security.SecKeychainSearchCreateFromAttributes(null,
-														  Security.kSecInternetPasswordItemClass,
-														  searchCriteria.address(),
-														  searchRef.address());
-
-	if (status != Security.errSecSuccess) {
-//		this.log('Error searching: ' + Security.stringForStatus(status));
-		throw Error('Error searching: ' + Security.stringForStatus(status));
-	}
-	
-	var results = new Array();
-	
-	var keychainItemRef = new Security.SecKeychainItemRef();
-	while ((status = Security.SecKeychainSearchCopyNext(searchRef, keychainItemRef.address())) == Security.errSecSuccess) {
-		results[results.length] = new KeychainItem(keychainItemRef);
-	}
-	
-	if (! searchRef.isNull())
-		CoreFoundation.CFRelease(searchRef);
-			
-	if (status != Security.errSecItemNotFound) {
-		for (var i in results) {
-			results[i].release();
-		}
-		if (! keychainItemRef.isNull())
-			CoreFoundation.CFRelease(keychainItemRef);
-		throw Error('Error obtaining search results: ' + Security.stringForStatus(status));
-	}
-
-	return results;
+	return findKeychainItems(Security.kSecInternetPasswordItemClass, pairs);
 };
 
+KeychainItem.addGenericPassword = function(accountName,
+									password,
+									serviceName,
+									comment,
+									label) { 	
+	var keychainItemRef = new Security.SecKeychainItemRef;
+	
+	var status = Security.SecKeychainAddGenericPassword(null,
+						 lengthOrZero(serviceName), serviceName,
+						 lengthOrZero(accountName), accountName,
+						 lengthOrZero(password), ctypes.cast(ctypes.char.array()(password).address(), ctypes.voidptr_t),
+						 keychainItemRef.address());
+	
+	if (status != Security.errSucSuccess)
+		throw Error('Error adding generic password: ' + Security.stringForStatus(status));
+	
+	var item = new KeychainItem(keychainItemRef);
+	item.comment = comment;
+	
+	if (label) {
+		item.label = label;
+	}
+	
+	return item;
+};
+
+KeychainItem.findGenericPasswords = function (account, serviceName) {
+	var pairs = [
+		[Security.kSecAccountItemAttr, account],
+		[Security.kSecServiceItemAttr, serviceName],
+	];
+	
+	return findKeychainItems(Security.kSecGenericPasswordItemClass, pairs);
+};
 
 
 

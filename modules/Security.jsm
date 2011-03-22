@@ -345,6 +345,32 @@ sec.declare('SecKeychainFindInternetPassword',
 				Security.SecKeychainItemRef.ptr // itemRef
 				);
 
+sec.declare('SecKeychainAddGenericPassword',
+				ctypes.default_abi,
+				MacTypes.OSStatus,
+				Security.SecKeychainRef, // keychain
+				MacTypes.UInt32, // serviceNameLength
+				ctypes.char.ptr, // serviceName
+				MacTypes.UInt32, // accountNameLength
+				ctypes.char.ptr, // accountName
+				MacTypes.UInt32, // passwordLength
+				ctypes.voidptr_t, // passwordData
+				Security.SecKeychainItemRef.ptr // itemRef
+				);
+				
+sec.declare('SecKeychainFindGenericPassword',
+				ctypes.default_abi,
+				MacTypes.OSStatus,
+				CoreFoundation.CFTypeRef, // keychainOrArray
+				MacTypes.UInt32, // serviceNameLength,
+				ctypes.char.ptr, // serviceName,
+				MacTypes.UInt32, // accountNameLength,
+				ctypes.char.ptr, // accountName,
+				MacTypes.UInt32.ptr, // passwordLength,
+				ctypes.voidptr_t.ptr, // passwordData,
+				Security.SecKeychainItemRef.ptr // itemRef
+				);
+
 /*
  * Searching for Keychain Items
  */
@@ -388,6 +414,7 @@ sec.declare('SecKeychainItemCopyFromPersistentReference',
 				CoreFoundation.CFDataRef, // persistentItemRef
 				Security.SecKeychainItemRef.ptr // itemRef
 				);
+
 
 /*
  * Managing Keychain Items

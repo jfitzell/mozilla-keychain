@@ -149,24 +149,33 @@ MacOSKeychainStorage.prototype = {
 		//this.debug(item._attributes.toSource());
 		var uriString = item.uriString;
 		this.debug("  URI String: " + uriString);
-		var uri = this._uri(uriString);
-		// Remove the trailing slash from the URI since LoginManager doesn't put
-		//	it there and uses a strict string comparison when checking the results
-		//	of a find operation to determine if any of the LoginInfos is an exact match.
-		var hostname = uri.spec.substring(0, uri.spec.length - 1);
+		try {
+			var uri = this._uri(uriString);
+			// Remove the trailing slash from the URI since LoginManager doesn't put
+			//	it there and uses a strict string comparison when checking the results
+			//	of a find operation to determine if any of the LoginInfos is an exact match.
+			var hostname = uri.spec.substring(0, uri.spec.length - 1);
+		} catch (e) {
+			var hostname = uriString;
+		}
 		this.debug("  Parsed URI: " + hostname);
 		
 		var formSubmitURL, httpRealm;
-		if (Security.kSecAuthenticationTypeHTMLForm == item.authenticationType) {
-			// nsLoginInfo.matches() allows two instances to match on the
-			//	formSubmitURL field as long as one of them is blank (but not null).
-			//	Since we have nowhere to store that field in the keychain, we take
-			//	this route.
-			formSubmitURL = "";
-			httpRealm = null;
-		} else { // non-form logins
-			formSubmitURL = null;
-			httpRealm = item.securityDomain;
+		try {
+			if (Security.kSecAuthenticationTypeHTMLForm == item.authenticationType) {
+				// nsLoginInfo.matches() allows two instances to match on the
+				//	formSubmitURL field as long as one of them is blank (but not null).
+				//	Since we have nowhere to store that field in the keychain, we take
+				//	this route.
+				formSubmitURL = "";
+				httpRealm = null;
+			} else { // non-form logins
+				formSubmitURL = null;
+				httpRealm = item.securityDomain;
+			}
+		} catch (e) {
+			// Presumably because this is not an Internet Password Item
+			formSubmitURL = httpRealm = null;
 		}
 		
 		// We cannot store the usernameField and passwordField. According to:
@@ -223,9 +232,10 @@ MacOSKeychainStorage.prototype = {
 			try {
 				[scheme, host, port] = this._splitLoginInfoHostname(hostname);
 			} catch (e) {
-				// we don't yet support storing things with hostnames that are not
-				//	valid URLs. We could store them as Generic items in the future.
-				return [];
+				this.log('Error splitting URL. Looking for generic passwords instead...');
+				var items = KeychainItem.findGenericPasswords(accountName, 'mozilla.' + hostname);
+				this.log("  Items found: " + items.length);
+				return items;
 			}
 		}
 		
@@ -356,7 +366,8 @@ MacOSKeychainStorage.prototype = {
 		if (item === null)
 			return 'null';
 			
-	return "protocol:" + Security.stringFromProtocolType(item.protocol) +
+		try {
+			return "protocol:" + Security.stringFromProtocolType(item.protocol) +
 					" server:" + item.server +
 					" port:" + item.port +
 					" securityDomain:" + item.securityDomain +
@@ -366,6 +377,14 @@ MacOSKeychainStorage.prototype = {
 					" comment:" + item.comment +
 					" label:" + item.label +
 					" description:" + item.description;
+		} catch (e) {
+			return " service:" + item.service +
+					" account:" + item.account +
+					" password:(omitted)" +
+					" comment:" + item.comment +
+					" label:" + item.label +
+					" description:" + item.description;
+		}
 	},
 	
 	
@@ -549,10 +568,12 @@ MacOSKeychainStorage.prototype = {
 		try {
 			var [scheme, host, port] = this._splitLoginInfoHostname(login.hostname);
 		} catch (e) {
-			// we don't yet support storing things with hostnames that are not
-			//	valid URLs. We could store them as Generic items in the future.
-			this.log("Failed to store login with invalid URL. Storing in legacy storage...");
-			return this._defaultStorage.addLogin(login);
+			this.log("Invalid URL. Trying to store as generic password instead...");
+			var item = KeychainItem.addGenericPassword(login.username, login.password,
+													'mozilla.' + login.hostname,
+													null, null);
+			this.debug("  keychain item: (" + this._debugStringForKeychainItem(item) + ")");
+			return;
 		}
 		
 		var label = host + " (" + login.username + ")";
@@ -686,17 +707,19 @@ MacOSKeychainStorage.prototype = {
 		if (items.length == 0 && httpRealm != null && httpRealm != '') {
 			items = this._findKeychainItems('' /*username*/, hostname,
 											formSubmitURL, '' /*httpRealm*/);
-			for (var i in items) {
-				items[i].securityDomain = httpRealm;
-			}
 		}
 		
 		if (items.length == 0 /* && an appropriate preference is set*/) {
 			this.log('No items found. Checking mozilla storage...');
-			return this._defaultStorage.findLogins(count, hostname, formSubmitURL, httpRealm);
+			//return this._defaultStorage.findLogins(count, hostname, formSubmitURL, httpRealm);
 		}
 			
 		var logins = this._convertKeychainItemsToLoginInfos(items);
+		if (httpRealm != null && httpRealm != '') {
+			for (var i in logins) {
+				logins[i].httpRealm = httpRealm;
+			}
+		}
 		
 		count.value = logins.length;
 		return logins;
@@ -721,7 +744,7 @@ MacOSKeychainStorage.prototype = {
 		
 		if (items.length == 0 /* && an appropriate preference is set*/) {
 			this.log('No items found. Checking mozilla storage...');
-			return this._defaultStorage.countLogins(hostname, formSubmitURL, httpRealm);
+			//return this._defaultStorage.countLogins(hostname, formSubmitURL, httpRealm);
 		}
 		
 		return items.length;
