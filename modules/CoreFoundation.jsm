@@ -93,6 +93,7 @@ cf.declare('CFRelease',
 cf.CFStringToJSString = function(cfstr) {
 	var len = this.CFStringGetLength(cfstr);
 	var buffer = ctypes.jschar.array(len+1)();
+	var i;
 	
 	for (i=0; i < len; i++) {
 		buffer[i] = this.CFStringGetCharacterAtIndex(cfstr, i);//, this.CFRange(0, len), buffer);

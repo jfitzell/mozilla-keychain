@@ -294,7 +294,7 @@ KeychainItem.addInternetPassword = function(accountName,
 						 lengthOrZero(password), ctypes.cast(ctypes.char.array()(password).address(), ctypes.voidptr_t),
 						 keychainItemRef.address());
 	
-	if (status != Security.errSucSuccess)
+	if (status != Security.errSecSuccess)
 		throw Error('Error adding internet password: ' + Security.stringForStatus(status));
 	
 	var item = new KeychainItem(keychainItemRef);
