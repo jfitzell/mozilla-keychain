@@ -39,7 +39,7 @@
      xmlns:em="http://www.mozilla.org/2004/em-rdf#">
   <Description about="urn:mozilla:install-manifest">
     <em:id>macos-keychain@fitzell.ca</em:id>
-    <em:version>1.1pre2</em:version>
+    <em:version>1.1</em:version>
 
     <em:targetPlatform>Darwin</em:targetPlatform>
     <em:targetApplication>
@@ -47,26 +47,26 @@
       <Description>
         <em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id>
         <em:minVersion>4.0b9</em:minVersion>
-        <em:maxVersion>4.0b10</em:maxVersion>
+        <em:maxVersion>4.0</em:maxVersion>
       </Description>
     </em:targetApplication>
-    <em:targetApplication>
+<!--    <em:targetApplication> -->
       <!-- Thunderbird -->
-      <Description>
+<!--      <Description>
         <em:id>{3550f703-e582-4d05-9a08-453d09bdfdc6}</em:id>
-	<!-- Tested on 3.1 - may not work on 3.0 anymore -->
         <em:minVersion>3.3a2</em:minVersion>
         <em:maxVersion>3.3.*</em:maxVersion>
       </Description>
     </em:targetApplication>
-    <em:targetApplication>
+    <em:targetApplication> -->
       <!-- Gecko Toolkit Applications -->
-      <Description>
+<!--      <Description>
         <em:id>toolkit@mozilla.org</em:id>
         <em:minVersion>2.0</em:minVersion>
         <em:maxVersion>2.0.*</em:maxVersion>
       </Description>
     </em:targetApplication>
+-->
 	
     <!-- front-end metadata -->
     <em:name>Keychain Services Integration</em:name>

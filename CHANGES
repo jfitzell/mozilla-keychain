@@ -1,3 +1,13 @@
+1.1
+- fix a reference to undeclared variable i
+- fix an error after adding an item caused by a typo in the name of
+  the constant representing success
+- Add a temp workaround to keep Firefox Sync working by shunting all related
+  requests to default storage instead
+
+1.1pre2
+- improved logging
+
 1.1pre1
 - CAUTION: This version has been heavily rewritten and only lightly
   tested. I recommend BACKING UP YOUR KEYCHAIN before using it.
