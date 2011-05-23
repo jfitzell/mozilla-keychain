@@ -117,14 +117,14 @@ MacOSKeychainStartupImporter.prototype = {
 		var prefs = this._prefService.getBranch("extensions." + extensionId + ".");
 		prefs.QueryInterface(Ci.nsIPrefBranch2);
 		
-		var import;
+		var shouldImport;
 		try {
-			import = prefs.getBoolPref(prefImportPrompt);
+			shouldImport = prefs.getBoolPref(prefImportPrompt);
 		} catch (e) {
-			import = false;
+			shouldImport = false;
 		}
 		
-		if (import) {
+		if (shouldImport) {
 			var promptSvc = Cc[contractPromptService].getService(Ci.nsIPromptService);
 			var flags = promptSvc.BUTTON_POS_0 * promptSvc.BUTTON_TITLE_IS_STRING +
 						promptSvc.BUTTON_POS_1 * promptSvc.BUTTON_TITLE_IS_STRING +
