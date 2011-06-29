@@ -1,3 +1,7 @@
+1.1.1
+- Issue 34: Import to Keychain fails
+- Begin repackaging code into more modules
+
 1.1
 - fix a reference to undeclared variable i
 - fix an error after adding an item caused by a typo in the name of
