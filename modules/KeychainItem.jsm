@@ -305,6 +305,46 @@ function lengthOrZero(object) {
 	}
 };
 
+// Evaluate the passed in function with a reference to the keychain that should be
+//  used by the extension.
+// This will check if a keychain path has been specified in the preferences and
+//  try to use it. If not set, the default keychain will be used.
+function doWithKeychainRef(thisArg, func) {
+	var path = null; // TODO: replace with a all to read a preference
+	var keychainRef = new Security.SecKeychainRef;
+	var keychainStatus = new Security.SecKeychainStatus;
+	var status;
+	var result;
+	
+	// DEBUG log the path being used
+	
+	if ('' == path || null === path) {
+		status = Security.SecKeychainCopyDefault(keychainRef.address());
+	} else {
+		status = Security.SecKeychainOpen(path, keychainRef.address());
+	}
+	if (status != Security.errSecSuccess)
+		throw Error('Error obtaining keychain reference: ' + Security.stringForStatus(status));
+	
+	status = Security.SecKeychainGetStatus(keychainRef, keychainStatus.address());
+	if (status == Security.errSecNoSuchKeychain)
+		throw Error('Error opening keychain: no keychain found at filesystem path ' + path);
+	else if (status == Security.errSecInvalidKeychain)
+		throw Error ('Error opening keychain: keychain at filesystem path ' + path + ' is invalid');
+	else if (status != Security.errSecSuccess)
+		throw Error('Error obtaining keychain status: ' + Security.stringForStatus(status));
+	
+	//DEBUG: log the status (locked?)
+	
+	try {
+		result = func.call(thisArg, keychainRef);
+	} catch (e) {
+		if (! keychainRef.isNull()) CoreFoundation.CFRelease(keychainRef);
+		throw e;
+	}
+	if (! keychainRef.isNull()) CoreFoundation.CFRelease(keychainRef);
+};
+
 KeychainItem.addInternetPassword = function(accountName,
 									password,
 									protocolType,
@@ -319,7 +359,9 @@ KeychainItem.addInternetPassword = function(accountName,
 	
 	var portNumber = port ? port : 0;
 	
-	var status = Security.SecKeychainAddInternetPassword(null,
+	var status;
+	doWithKeychainRef(this, function(keychainRef) {
+		status = Security.SecKeychainAddInternetPassword(keychainRef,
 						 lengthOrZero(serverName), serverName,
 						 lengthOrZero(securityDomain), securityDomain,
 						 lengthOrZero(accountName), accountName,
@@ -328,6 +370,7 @@ KeychainItem.addInternetPassword = function(accountName,
 						 protocolType, authenticationType,
 						 lengthOrZero(password), ctypes.cast(ctypes.char.array()(password).address(), ctypes.voidptr_t),
 						 keychainItemRef.address());
+	});
 	
 	if (status != Security.errSecSuccess)
 		throw Error('Error adding internet password: ' + Security.stringForStatus(status));
@@ -347,7 +390,7 @@ KeychainItem.addInternetPassword = function(accountName,
    * A value of null for any parameter is interpreted as matching ALL values
    *  (ie. the parameter is not included in the search criteria)
    */
-KeychainItem.findInternetPasswords = function (account, protocol, server,
+KeychainItem.findInternetPasswords = function (account, protocolType, server,
                                         port, authenticationType, securityDomain) {
 /*    this.log("_findInternetPasswordItems["
              + " accountName:" + accountName
@@ -359,7 +402,7 @@ KeychainItem.findInternetPasswords = function (account, protocol, server,
 */
 	var pairs = [
 		[Security.kSecAccountItemAttr, account],
-		[Security.kSecProtocolItemAttr, protocol],
+		[Security.kSecProtocolItemAttr, protocolType],
 		[Security.kSecServerItemAttr, server],
 		[Security.kSecPortItemAttr, port],
 		[Security.kSecAuthenticationTypeItemAttr, authenticationType],
@@ -392,10 +435,13 @@ KeychainItem.findInternetPasswords = function (account, protocol, server,
 	}
 	
 	var searchRef = new Security.SecKeychainSearchRef;
-	var status = Security.SecKeychainSearchCreateFromAttributes(null,
+	var status;
+	doWithKeychainRef(this, function(keychainRef) {
+		status = Security.SecKeychainSearchCreateFromAttributes(keychainRef,
 														  Security.kSecInternetPasswordItemClass,
 														  searchCriteria.address(),
 														  searchRef.address());
+	});
 
 	if (status != Security.errSecSuccess) {
 //		this.log('Error searching: ' + Security.stringForStatus(status));
