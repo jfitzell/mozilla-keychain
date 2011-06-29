@@ -37,7 +37,8 @@
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
-const extensionId = "macos-keychain@fitzell.ca";
+Components.utils.import("resource://macos-keychain/MacOSKeychain.jsm");
+
 const prefImportPrompt = "startup-import-prompt";
 
 const contractConsoleService = '@mozilla.org/consoleservice;1';
@@ -69,15 +70,6 @@ MacOSKeychainStartupImporter.prototype = {
 			this.__observerService = Cc[contractObserverService].getService(Ci.nsIObserverService);
 		
 		return this.__observerService;
-	},
-	
-	get _keychainStorage() {
-		if (!this.__keychainStorage) {
-			this.__keychainStorage = Cc[contractKeychainStorage].createInstance(Ci.nsILoginManagerStorage);
-			this.__keychainStorage.init();
-		}
-		
-		return this.__keychainStorage;
 	},
 	
 	get _prefService() {
@@ -114,7 +106,7 @@ MacOSKeychainStartupImporter.prototype = {
 	confirmImport: function () {
 		this.log("confirmImport()");
 		
-		var prefs = this._prefService.getBranch("extensions." + extensionId + ".");
+		var prefs = this._prefService.getBranch("extensions." + MacOSKeychain.extensionId + ".");
 		prefs.QueryInterface(Ci.nsIPrefBranch2);
 		
 		var shouldImport;
@@ -132,13 +124,12 @@ MacOSKeychainStartupImporter.prototype = {
 			var result = promptSvc.confirmEx(null,
 							"Import saved logins into Keychain Services?",
 							"The Keychain Service Integration extension can import your existing saved logins into Keychain Services. This allows them to be shared with other applications on your computer. Your original logins will be left in place and will still be available if you disable this extension later. Do you want to import your saved logins now?",
-							flags, "Yes", "No", "Ask me later",
+							flags, "Yes", "No", "No, but ask me later",
 							null, {});
 			
 			if (result == 0) {
 				try {
-					var s = this._keychainStorage.QueryInterface(Ci.IMacOSKeychainStartupImporter);
-					s.importLogins();
+					MacOSKeychain.importLogins();
 				} catch (e) {
 					this.log(e);
 				}
