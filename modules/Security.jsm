@@ -60,6 +60,7 @@ sec.SecKeychainSearchRef = Security.OpaqueSecKeychainSearchRef.ptr;
 sec.SecAuthenticationType = MacTypes.OSType;
 sec.SecProtocolType = MacTypes.OSType;
 sec.SecItemClass = MacTypes.FourCharCode;
+sec.SecKeychainStatus = MacTypes.UInt32;
 sec.SecKeychainAttrType = MacTypes.OSType;
 sec.SecKeychainAttribute = new ctypes.StructType('SecKeychainAttribute',
 						[{tag: Security.SecKeychainAttrType},
@@ -161,6 +162,11 @@ sec.kSecAlias                       = Security.itemAttrFromString('alis');
 // index instead of the attribute, which for password items is 7.
 // Once we are 10.5+, we can just use kSecLabelItemAttr instead.
 sec.kRawKeychainLabelIndex = 7;
+
+// SecKeychainStatus
+sec.kSecUnlockStateStatus = 1;
+sec.kSecReadPermStatus = 2;
+sec.kSecWritePermStatus = 4;
 
 
 /******************
@@ -307,6 +313,12 @@ sec.declare('SecKeychainCopyDefault',
 				ctypes.default_abi,
 				MacTypes.OSStatus,
 				Security.SecKeychainRef.ptr);
+				
+sec.declare('SecKeychainGetStatus',
+				ctypes.default_abi,
+				MacTypes.OSStatus,
+				Security.SecKeychainRef, // keychain
+				Security.SecKeychainStatus.ptr); // keychainStatus
 
 sec.declare('SecKeychainGetPath',
 				ctypes.default_abi,
