@@ -56,7 +56,8 @@ cf.CFRange = new ctypes.StructType('CFRange', [
 cf.CFStringRef = new ctypes.StructType('__CFString').ptr;
 cf.CFURLRef = new ctypes.StructType('__CFURL').ptr;
 cf.CFDataRef = new ctypes.StructType('__CFData').ptr;
-cf.CFAllocatorRef = new ctypes.StructType("__CFAllocator").ptr;
+cf.CFAllocatorRef = new ctypes.StructType('__CFAllocator').ptr;
+cf.CFArrayRef = new ctypes.StructType('__CFArray').ptr;
 
 /*
  * CFString functions

@@ -395,6 +395,12 @@ sec.declare('SecKeychainFindInternetPassword',
 /*
  * Searching for Keychain Items
  */
+sec.declare('SecKeychainCopySearchList',
+				ctypes.default_abi,
+				MacTypes.OSStatus,
+				CoreFoundation.CFArrayRef.ptr // searchList
+				); 
+ 
 sec.declare('SecKeychainSearchCreateFromAttributes',
 				ctypes.default_abi,
 				MacTypes.OSStatus,

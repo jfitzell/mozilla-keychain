@@ -305,11 +305,38 @@ function lengthOrZero(object) {
 	}
 };
 
+function doWithReadKeychainRef(thisArg, func) {
+	var useSearchList = true; // TODO: replace this with a preference
+	var searchList;
+	var status;
+	var result;
+	
+	if (! useSearchList)
+		return doWithWriteKeychainRef(thisArg, func);
+	
+	var searchList = new CoreFoundation.CFArrayRef;
+	var status = Security.SecKeychainCopySearchList(searchList.address());
+	
+	if (status != Security.errSecSuccess)
+		throw Error('Error obtaining keychain search list: ' + Security.stringForStatus(status));
+
+	// TODO: wrap this in an ensure() helper function
+	try {
+		result = func.call(thisArg, searchList);
+	} catch (e) {
+		if (! searchList.isNull()) CoreFoundation.CFRelease(searchList);
+		throw e;
+	}
+	if (! searchList.isNull()) CoreFoundation.CFRelease(searchList);
+	
+	return result;
+}
+
 // Evaluate the passed in function with a reference to the keychain that should be
 //  used by the extension.
 // This will check if a keychain path has been specified in the preferences and
 //  try to use it. If not set, the default keychain will be used.
-function doWithKeychainRef(thisArg, func) {
+function doWithWriteKeychainRef(thisArg, func) {
 	var path = null; // TODO: replace with a all to read a preference
 	var keychainRef = new Security.SecKeychainRef;
 	var keychainStatus = new Security.SecKeychainStatus;
@@ -343,6 +370,8 @@ function doWithKeychainRef(thisArg, func) {
 		throw e;
 	}
 	if (! keychainRef.isNull()) CoreFoundation.CFRelease(keychainRef);
+	
+	return result;
 };
 
 KeychainItem.addInternetPassword = function(accountName,
@@ -360,7 +389,7 @@ KeychainItem.addInternetPassword = function(accountName,
 	var portNumber = port ? port : 0;
 	
 	var status;
-	doWithKeychainRef(this, function(keychainRef) {
+	doWithWriteKeychainRef(this, function(keychainRef) {
 		status = Security.SecKeychainAddInternetPassword(keychainRef,
 						 lengthOrZero(serverName), serverName,
 						 lengthOrZero(securityDomain), securityDomain,
@@ -436,7 +465,7 @@ KeychainItem.findInternetPasswords = function (account, protocolType, server,
 	
 	var searchRef = new Security.SecKeychainSearchRef;
 	var status;
-	doWithKeychainRef(this, function(keychainRef) {
+	doWithReadKeychainRef(this, function(keychainRef) {
 		status = Security.SecKeychainSearchCreateFromAttributes(keychainRef,
 														  Security.kSecInternetPasswordItemClass,
 														  searchCriteria.address(),
