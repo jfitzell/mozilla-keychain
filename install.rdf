@@ -40,7 +40,7 @@
   <Description about="urn:mozilla:install-manifest">
     <em:id>macos-keychain@fitzell.ca</em:id>
     <em:type>2</em:type> <!-- Extensions -->
-    <em:version>1.1.1</em:version>
+    <em:version>1.1.2</em:version>
 
     <em:targetPlatform>Darwin</em:targetPlatform>
     <em:targetApplication>
