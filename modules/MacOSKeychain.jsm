@@ -90,28 +90,20 @@ MacOSKeychain.initializeDefaultStorage = function (inFile, outFile) {
 		else
 			_defaultStorage.init();
 	} catch (e) {
-		this.log("Initialization of mozilla login storage component failed: " + e);
+		MacOSKeychainLogger.log("Initialization of mozilla login storage component failed: " + e);
 		_defaultStorage = null;
 		throw e;
 	}
 },
 
-MacOSKeychain.log = function(message) {
-	MacOSKeychainLogger.log(message);
-};
-	
-MacOSKeychain.debug = function(message) {
-	MacOSKeychainLogger.debug(message);
-};
-
 MacOSKeychain.convertKeychainItemsToLoginInfos = function (items) {
-	this.debug('convertKeychainItemToLoginInfo(...)');
+	MacOSKeychainLogger.debug('convertKeychainItemToLoginInfo(...)');
 	var logins = new Array();
 	for ( var i in items ) {
 		try {
 			logins.push(this.convertKeychainItemToLoginInfo(items[i]));
 		} catch (e) {
-			this.log('Ignoring Keychain Item. Conversion failed with: ' + e);
+			MacOSKeychainLogger.log('Ignoring Keychain Item. Conversion failed with: ' + e);
 		}
 	}
 	
@@ -124,19 +116,19 @@ MacOSKeychain.convertKeychainItemsToLoginInfos = function (items) {
  *
  */
 MacOSKeychain.convertKeychainItemToLoginInfo = function (item) {
-	this.debug("convertKeychainItemToLoginInfo[ item: (" +
+	MacOSKeychainLogger.debug("convertKeychainItemToLoginInfo[ item: (" +
 					 this.debugStringForKeychainItem(item) + ") ]");
 	var info = new LoginInfo();
 
-	//this.debug(item._attributes.toSource());
+	//MacOSKeychainLogger.debug(item._attributes.toSource());
 	var uriString = item.uriString;
-	this.debug("  URI String: " + uriString);
+	MacOSKeychainLogger.debug("  URI String: " + uriString);
 	var uri = _uri(uriString);
 	// Remove the trailing slash from the URI since LoginManager doesn't put
 	//	it there and uses a strict string comparison when checking the results
 	//	of a find operation to determine if any of the LoginInfos is an exact match.
 	var hostname = uri.spec.substring(0, uri.spec.length - 1);
-	this.debug("  Parsed URI: " + hostname);
+	MacOSKeychainLogger.debug("  Parsed URI: " + hostname);
 	
 	var formSubmitURL, httpRealm;
 	if (Security.kSecAuthenticationTypeHTMLForm == item.authenticationType) {
@@ -162,7 +154,7 @@ MacOSKeychain.convertKeychainItemToLoginInfo = function (item) {
 	
 	info.wrappedJSObject.__defineGetter__("password", function() {return item.password});
 	
-	this.log("  " + this.debugStringForLoginInfo(info));
+	MacOSKeychainLogger.log("  " + this.debugStringForLoginInfo(info));
 	
 	return info;
 };
@@ -214,7 +206,7 @@ MacOSKeychain.updateItemWithProperties = function (item, properties) {
 	var propEnum = properties.enumerator;
 	while (propEnum.hasMoreElements()) {
 		var prop = propEnum.getNext().QueryInterface(Ci.nsIProperty);
-		this.debug('Setting property: ' + prop.name);
+		MacOSKeychainLogger.debug('Setting property: ' + prop.name);
 		switch (prop.name) {
 			// nsILoginInfo properties...
 			case "hostname":
@@ -248,7 +240,7 @@ MacOSKeychain.updateItemWithProperties = function (item, properties) {
 			case "timesUsedIncrement":
 			case "timeLastUsed":
 			case "timePasswordChanged":
-				this.debug('--Unsupported property: ' + prop.name);
+				MacOSKeychainLogger.debug('--Unsupported property: ' + prop.name);
 				// not supported
 				break;
 
@@ -259,7 +251,7 @@ MacOSKeychain.updateItemWithProperties = function (item, properties) {
 
 			// Fail if caller requests setting an unknown property.
 			default:
-				this.debug('**Unknown property: ' + prop.name);
+				MacOSKeychainLogger.debug('**Unknown property: ' + prop.name);
 				unknownProps.push(prop.name);
 		}
 	}
@@ -284,7 +276,7 @@ MacOSKeychain.updateItemWithProperties = function (item, properties) {
  * We also take the same approach with the username field.
  */
 MacOSKeychain.findKeychainItems = function (username, hostname, formSubmitURL, httpRealm) {
-	this.debug("findKeychainItems["
+	MacOSKeychainLogger.debug("findKeychainItems["
 					 + " username:" + username
 					 + " hostname:" + hostname
 					 + " formSubmitURL:" + formSubmitURL
@@ -331,7 +323,7 @@ MacOSKeychain.findKeychainItems = function (username, hostname, formSubmitURL, h
 	
 	var protocolType = Security.protocolForScheme(scheme);
 	
-	this.debug("About to call KeychainItem.findInternetPasswords["
+	MacOSKeychainLogger.debug("About to call KeychainItem.findInternetPasswords["
 					 + " account:" + accountName
 					 + " protocol:" + Security.stringFromProtocolType(protocolType)
 					 + " server:" + host
@@ -341,7 +333,7 @@ MacOSKeychain.findKeychainItems = function (username, hostname, formSubmitURL, h
 	var items = KeychainItem.findInternetPasswords(accountName, protocolType, host,
 												 port, authType, securityDomain);
 																				 
-	this.log("  Items found: " + items.length);
+	MacOSKeychainLogger.log("  Items found: " + items.length);
 	
 	return items;
 };
@@ -353,7 +345,7 @@ MacOSKeychain.findKeychainItems = function (username, hostname, formSubmitURL, h
  *	is returned. If none is found, null is returned.
  */
 MacOSKeychain.findKeychainItemForLoginInfo = function (login) {
-	this.debug("findKeychainItemForLoginInfo[ login:" + login + " ]");
+	MacOSKeychainLogger.debug("findKeychainItemForLoginInfo[ login:" + login + " ]");
 	
 	var items = this.findKeychainItems(login.username,
 										login.hostname,
@@ -376,7 +368,7 @@ function _uri (uriString) {
 									getService(Components.interfaces.nsIIOService);
 		return ios.newURI(uriString, null, null);
 	} catch (e) {
-		this.log(e);
+		MacOSKeychainLogger.log(e);
 		throw Error('Invalid URI');
 	}
 };
@@ -390,7 +382,7 @@ function _url (urlString) {
 		var url = uri.QueryInterface(Ci.nsIURL);
 		return url;
 	} catch (e) {
-		this.log(e);
+		MacOSKeychainLogger.log(e);
 		throw Error('Invalid URL');
 	}
 };
@@ -403,16 +395,16 @@ function _url (urlString) {
  *	If any of the values is missing, null is provided for that position.
  */
 MacOSKeychain.splitLoginInfoHostname = function (hostname) {
-	this.debug("splitLoginInfoHostname[ hostname:" + hostname + " ]");
+	MacOSKeychainLogger.debug("splitLoginInfoHostname[ hostname:" + hostname + " ]");
 	var scheme = null;
 	var host = null;
 	var port = null;
 	if (hostname) {
 		try {
-			var url = _url(hostname);
-			scheme = url.scheme;
-			host = url.host;
-			port = url.port;
+			var uri = _uri(hostname);
+			scheme = uri.scheme;
+			host = uri.host;
+			port = uri.port;
 		} catch (e) {
 			throw Error("Unable to split hostname: " + e);
 		}
@@ -420,7 +412,7 @@ MacOSKeychain.splitLoginInfoHostname = function (hostname) {
 			port = null;
 	}
 	
-	this.debug("  scheme:" + scheme + " host:" + host + " port:" + port);
+	MacOSKeychainLogger.debug("  scheme:" + scheme + " host:" + host + " port:" + port);
 	return [scheme, host, port];
 };
 
@@ -456,23 +448,23 @@ MacOSKeychain.debugStringForKeychainItem = function (item) {
  * Import logins from the old login storage provider into the keychain.
  */
 MacOSKeychain.importLogins = function () {
-	this.debug("importLogins()");
+	MacOSKeychainLogger.debug("importLogins()");
 	var logins = this.defaultStorage.getAllLogins({});
 	
 	for (var i in logins) {
 		var login = logins[i];
 		try {
-			this.log('  Importing ' + login.username + '@' + login.hostname);
+			MacOSKeychainLogger.log('  Importing ' + login.username + '@' + login.hostname);
 			var items = this.findKeychainItems(login.username, login.hostname,
 												login.formSubmitURL, login.httpRealm);
 			if (items.length == 0) {
 				this.addLogin(login);
-				this.log('   --> Success!');
+				MacOSKeychainLogger.log('   --> Success!');
 			} else {
-				this.log('   --> Duplicate keychain item found... skipping.');
+				MacOSKeychainLogger.log('   --> Duplicate keychain item found... skipping.');
 			}
 		} catch (e) {
-			this.log('   --> Skipping due to exception: ' + e);
+			MacOSKeychainLogger.log('   --> Skipping due to exception: ' + e);
 		}
 	}
 };
@@ -494,7 +486,7 @@ MacOSKeychain.addLogin = function (login) {
 												 null /*comment*/, fields.label);
 	item.description = fields.description;
 	
-	this.debug("  keychain item: (" + MacOSKeychain.debugStringForKeychainItem(item) + ")");
+	MacOSKeychainLogger.debug("  keychain item: (" + this.debugStringForKeychainItem(item) + ")");
 	
 };
 
