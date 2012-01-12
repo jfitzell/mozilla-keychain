@@ -1,3 +1,8 @@
+1.1.3
+- Update install.rdf to indicate support for Thunderbird 9.0 as reported by
+  users (versions 10 and greater should ignore the maxVersion spec)
+- Issue 45: Does not work with Thunderbird LDAP
+
 1.1.2
 - Issue 39: Version 1.1.1 no longer searchs all keychains
 
