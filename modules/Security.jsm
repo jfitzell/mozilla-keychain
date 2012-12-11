@@ -56,12 +56,18 @@ sec.OpaqueSecKeychainItemRef = new ctypes.StructType('OpaqueSecKeychainItemRef')
 sec.SecKeychainItemRef = Security.OpaqueSecKeychainItemRef.ptr;
 sec.OpaqueSecKeychainSearchRef = new ctypes.StructType('OpaqueSecKeychainSearchRef');
 sec.SecKeychainSearchRef = Security.OpaqueSecKeychainSearchRef.ptr;
+sec.__SecCode = new ctypes.StructType('__SecCode');
+sec.SecCodeRef = sec.__SecCode.ptr;
+sec.__SecRequirement = new ctypes.StructType('__SecRequirement');
+sec.SecRequirementRef = sec.__SecRequirement.ptr;
 
 sec.SecAuthenticationType = MacTypes.OSType;
 sec.SecProtocolType = MacTypes.OSType;
 sec.SecItemClass = MacTypes.FourCharCode;
 sec.SecKeychainStatus = MacTypes.UInt32;
 sec.SecKeychainAttrType = MacTypes.OSType;
+sec.SecCSFlags = MacTypes.UInt32;
+
 sec.SecKeychainAttribute = new ctypes.StructType('SecKeychainAttribute',
 						[{tag: Security.SecKeychainAttrType},
 						{length: MacTypes.UInt32},
@@ -168,6 +174,10 @@ sec.kSecUnlockStateStatus = 1;
 sec.kSecReadPermStatus = 2;
 sec.kSecWritePermStatus = 4;
 
+// SecCSFlags
+sec.kSecCSDefaultFlags = 0;
+sec.kSecCSConsiderExpiration = 2147483648; // 1 << 31
+sec.kSecCSEnforceRevocationChecks = 1073741824; // 1 << 30
 
 /******************
  * SecAuthenticationType constants depend on endianness. See:
@@ -478,6 +488,25 @@ sec.declare('SecKeychainAttributeInfoForItemID',
 				Security.SecKeychainRef, // keychain
 				MacTypes.UInt32, // itemID,
 				Security.SecKeychainAttributeInfo.ptr.ptr // info
+				);
+
+/*
+ * Handling Running Signed Code
+ */
+
+sec.declare('SecCodeCopySelf',
+				ctypes.default_abi,
+				MacTypes.OSStatus,
+				Security.SecCSFlags, // flags
+				Security.SecCodeRef.ptr // self
+				);
+				
+sec.declare('SecCodeCheckValidity',
+				ctypes.default_abi,
+				MacTypes.OSStatus,
+				Security.SecCodeRef, // code
+				Security.SecCSFlags, // flags
+				Security.SecRequirementRef // requirement
 				);
 
 sec.stringForStatus = function(status) {

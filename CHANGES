@@ -13,6 +13,8 @@
   process after calling findLogins().
 - Detect signon.debug changing so that logging can be enabled and disabled
   without restarting.
+- Add a check on startup and warn if the appliction does not verify
+  successfully against its signature.
 
 1.1.3
 - Update install.rdf to indicate support for Thunderbird 9.0 as reported by

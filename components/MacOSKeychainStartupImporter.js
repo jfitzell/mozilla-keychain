@@ -38,6 +38,7 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 
 Components.utils.import("resource://macos-keychain/MacOSKeychain.jsm");
+Components.utils.import("resource://macos-keychain/MacOSKeychainLogger.jsm");
 
 const prefImportPrompt = "startup-import-prompt";
 
@@ -156,6 +157,7 @@ MacOSKeychainStartupImporter.prototype = {
 				break;
 			case "final-ui-startup":
 				this._observerService.removeObserver(this, "final-ui-startup");
+				MacOSKeychain.verifySignature();
 				this.confirmImport();
 				break;
 		}

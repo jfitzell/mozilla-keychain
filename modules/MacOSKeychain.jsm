@@ -493,3 +493,23 @@ MacOSKeychain.addLogin = function (login) {
 MacOSKeychain.supportedURL = function(hostname) {
 	return ! /^chrome:\/\//.test(hostname);
 };
+
+MacOSKeychain.verifySignature = function() {
+	var code = new Security.SecCodeRef;
+	
+	var status = Security.SecCodeCopySelf(Security.kSecCSDefaultFlags, code.address());
+	MacOSKeychainLogger.log('SecCodeCopySelf() returned ' + status + ': ' + Security.stringForStatus(status));
+	if (Security.errSecSuccess == status) {
+		status = Security.SecCodeCheckValidity(code, Security.kSecCSDefaultFlags, null);
+		
+		if (Security.errSecSuccess == status) {
+			MacOSKeychainLogger.log('The application binary passes signature verification.');
+			return true;
+		} else {
+			MacOSKeychainLogger.log('SecCodeCheckValidity() returned ' + status + ': ' + Security.stringForStatus(status));
+		}
+	}
+	
+	MacOSKeychainLogger.warning('The application binary does not pass signature verification. Keychain Services may not work properly until this is corrected. Try deleting and reinstalling the application.');
+	return false;
+};
