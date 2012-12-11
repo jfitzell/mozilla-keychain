@@ -42,7 +42,6 @@ Components.utils.import("resource://macos-keychain/MacOSKeychainLogger.jsm");
 
 const prefImportPrompt = "startup-import-prompt";
 
-const contractConsoleService = '@mozilla.org/consoleservice;1';
 const contractKeychainStorage = '@fitzell.ca/macos-keychain/storage;1';
 const contractObserverService = '@mozilla.org/observer-service;1';
 const contractPreferencesSerivce = '@mozilla.org/preferences-service;1';
@@ -56,15 +55,6 @@ function MacOSKeychainStartupImporter() {
 MacOSKeychainStartupImporter.prototype = {
 	classID: Components.ID("{494c2389-8d87-42cd-98b4-95b26a2f9ef3}"),
 	QueryInterface : XPCOMUtils.generateQI([Ci.nsIObserver]),
-	
-	_debug			 : false, // mirrors signon.debug
-	
-	get _logService() {
-		if (!this.__logService)
-			this.__logService = Cc[contractConsoleService].getService(Ci.nsIConsoleService);
-		
-		return this.__logService;
-	},
 
 	get _observerService() {
 		if (!this.__observerService)
@@ -79,25 +69,6 @@ MacOSKeychainStartupImporter.prototype = {
 		
 		return this.__prefService;
 	},
-
-	/**
-	 * Log a debug message if debugging is turned on via the signon.debug
-	 *	preference.
-	 */
-	log: function (message) {
-		if (!this._debug)
-			return;
-			
-		dump("MacOSKeychainStartupImporter: " + message + "\n");
-		this._logService.logStringMessage("MacOSKeychainStartupImporter: " + message);
-	},
-	
-	
-	readDebugPreference: function() {
-		var signonPrefs = this._prefService.getBranch("signon.");
-		signonPrefs.QueryInterface(Ci.nsIPrefBranch2);
-		this._debug = signonPrefs.getBoolPref("debug");
-	},
 	
 	
 	/**
@@ -105,7 +76,7 @@ MacOSKeychainStartupImporter.prototype = {
 	 *	If we should and they confirm it, then start the import process.
 	 */
 	confirmImport: function () {
-		this.log("confirmImport()");
+		MacOSKeychainLogger.log("confirmImport()");
 		
 		var prefs = this._prefService.getBranch("extensions." + MacOSKeychain.extensionId + ".");
 		prefs.QueryInterface(Ci.nsIPrefBranch2);
@@ -132,7 +103,7 @@ MacOSKeychainStartupImporter.prototype = {
 				try {
 					MacOSKeychain.importLogins();
 				} catch (e) {
-					this.log(e);
+					MacOSKeychainLogger.log('importLogins() failed with: ' + e);
 				}
 			}
 			
@@ -149,10 +120,9 @@ MacOSKeychainStartupImporter.prototype = {
 	
 		
 	observe: function (subject, topic, data) {
-		this.log("Observed " + subject + " " + topic + " " + data);
+		MacOSKeychainLogger.log("Observed " + subject + " " + topic + " " + data);
 		switch(topic) {
 			case "profile-after-change":
-				this.readDebugPreference();
 				this._observerService.addObserver(this, "final-ui-startup", false);
 				break;
 			case "final-ui-startup":
