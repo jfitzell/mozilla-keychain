@@ -44,6 +44,8 @@ const preferencesServiceContract = '@mozilla.org/preferences-service;1';
 
 const EXPORTED_SYMBOLS = ['MacOSKeychainLogger'];
 
+const logPrefix = 'MacOSKeychain';
+
 var MacOSKeychainLogger = {};
 
 var _logService = null;
@@ -54,6 +56,21 @@ function logService() {
 	
 	return _logService;
 }
+
+function logScriptError(message, flags) {
+	var scriptError = Cc["@mozilla.org/scripterror;1"].createInstance(Ci.nsIScriptError);
+	scriptError.init(logPrefix + ': ' + message, null, null, null, null,
+					flags, 'component javascript');
+	logService().logMessage(scriptError);
+};
+
+function logConsoleMessage(message) {
+	logService().logStringMessage(logPrefix + ': ' + message);
+};
+
+function logCommandLineConsoleMessage(message) {
+	dump(logPrefix + ': ' + message + "\n");
+};
 
 // mirrors signon.debug
 var _debugEnabled = false;
@@ -74,14 +91,16 @@ function initDebugEnabled() {
 				MacOSKeychainLogger.debug('Logger notified of change to preference signon.' + prefName);
 		
 				if (prefName == 'debug') {
-					_debugEnabled = signonPrefs.getBoolPref('debug');
+					_debugEnabled = signonPrefs.getBoolPref(prefName);
 					if (_debugEnabled)
-						MacOSKeychainLogger.debug('Logging enabled');
+						MacOSKeychainLogger.log('Logging enabled');
+					else
+						logConsoleMessage('Logging disabled');
 				} else {
 					MacOSKeychainLogger.debug('Unhandled preference signon.' + prefName);
 				}
 			} else {
-				MacOSKeychainLogger.log('Logger received unexpected notification: ' + topic);
+				MacOSKeychainLogger.error('Logger received unexpected notification: ' + topic);
 			}
 		}
 	};
@@ -102,10 +121,22 @@ MacOSKeychainLogger.log = function (message) {
 	if (! _debugEnabled)
 		return;
 		
-	dump('MacOSKeychain: ' + message + "\n");
-	logService().logStringMessage('MacOSKeychain: ' + message);
+	logCommandLineConsoleMessage(message);
+	logConsoleMessage(message);
 };
 	
 MacOSKeychainLogger.debug = function (message) {
 	this.log(message);
+};
+
+MacOSKeychainLogger.warning = function (message) {
+	logScriptError(message, Ci.nsIScriptError.warningFlag);
+	if (_debugEnabled)
+		logCommandLineConsoleMessage('WARNING - ' + message);
+};
+
+MacOSKeychainLogger.error = function (message) {
+	logScriptError(message, Ci.nsIScriptError.errorFlag);
+	if (_debugEnabled)
+		logCommandLineConsoleMessage('ERROR - ' + message);
 };
