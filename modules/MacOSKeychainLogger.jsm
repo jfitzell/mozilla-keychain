@@ -39,8 +39,8 @@ Components.utils.import('resource://gre/modules/XPCOMUtils.jsm');
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
-const consoleServiceContract = '@mozilla.org/consoleservice;1';
-const preferencesServiceContract = '@mozilla.org/preferences-service;1';
+const contractConsoleService = '@mozilla.org/consoleservice;1';
+const contractPreferencesService = '@mozilla.org/preferences-service;1';
 
 const EXPORTED_SYMBOLS = ['MacOSKeychainLogger'];
 
@@ -51,7 +51,7 @@ var MacOSKeychainLogger = {};
 var _logService = null;
 function logService() {
 	if (! _logService) {
-		_logService = Cc[consoleServiceContract].getService(Ci.nsIConsoleService);
+		_logService = Cc[contractConsoleService].getService(Ci.nsIConsoleService);
 	}
 	
 	return _logService;
@@ -76,7 +76,7 @@ function logCommandLineConsoleMessage(message) {
 var _debugEnabled = false;
 function initDebugEnabled() {
 	// Connect to the correct preferences branch.
-	var prefService = Cc[preferencesServiceContract].getService(Ci.nsIPrefService);
+	var prefService = Cc[contractPreferencesService].getService(Ci.nsIPrefService);
 	var signonPrefs = prefService.getBranch('signon.');
 	signonPrefs.QueryInterface(Ci.nsIPrefBranch2);
 	_debugEnabled = signonPrefs.getBoolPref('debug');

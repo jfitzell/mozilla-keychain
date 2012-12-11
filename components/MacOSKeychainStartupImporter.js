@@ -39,13 +39,9 @@ const Ci = Components.interfaces;
 
 Components.utils.import("resource://macos-keychain/MacOSKeychain.jsm");
 Components.utils.import("resource://macos-keychain/MacOSKeychainLogger.jsm");
+Components.utils.import("resource://macos-keychain/MacOSKeychainImporter.jsm");
 
-const prefImportPrompt = "startup-import-prompt";
-
-const contractKeychainStorage = '@fitzell.ca/macos-keychain/storage;1';
 const contractObserverService = '@mozilla.org/observer-service;1';
-const contractPreferencesSerivce = '@mozilla.org/preferences-service;1';
-const contractPromptService = '@mozilla.org/embedcomp/prompt-service;1';
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
@@ -63,54 +59,6 @@ MacOSKeychainStartupImporter.prototype = {
 		return this.__observerService;
 	},
 	
-	get _prefService() {
-		if (!this.__prefService)
-			this.__prefService = Cc[contractPreferencesSerivce].getService(Ci.nsIPrefService);
-		
-		return this.__prefService;
-	},
-	
-	
-	/**
-	 * Check whether we should prompt the user to import their old logins.
-	 *	If we should and they confirm it, then start the import process.
-	 */
-	confirmImport: function () {
-		MacOSKeychainLogger.log("confirmImport()");
-		
-		var prefs = this._prefService.getBranch("extensions." + MacOSKeychain.extensionId + ".");
-		prefs.QueryInterface(Ci.nsIPrefBranch2);
-		
-		var shouldImport;
-		try {
-			shouldImport = prefs.getBoolPref(prefImportPrompt);
-		} catch (e) {
-			shouldImport = false;
-		}
-		
-		if (shouldImport) {
-			var promptSvc = Cc[contractPromptService].getService(Ci.nsIPromptService);
-			var flags = promptSvc.BUTTON_POS_0 * promptSvc.BUTTON_TITLE_IS_STRING +
-						promptSvc.BUTTON_POS_1 * promptSvc.BUTTON_TITLE_IS_STRING +
-						promptSvc.BUTTON_POS_2 * promptSvc.BUTTON_TITLE_IS_STRING;
-			var result = promptSvc.confirmEx(null,
-							"Import saved logins into Keychain Services?",
-							"The Keychain Service Integration extension can import your existing saved logins into Keychain Services. This allows them to be shared with other applications on your computer. Your original logins will be left in place and will still be available if you disable this extension later. Do you want to import your saved logins now?",
-							flags, "Yes", "No", "No, but ask me later",
-							null, {});
-			
-			if (result == 0) {
-				try {
-					MacOSKeychain.importLogins();
-				} catch (e) {
-					MacOSKeychainLogger.error('importLogins() failed with: ' + e);
-				}
-			}
-			
-			if (result != 2)
-				prefs.setBoolPref(prefImportPrompt, false);
-		} 
-	},
 	
 	/**
 	 =======================================
@@ -128,7 +76,7 @@ MacOSKeychainStartupImporter.prototype = {
 			case "final-ui-startup":
 				this._observerService.removeObserver(this, "final-ui-startup");
 				MacOSKeychain.verifySignature();
-				this.confirmImport();
+				MacOSKeychainImporter.confirmImport();
 				break;
 		}
 	},
