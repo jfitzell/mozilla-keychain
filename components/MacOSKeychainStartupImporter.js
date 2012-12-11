@@ -103,7 +103,7 @@ MacOSKeychainStartupImporter.prototype = {
 				try {
 					MacOSKeychain.importLogins();
 				} catch (e) {
-					MacOSKeychainLogger.log('importLogins() failed with: ' + e);
+					MacOSKeychainLogger.error('importLogins() failed with: ' + e);
 				}
 			}
 			
