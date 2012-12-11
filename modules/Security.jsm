@@ -304,7 +304,7 @@ sec.kSecAppleSharePasswordItemClass	= MacTypes.fourCharCodeFromString('ashp');
 /*
  * Getting Information About Security Result Codes
  */
-sec.declare('SecCopyErrorMessageString',
+sec.declare('SecCopyErrorMessageString', // OS X v10.5+
 				ctypes.default_abi,
 				CoreFoundation.CFStringRef,
 				MacTypes.OSStatus,
@@ -313,24 +313,24 @@ sec.declare('SecCopyErrorMessageString',
 /*
  * Managing Keychains
  */
-sec.declare('SecKeychainOpen',
+sec.declare('SecKeychainOpen', // OS X v10.2+
 				ctypes.default_abi,
 				MacTypes.OSStatus,
 				ctypes.char.ptr,
 				Security.SecKeychainRef.ptr);
 
-sec.declare('SecKeychainCopyDefault',
+sec.declare('SecKeychainCopyDefault', // OS X v10.2+
 				ctypes.default_abi,
 				MacTypes.OSStatus,
 				Security.SecKeychainRef.ptr);
 				
-sec.declare('SecKeychainGetStatus',
+sec.declare('SecKeychainGetStatus', // OS X v10.2+
 				ctypes.default_abi,
 				MacTypes.OSStatus,
 				Security.SecKeychainRef, // keychain
 				Security.SecKeychainStatus.ptr); // keychainStatus
 
-sec.declare('SecKeychainGetPath',
+sec.declare('SecKeychainGetPath', // OS X v10.2+
 				ctypes.default_abi,
 				MacTypes.OSStatus,
 				Security.SecKeychainRef,
@@ -341,16 +341,16 @@ sec.declare('SecKeychainGetPath',
  * Locking/Unlocking
  */
 
-sec.declare('SecKeychainLock',
+sec.declare('SecKeychainLock', // OS X v10.2+
 				ctypes.default_abi,
 				MacTypes.OSStatus,
 				Security.SecKeychainRef);
 
-sec.declare('SecKeychainLockAll',
+sec.declare('SecKeychainLockAll', // OS X v10.2+
 				ctypes.default_abi,
 				MacTypes.OSStatus);
 
-sec.declare('SecKeychainUnlock',
+sec.declare('SecKeychainUnlock', // OS X v10.2+
 				ctypes.default_abi,
 				MacTypes.OSStatus,
 				Security.SecKeychainRef,
@@ -362,7 +362,7 @@ sec.declare('SecKeychainUnlock',
 /*
  * Storing and Retrieving Passwords
  */
-sec.declare('SecKeychainAddInternetPassword',
+sec.declare('SecKeychainAddInternetPassword', // OS X v10.2+
 				ctypes.default_abi,
 				MacTypes.OSStatus,
 				Security.SecKeychainRef, // keychain
@@ -382,7 +382,7 @@ sec.declare('SecKeychainAddInternetPassword',
 				Security.SecKeychainItemRef.ptr // itemRef
 				);
 				
-sec.declare('SecKeychainFindInternetPassword',
+sec.declare('SecKeychainFindInternetPassword', // OS X v10.2+
 				ctypes.default_abi,
 				MacTypes.OSStatus,
 				CoreFoundation.CFTypeRef, // keychainOrArray
@@ -405,13 +405,13 @@ sec.declare('SecKeychainFindInternetPassword',
 /*
  * Searching for Keychain Items
  */
-sec.declare('SecKeychainCopySearchList',
+sec.declare('SecKeychainCopySearchList', // OS X v10.2+
 				ctypes.default_abi,
 				MacTypes.OSStatus,
 				CoreFoundation.CFArrayRef.ptr // searchList
 				); 
  
-sec.declare('SecKeychainSearchCreateFromAttributes',
+sec.declare('SecKeychainSearchCreateFromAttributes', // OS X v10.2+
 				ctypes.default_abi,
 				MacTypes.OSStatus,
 				CoreFoundation.CFTypeRef, // keychainOrArray
@@ -420,7 +420,7 @@ sec.declare('SecKeychainSearchCreateFromAttributes',
 				Security.SecKeychainSearchRef.ptr // searchRef
 				);
 
-sec.declare('SecKeychainSearchCopyNext',
+sec.declare('SecKeychainSearchCopyNext', // OS X v10.2+
 				ctypes.default_abi,
 				MacTypes.OSStatus,
 				Security.SecKeychainSearchRef, // searchRef
@@ -430,14 +430,14 @@ sec.declare('SecKeychainSearchCopyNext',
 /*
  * Creating and Deleting Keychain Items
  */
-sec.declare('SecKeychainItemDelete',
+sec.declare('SecKeychainItemDelete', // OS X v10.2+
 				ctypes.default_abi,
 				MacTypes.OSStatus,
 				Security.SecKeychainItemRef
 				);
 
 // Apparently this method exists in OS X 10.5 but is not public. Can we call it anyway?				
-sec.declare('SecKeychainItemCreatePersistentReference',
+sec.declare('SecKeychainItemCreatePersistentReference', // OS X v10.6+
 				ctypes.default_abi,
 				MacTypes.OSStatus,
 				Security.SecKeychainItemRef, // itemRef
@@ -445,7 +445,7 @@ sec.declare('SecKeychainItemCreatePersistentReference',
 				);
 
 // Apparently this method exists in OS X 10.5 but is not public. Can we call it anyway?
-sec.declare('SecKeychainItemCopyFromPersistentReference',
+sec.declare('SecKeychainItemCopyFromPersistentReference', // OS X v10.6+
 				ctypes.default_abi,
 				MacTypes.OSStatus,
 				CoreFoundation.CFDataRef, // persistentItemRef
@@ -455,7 +455,7 @@ sec.declare('SecKeychainItemCopyFromPersistentReference',
 /*
  * Managing Keychain Items
  */
-sec.declare('SecKeychainItemCopyAttributesAndData',
+sec.declare('SecKeychainItemCopyAttributesAndData', // OS X v10.2+
 				ctypes.default_abi,
 				MacTypes.OSStatus,
 				Security.SecKeychainItemRef, // itemRef
@@ -466,7 +466,7 @@ sec.declare('SecKeychainItemCopyAttributesAndData',
 				ctypes.voidptr_t.ptr // outData
 				);
 
-sec.declare('SecKeychainItemModifyAttributesAndData',
+sec.declare('SecKeychainItemModifyAttributesAndData', // OS X v10.2+
 				ctypes.default_abi,
 				MacTypes.OSStatus,
 				Security.SecKeychainItemRef, // itemRef,
@@ -475,14 +475,14 @@ sec.declare('SecKeychainItemModifyAttributesAndData',
 				ctypes.voidptr_t // data
 				);
 				
-sec.declare('SecKeychainItemFreeAttributesAndData',
+sec.declare('SecKeychainItemFreeAttributesAndData', // OS X v10.2+
 				ctypes.default_abi,
 				MacTypes.OSStatus,
 				Security.SecKeychainAttributeList.ptr, //attrList
 				ctypes.voidptr_t // data
 				);
 
-sec.declare('SecKeychainAttributeInfoForItemID',
+sec.declare('SecKeychainAttributeInfoForItemID', // OS X v10.2+
 				ctypes.default_abi,
 				MacTypes.OSStatus,
 				Security.SecKeychainRef, // keychain
@@ -494,14 +494,14 @@ sec.declare('SecKeychainAttributeInfoForItemID',
  * Handling Running Signed Code
  */
 
-sec.declare('SecCodeCopySelf',
+sec.declare('SecCodeCopySelf', // OS X v10.6+
 				ctypes.default_abi,
 				MacTypes.OSStatus,
 				Security.SecCSFlags, // flags
 				Security.SecCodeRef.ptr // self
 				);
 				
-sec.declare('SecCodeCheckValidity',
+sec.declare('SecCodeCheckValidity', // OS X v10.6+
 				ctypes.default_abi,
 				MacTypes.OSStatus,
 				Security.SecCodeRef, // code
