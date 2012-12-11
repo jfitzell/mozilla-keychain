@@ -114,6 +114,7 @@ MacOSKeychainStorage.prototype = {
 		} catch (e) {
 			// we don't yet support storing things with hostnames that are not
 			//	valid URLs. We could store them as Generic items in the future.
+			this.log('Adding login failed with: ' + e);
 			this.log('Falling back on mozilla storage...');
 			return MacOSKeychain.defaultStorage.addLogin(login);
 		}
@@ -233,14 +234,28 @@ MacOSKeychainStorage.prototype = {
 			return MacOSKeychain.defaultStorage.findLogins(count, hostname, formSubmitURL, httpRealm);
 		}
 		
-		var items = MacOSKeychain.findKeychainItems('' /*username*/, hostname,
+		var items;
+		try {
+			items = MacOSKeychain.findKeychainItems('' /*username*/, hostname,
 											formSubmitURL, httpRealm);
+		} catch (e) {
+			// LoginManager seems to silently catch errors thrown by findLogins()
+			//  so we log them instead
+			this.log('findKeychainItems() [1] failed with: ' + e);
+			items = new Array();
+		}
 		
 		// Safari seems not to store the HTTP Realm in the securityDomain
 		//	field so we try the search again without it.
 		if (items.length == 0 && httpRealm != null && httpRealm != '') {
-			items = MacOSKeychain.findKeychainItems('' /*username*/, hostname,
+			try {
+				items = MacOSKeychain.findKeychainItems('' /*username*/, hostname,
 											formSubmitURL, '' /*httpRealm*/);
+			} catch (e) {
+				this.log('findKeychainItems() [2] failed with: ' + e);
+				items = new Array();
+			}								
+											
 			for (var i in items) {
 				items[i].securityDomain = httpRealm;
 			}
@@ -250,8 +265,14 @@ MacOSKeychainStorage.prototype = {
 			this.log('No items found. Checking mozilla storage...');
 			return MacOSKeychain.defaultStorage.findLogins(count, hostname, formSubmitURL, httpRealm);
 		}
-			
-		var logins = MacOSKeychain.convertKeychainItemsToLoginInfos(items);
+		
+		var logins;
+		try {
+			logins = MacOSKeychain.convertKeychainItemsToLoginInfos(items);
+		} catch (e) {
+			this.log('convertKeychainItemsToLoginInfos() failed with: ' + e);
+			logins = new Array();
+		}	
 		
 		count.value = logins.length;
 		return logins;
@@ -268,16 +289,32 @@ MacOSKeychainStorage.prototype = {
 			return MacOSKeychain.defaultStorage.countLogins(hostname, formSubmitURL, httpRealm);
 		}
 		
-		var items = MacOSKeychain.findKeychainItems('' /*username*/, hostname,
+		var items;
+		try {
+			items = MacOSKeychain.findKeychainItems('' /*username*/, hostname,
 											formSubmitURL, httpRealm);
-		
+		} catch (e) {
+			// LoginManager seems to silently catch errors thrown by countLogins()
+			//  so we log them instead
+			this.log('findKeychainItems() [1] failed with: ' + e);
+			items = new Array();
+		}
+				
 		// Safari seems not to store the HTTP Realm in the securityDomain
 		//	field so we try the search again without it.
-		if (items.length == 0 && httpRealm != null && httpRealm != '')
-			items = MacOSKeychain.findKeychainItems('' /*username*/, hostname,
+		if (items.length == 0 && httpRealm != null && httpRealm != '') {
+			try {
+				items = MacOSKeychain.findKeychainItems('' /*username*/, hostname,
 											formSubmitURL, '' /*httpRealm*/);
-		
-		if (items.length == 0 /* && an appropriate preference is set*/) {
+			} catch (e) {
+				// LoginManager seems to silently catch errors thrown by countLogins()
+				//  so we log them instead
+				this.log('findKeychainItems() [2] failed with: ' + e);
+				items = new Array();
+			}
+		}
+				
+		if (items.length == 0 /* && TODO: an appropriate preference is set*/) {
 			this.log('No items found. Checking mozilla storage...');
 			return MacOSKeychain.defaultStorage.countLogins(hostname, formSubmitURL, httpRealm);
 		}

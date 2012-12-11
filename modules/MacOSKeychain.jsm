@@ -97,7 +97,7 @@ MacOSKeychain.initializeDefaultStorage = function (inFile, outFile) {
 },
 
 MacOSKeychain.convertKeychainItemsToLoginInfos = function (items) {
-	MacOSKeychainLogger.debug('convertKeychainItemToLoginInfo(...)');
+	MacOSKeychainLogger.debug('convertKeychainItemsToLoginInfo(...)');
 	var logins = new Array();
 	for ( var i in items ) {
 		try {

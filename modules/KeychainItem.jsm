@@ -62,7 +62,7 @@ KeychainItem.prototype = {
 		var dataRef = new CoreFoundation.CFDataRef;
 		try {
 			var status = Security.SecKeychainItemCreatePersistentReference(keychainItemRef, dataRef.address());
-			this.testStatus(status, 'creating persistent reference for KeychainItemRef');
+			testStatus(status, 'SecKeychainItemCreatePersistentReference');
 			
 			var length = CoreFoundation.CFDataGetLength(dataRef);
 			//var range = new CoreFoundation.CFRange(1, 1);
@@ -73,11 +73,8 @@ KeychainItem.prototype = {
 			
 			for (var i = 0; i < buffer.length; i++)
 				persistentReference[i] = buffer[i];
-			
+		} finally {
 			if (! dataRef.isNull()) CoreFoundation.CFRelease(dataRef);
-		} catch (e) {
-			if (! dataRef.isNull()) CoreFoundation.CFRelease(dataRef);
-			throw e;
 		}
 		
 		return persistentReference;
@@ -95,13 +92,12 @@ KeychainItem.prototype = {
 			var bytePtr = ctypes.cast(buffer.address(), MacTypes.UInt8.ptr);
 			dataRef = CoreFoundation.CFDataCreate(null, bytePtr, buffer.length);
 			var status = Security.SecKeychainItemCopyFromPersistentReference(dataRef, keychainItemRef.address());
-			this.testStatus(status, 'creating KeychainItemRef');
-			
-			if (! dataRef.isNull()) CoreFoundation.CFRelease(dataRef);
+			testStatus(status, 'SecKeychainItemCopyFromPersistentReference');
 		} catch (e) {
-			if (! dataRef.isNull()) CoreFoundation.CFRelease(dataRef);
 			if (! keychainItemRef.isNull()) CoreFoundation.CFRelease(keychainItemRef);
 			throw e;
+		} finally {
+			if (! dataRef.isNull()) CoreFoundation.CFRelease(dataRef);
 		}
 		
 		return keychainItemRef;
@@ -118,11 +114,9 @@ KeychainItem.prototype = {
 			var result;
 			try {
 				result = func.call(thisArg, keychainItemRef);
-			} catch (e) {
+			} finally {
 				if (! keychainItemRef.isNull()) CoreFoundation.CFRelease(keychainItemRef);
-				throw e;
 			}
-			if (! keychainItemRef.isNull()) CoreFoundation.CFRelease(keychainItemRef);
 		}
 		
 		return result;
@@ -152,7 +146,7 @@ KeychainItem.prototype = {
 										null);
 		});
 										
-		this.testStatus(status, 'loading keychain item attributes');
+		testStatus(status, 'SecKeychainItemCopyAttributesAndData', 'loading keychain item attributes');
 
 		// Cast the SecKeychainAttribute* to a SecKeychainAttribute[]
 		var attributesPtr = ctypes.cast(attributeListPtr.contents.attr, Security.SecKeychainAttribute.array(attributeListPtr.contents.count).ptr);
@@ -177,29 +171,34 @@ KeychainItem.prototype = {
   		var passwordData = new ctypes.char.ptr;
   		
   		var status;
-		this.doWithRef(this, function(reference) {
-			status = Security.SecKeychainItemCopyAttributesAndData(
-  							reference,
-  							null,
-  							null,
-  							null,
-							passwordLength.address(),
-							(ctypes.cast(passwordData, ctypes.voidptr_t)).address());
-		});
-  		
-  		var passwordArray = ctypes.cast(passwordData, ctypes.char.array(passwordLength.value).ptr).contents;
   		var password;
-  		if (! passwordData.isNull()) {
-  			password = passwordArray.readString();
-  			Security.SecKeychainItemFreeAttributesAndData(null, passwordData);
-  		}
-  		
-		if (status == Security.errSecSuccess)
-			return password;
-		else if (status == Security.errSecAuthFailed)
-			return null;
-		else
-			throw Error('Error loading keychain item password: ' + Security.stringForStatus(status));
+  		try {
+			this.doWithRef(this, function(reference) {
+				status = Security.SecKeychainItemCopyAttributesAndData(
+								reference,
+								null,
+								null,
+								null,
+								passwordLength.address(),
+								(ctypes.cast(passwordData, ctypes.voidptr_t)).address());
+			});
+			
+			if (status == Security.errSecAuthFailed)
+				// DEBUG: Log failed authentication
+				return null;
+			
+			testStatus(status, 'SecKeychainItemCopyAttributesAndData', 'fetching keychain item password');
+			
+			var passwordArray = ctypes.cast(passwordData, ctypes.char.array(passwordLength.value).ptr).contents;
+			
+			if (! passwordData.isNull())
+				password = passwordArray.readString();
+		} finally {
+			if (! passwordData.isNull())
+				Security.SecKeychainItemFreeAttributesAndData(null, passwordData);
+		}
+		
+		return password;
 	},
 	
 	_setAttribute: function(attribute) {
@@ -216,15 +215,18 @@ KeychainItem.prototype = {
 							0,
 							null);
 		});
+
+		testStatus(status, 'SecKeychainItemModifyAttributesAndData', 'setting attribute');	
 		
-		this.testStatus(status, 'setting attribute');
-			
 		return true;
 	},
 	
 	get password() {
 		if (this._password === undefined)
-			return this._password = this._loadPassword();
+			this._password = this._loadPassword();
+		
+		if (this._password === null)
+			return ''; // LoginManager checks the length, so we can't return null
 		else
 			return this._password;
 	},
@@ -240,7 +242,7 @@ KeychainItem.prototype = {
 							ctypes.cast(charArray.address(), ctypes.voidptr_t));
 		});
 		
-		this.testStatus(status, 'setting keychain item password');
+		testStatus(status, 'SecKeychainItemModifyAttributesAndData', 'setting keychain item password');
 		
 		this._password = newPassword;
 	},
@@ -271,7 +273,7 @@ KeychainItem.prototype = {
 			status = Security.SecKeychainItemDelete(reference);
 		});
 		
-		this.testStatus(status, 'deleting keychain item');
+		testStatus(status, 'SecKeychainItemDelete');
 		
 		this.release();
 	},
@@ -286,11 +288,6 @@ KeychainItem.prototype = {
 	ensureStored: function() {
 		if (! this._reference && ! this._persistentReference)
 			throw Error('KeychainItem has no reference');
-	},
-	
-	testStatus: function(status, actionString) {
-		if (status != Security.errSecSuccess)
-			throw Error('Error ' + actionString + ': ', + Security.stringForStatus(status));
 	},
 };
 
@@ -315,19 +312,14 @@ function doWithReadKeychainRef(thisArg, func) {
 		return doWithWriteKeychainRef(thisArg, func);
 	
 	var searchList = new CoreFoundation.CFArrayRef;
-	var status = Security.SecKeychainCopySearchList(searchList.address());
-	
-	if (status != Security.errSecSuccess)
-		throw Error('Error obtaining keychain search list: ' + Security.stringForStatus(status));
-
-	// TODO: wrap this in an ensure() helper function
 	try {
+		var status = Security.SecKeychainCopySearchList(searchList.address());
+		testStatus(status, 'SecKeychainCopySearchList');
+
 		result = func.call(thisArg, searchList);
-	} catch (e) {
+	} finally {
 		if (! searchList.isNull()) CoreFoundation.CFRelease(searchList);
-		throw e;
 	}
-	if (! searchList.isNull()) CoreFoundation.CFRelease(searchList);
 	
 	return result;
 }
@@ -344,32 +336,28 @@ function doWithWriteKeychainRef(thisArg, func) {
 	var result;
 	
 	// DEBUG log the path being used
-	
-	if ('' == path || null === path) {
-		status = Security.SecKeychainCopyDefault(keychainRef.address());
-	} else {
-		status = Security.SecKeychainOpen(path, keychainRef.address());
-	}
-	if (status != Security.errSecSuccess)
-		throw Error('Error obtaining keychain reference: ' + Security.stringForStatus(status));
-	
-	status = Security.SecKeychainGetStatus(keychainRef, keychainStatus.address());
-	if (status == Security.errSecNoSuchKeychain)
-		throw Error('Error opening keychain: no keychain found at filesystem path ' + path);
-	else if (status == Security.errSecInvalidKeychain)
-		throw Error ('Error opening keychain: keychain at filesystem path ' + path + ' is invalid');
-	else if (status != Security.errSecSuccess)
-		throw Error('Error obtaining keychain status: ' + Security.stringForStatus(status));
-	
-	//DEBUG: log the status (locked?)
-	
 	try {
+		if ('' == path || null === path) {
+			status = Security.SecKeychainCopyDefault(keychainRef.address());
+			testStatus(status, 'SecKeychainCopyDefault');
+		} else {
+			status = Security.SecKeychainOpen(path, keychainRef.address());
+			testStatus(status, 'SecKeychainOpen');
+		}
+		
+		status = Security.SecKeychainGetStatus(keychainRef, keychainStatus.address());
+		if (status == Security.errSecNoSuchKeychain)
+			throw Error('Error opening keychain: no keychain found at filesystem path ' + path);
+		else if (status == Security.errSecInvalidKeychain)
+			throw Error ('Error opening keychain: keychain at filesystem path ' + path + ' is invalid');
+		else
+			testStatus(status, 'SecKeychainGetStatus');
+	
+		//DEBUG: log the status (locked?)
 		result = func.call(thisArg, keychainRef);
-	} catch (e) {
+	} finally {
 		if (! keychainRef.isNull()) CoreFoundation.CFRelease(keychainRef);
-		throw e;
 	}
-	if (! keychainRef.isNull()) CoreFoundation.CFRelease(keychainRef);
 	
 	return result;
 };
@@ -401,16 +389,21 @@ KeychainItem.addInternetPassword = function(accountName,
 						 keychainItemRef.address());
 	});
 	
-	if (status != Security.errSecSuccess)
-		throw Error('Error adding internet password: ' + Security.stringForStatus(status));
+	testStatus(status, 'SecKeychainAddInternetPassword');
 	
-	var item = new KeychainItem(keychainItemRef);
-	item.comment = comment;
-	
-	if (! label)
-		item.setDefaultLabel();
-	else
-		item.label = label;
+	try {
+		var item = new KeychainItem(keychainItemRef);
+		item.comment = comment;
+		
+		if (! label)
+			item.setDefaultLabel();
+		else
+			item.label = label;
+	} catch (e) {
+		Security.SecKeychainItemDelete(keychainItemRef);
+		// DEBUG: log the status in case it fails
+		throw e;
+	}
 	
 	return item;
 };
@@ -465,37 +458,37 @@ KeychainItem.findInternetPasswords = function (account, protocolType, server,
 	
 	var searchRef = new Security.SecKeychainSearchRef;
 	var status;
-	doWithReadKeychainRef(this, function(keychainRef) {
-		status = Security.SecKeychainSearchCreateFromAttributes(keychainRef,
-														  Security.kSecInternetPasswordItemClass,
-														  searchCriteria.address(),
-														  searchRef.address());
-	});
-
-	if (status != Security.errSecSuccess) {
-//		this.log('Error searching: ' + Security.stringForStatus(status));
-		throw Error('Error searching: ' + Security.stringForStatus(status));
-	}
-	
 	var results = new Array();
+	try { // Make sure to release searchRef
+		doWithReadKeychainRef(this, function(keychainRef) {
+			status = Security.SecKeychainSearchCreateFromAttributes(keychainRef,
+															  Security.kSecInternetPasswordItemClass,
+															  searchCriteria.address(),
+															  searchRef.address());
+		});
 	
-	var keychainItemRef = new Security.SecKeychainItemRef();
-	while ((status = Security.SecKeychainSearchCopyNext(searchRef, keychainItemRef.address())) == Security.errSecSuccess) {
-		results[results.length] = new KeychainItem(keychainItemRef);
-	}
-	
-	if (! searchRef.isNull())
-		CoreFoundation.CFRelease(searchRef);
-			
-	if (status != Security.errSecItemNotFound) {
-		for (var i in results) {
-			results[i].release();
+		testStatus(status, 'SecKeychainSearchCreateFromAttributes');
+		
+		var keychainItemRef = new Security.SecKeychainItemRef();
+		try { // Make sure to release all keychainItemRefs if we're unsuccessful
+			while ((status = Security.SecKeychainSearchCopyNext(searchRef, keychainItemRef.address())) == Security.errSecSuccess) {
+				results[results.length] = new KeychainItem(keychainItemRef);
+			}
+		} finally {	
+			if (status != Security.errSecItemNotFound) { // i.e. if we weren't done
+				for (var i in results) {
+					results[i].release();
+				}
+				if (! keychainItemRef.isNull())
+					CoreFoundation.CFRelease(keychainItemRef);
+				testStatus(status, 'SecKeychainSearchCopyNext');
+			}
 		}
-		if (! keychainItemRef.isNull())
-			CoreFoundation.CFRelease(keychainItemRef);
-		throw Error('Error obtaining search results: ' + Security.stringForStatus(status));
+	} finally {
+		if (! searchRef.isNull())
+			CoreFoundation.CFRelease(searchRef);
 	}
-
+	
 	return results;
 };
 
@@ -648,4 +641,15 @@ function setterFor(attributeRecord) {
 	return function(value) {
 		this._setAttribute(attributeRecord.writer(value));
 	};
+};
+
+function testStatus(status, functionString, contextString) {
+	var whileString = (contextString === undefined) ? '' : 'While ' + contextString + ', ';
+	if (status != Security.errSecSuccess) {
+		var err = new Error('KeychainItem.jsm - ' + whileString + functionString + '() returned ' + status.toString() + ': ' + Security.stringForStatus(status));
+		err.name = 'Security Framework Error';
+		err.status = status;
+		err.fn = functionString;
+		throw err;
+	}
 };

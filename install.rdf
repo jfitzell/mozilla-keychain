@@ -40,7 +40,7 @@
   <Description about="urn:mozilla:install-manifest">
     <em:id>macos-keychain@fitzell.ca</em:id>
     <em:type>2</em:type> <!-- Extensions -->
-    <em:version>1.1.3</em:version>
+    <em:version>1.1.4a</em:version>
 
     <em:targetPlatform>Darwin</em:targetPlatform>
     <!-- Firefox -->
@@ -48,7 +48,7 @@
       <Description>
         <em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id>
         <em:minVersion>4.0b9</em:minVersion>
-        <em:maxVersion>9.*</em:maxVersion>
+        <em:maxVersion>17.*</em:maxVersion>
       </Description>
     </em:targetApplication>
     <!-- Thunderbird -->
@@ -56,24 +56,28 @@
       <Description>
         <em:id>{3550f703-e582-4d05-9a08-453d09bdfdc6}</em:id>
         <em:minVersion>9.0</em:minVersion>
-        <em:maxVersion>9.*</em:maxVersion>
+        <em:maxVersion>17.*</em:maxVersion>
       </Description>
     </em:targetApplication>
     <!-- Gecko Toolkit Applications -->
-<!--
     <em:targetApplication>
       <Description>
         <em:id>toolkit@mozilla.org</em:id>
         <em:minVersion>2.0</em:minVersion>
-        <em:maxVersion>2.0.*</em:maxVersion>
+        <em:maxVersion>*</em:maxVersion>
       </Description>
     </em:targetApplication>
--->
-	
+  <em:targetApplication>
+    <Description>
+      <!-- SeaMonkey's UUID -->
+      <em:id>{92650c4d-4b8e-4d2a-b7eb-24ecf4f6b63a}</em:id>
+      <em:minVersion>2.1.*</em:minVersion>
+      <em:maxVersion>2.11.*</em:maxVersion>
+    </Description>
+  </em:targetApplication>	
     <!-- front-end metadata -->
     <em:name>Keychain Services Integration</em:name>
     <em:description>Store usernames and passwords using Apple's Keychain Services.</em:description>
     <em:creator>Julian Fitzell</em:creator>
-    <em:homepageURL>http://blog.fitzell.ca/</em:homepageURL>
   </Description>
 </RDF>

@@ -1,3 +1,17 @@
+1.1.4
+- Fix null pointer exception in some cases when loading the password from
+  a KeychainItem
+- Include the error code provided by the operating system when an error
+  is returned from system functions.
+- Ensure that all errors returned from the Security.framework are thrown
+  and either displayed by LoginManager or logged by MacOSKeychainStorage.js
+  (LoginManager seems to silently consume errors thrown by countLogins()
+  and findLogins())
+- Return an empty string instead of null from LoginInfo.password when a
+  user disallows access to the keychain item. This is weird but necessary
+  because LoginManager checks every password's length early in the
+  process after calling findLogins().
+
 1.1.3
 - Update install.rdf to indicate support for Thunderbird 9.0 as reported by
   users (versions 10 and greater should ignore the maxVersion spec)
