@@ -444,31 +444,6 @@ MacOSKeychain.debugStringForKeychainItem = function (item) {
 				" description:" + item.description;
 };
 
-/**
- * Import logins from the old login storage provider into the keychain.
- */
-MacOSKeychain.importLogins = function () {
-	MacOSKeychainLogger.trace("importLogins()");
-	var logins = this.defaultStorage.getAllLogins({});
-	
-	for (var i in logins) {
-		var login = logins[i];
-		try {
-			MacOSKeychainLogger.log('  Importing ' + login.username + '@' + login.hostname);
-			var items = this.findKeychainItems(login.username, login.hostname,
-												login.formSubmitURL, login.httpRealm);
-			if (items.length == 0) {
-				this.addLogin(login);
-				MacOSKeychainLogger.log('   --> Success!');
-			} else {
-				MacOSKeychainLogger.log('   --> Duplicate keychain item found... skipping.');
-			}
-		} catch (e) {
-			MacOSKeychainLogger.log('   --> Skipping due to exception: ' + e);
-		}
-	}
-};
-
 MacOSKeychain.addLogin = function (login) {
 	if (! this.supportedURL(login.hostname)) {
 		throw Error('Cannot add login because the URL scheme is not supported.');

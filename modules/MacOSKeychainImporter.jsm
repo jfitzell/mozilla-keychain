@@ -88,14 +88,40 @@ MacOSKeychainImporter.confirmImport = function () {
 		
 		if (result == 0) {
 			try {
-				MacOSKeychain.importLogins();
+				this.importLogins();
 			} catch (e) {
 				MacOSKeychainLogger.error('importLogins() failed with: ' + e);
+				return;
 			}
 		}
 		
 		if (result != 2)
 			prefs.setBoolPref(prefImportPrompt, false);
 	} 
+};
+
+/**
+ * Import logins from the old login storage provider into the keychain.
+ */
+MacOSKeychainImporter.importLogins = function () {
+	MacOSKeychainLogger.trace("importLogins()");
+	var logins = MacOSKeychain.defaultStorage.getAllLogins({});
+	
+	for (var i in logins) {
+		var login = logins[i];
+		try {
+			MacOSKeychainLogger.log('  Importing ' + login.username + '@' + login.hostname);
+			var items = MacOSKeychain.findKeychainItems(login.username, login.hostname,
+												login.formSubmitURL, login.httpRealm);
+			if (items.length == 0) {
+				MacOSKeychain.addLogin(login);
+				MacOSKeychainLogger.log('   --> Success!');
+			} else {
+				MacOSKeychainLogger.log('   --> Duplicate keychain item found... skipping.');
+			}
+		} catch (e) {
+			MacOSKeychainLogger.log('   --> Skipping due to exception: ' + e);
+		}
+	}
 };
 
