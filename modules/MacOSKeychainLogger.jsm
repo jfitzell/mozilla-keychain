@@ -94,8 +94,10 @@ function initDebugEnabled() {
 					_debugEnabled = signonPrefs.getBoolPref(prefName);
 					if (_debugEnabled)
 						MacOSKeychainLogger.log('Logging enabled');
-					else
+					else {
 						logConsoleMessage('Logging disabled');
+						logCommandLineConsoleMessage('Logging disabled');
+					}
 				} else {
 					MacOSKeychainLogger.log('Unhandled preference signon.' + prefName);
 				}
