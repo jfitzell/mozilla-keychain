@@ -34,6 +34,8 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
+Components.utils.import('resource://gre/modules/XPCOMUtils.jsm');
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
@@ -58,14 +60,38 @@ var _debugEnabled = false;
 function initDebugEnabled() {
 	// Connect to the correct preferences branch.
 	var prefService = Cc[preferencesServiceContract].getService(Ci.nsIPrefService);
-	var signonPrefs = prefService.getBranch("signon.");
+	var signonPrefs = prefService.getBranch('signon.');
 	signonPrefs.QueryInterface(Ci.nsIPrefBranch2);
-	_debugEnabled = signonPrefs.getBoolPref("debug");
+	_debugEnabled = signonPrefs.getBoolPref('debug');
+	
+	var _prefsObserver = {
+		QueryInterface : XPCOMUtils.generateQI([Ci.nsIObserver]),
+		
+		// nsObserver
+		observe : function (subject, topic, data) {
+			if (topic == 'nsPref:changed') {
+				var prefName = data;
+				MacOSKeychainLogger.debug('Logger notified of change to preference signon.' + prefName);
+		
+				if (prefName == 'debug') {
+					_debugEnabled = signonPrefs.getBoolPref('debug');
+					if (_debugEnabled)
+						MacOSKeychainLogger.debug('Logging enabled');
+				} else {
+					MacOSKeychainLogger.debug('Unhandled preference signon.' + prefName);
+				}
+			} else {
+				MacOSKeychainLogger.log('Logger received unexpected notification: ' + topic);
+			}
+		}
+	};
+	
+	signonPrefs.addObserver('', _prefsObserver, false);
 };
 initDebugEnabled();
 
 //var _prefBranch = null;
-//this._prefBranch = prefService.getBranch("extensions." + MacOSKeychain.extensionId + ".");
+//this._prefBranch = prefService.getBranch('extensions.' + MacOSKeychain.extensionId + '.');
 //this._prefBranch.QueryInterface(Ci.nsIPrefBranch2);
 	
 /**
@@ -76,8 +102,8 @@ MacOSKeychainLogger.log = function (message) {
 	if (! _debugEnabled)
 		return;
 		
-	dump("MacOSKeychain: " + message + "\n");
-	logService().logStringMessage("MacOSKeychain: " + message);
+	dump('MacOSKeychain: ' + message + "\n");
+	logService().logStringMessage('MacOSKeychain: ' + message);
 };
 	
 MacOSKeychainLogger.debug = function (message) {

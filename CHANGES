@@ -11,6 +11,8 @@
   user disallows access to the keychain item. This is weird but necessary
   because LoginManager checks every password's length early in the
   process after calling findLogins().
+- Detect signon.debug changing so that logging can be enabled and disabled
+  without restarting.
 
 1.1.3
 - Update install.rdf to indicate support for Thunderbird 9.0 as reported by
