@@ -88,7 +88,7 @@ function initDebugEnabled() {
 		observe : function (subject, topic, data) {
 			if (topic == 'nsPref:changed') {
 				var prefName = data;
-				MacOSKeychainLogger.debug('Logger notified of change to preference signon.' + prefName);
+				MacOSKeychainLogger.log('Logger notified of change to preference signon.' + prefName);
 		
 				if (prefName == 'debug') {
 					_debugEnabled = signonPrefs.getBoolPref(prefName);
@@ -97,7 +97,7 @@ function initDebugEnabled() {
 					else
 						logConsoleMessage('Logging disabled');
 				} else {
-					MacOSKeychainLogger.debug('Unhandled preference signon.' + prefName);
+					MacOSKeychainLogger.log('Unhandled preference signon.' + prefName);
 				}
 			} else {
 				MacOSKeychainLogger.error('Logger received unexpected notification: ' + topic);
@@ -125,7 +125,7 @@ MacOSKeychainLogger.log = function (message) {
 	logConsoleMessage(message);
 };
 	
-MacOSKeychainLogger.debug = function (message) {
+MacOSKeychainLogger.trace = function (message) {
 	this.log(message);
 };
 

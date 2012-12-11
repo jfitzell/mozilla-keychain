@@ -444,7 +444,7 @@ KeychainItem.findInternetPasswords = function (account, protocolType, server,
 		}
 	}
 	
-//	this.debug(attributes.toSource());
+//	this.log(attributes.toSource());
 	
 	var searchCriteria = new Security.SecKeychainAttributeList();
 	searchCriteria.count = attributes.length;

@@ -97,7 +97,7 @@ MacOSKeychain.initializeDefaultStorage = function (inFile, outFile) {
 },
 
 MacOSKeychain.convertKeychainItemsToLoginInfos = function (items) {
-	MacOSKeychainLogger.debug('convertKeychainItemsToLoginInfo(...)');
+	MacOSKeychainLogger.trace('convertKeychainItemsToLoginInfo(...)');
 	var logins = new Array();
 	for ( var i in items ) {
 		try {
@@ -116,19 +116,19 @@ MacOSKeychain.convertKeychainItemsToLoginInfos = function (items) {
  *
  */
 MacOSKeychain.convertKeychainItemToLoginInfo = function (item) {
-	MacOSKeychainLogger.debug("convertKeychainItemToLoginInfo[ item: (" +
+	MacOSKeychainLogger.trace("convertKeychainItemToLoginInfo[ item: (" +
 					 this.debugStringForKeychainItem(item) + ") ]");
 	var info = new LoginInfo();
 
-	//MacOSKeychainLogger.debug(item._attributes.toSource());
+	//MacOSKeychainLogger.log(item._attributes.toSource());
 	var uriString = item.uriString;
-	MacOSKeychainLogger.debug("  URI String: " + uriString);
+	MacOSKeychainLogger.log("  URI String: " + uriString);
 	var uri = _uri(uriString);
 	// Remove the trailing slash from the URI since LoginManager doesn't put
 	//	it there and uses a strict string comparison when checking the results
 	//	of a find operation to determine if any of the LoginInfos is an exact match.
 	var hostname = uri.spec.substring(0, uri.spec.length - 1);
-	MacOSKeychainLogger.debug("  Parsed URI: " + hostname);
+	MacOSKeychainLogger.log("  Parsed URI: " + hostname);
 	
 	var formSubmitURL, httpRealm;
 	if (Security.kSecAuthenticationTypeHTMLForm == item.authenticationType) {
@@ -206,7 +206,7 @@ MacOSKeychain.updateItemWithProperties = function (item, properties) {
 	var propEnum = properties.enumerator;
 	while (propEnum.hasMoreElements()) {
 		var prop = propEnum.getNext().QueryInterface(Ci.nsIProperty);
-		MacOSKeychainLogger.debug('Setting property: ' + prop.name);
+		MacOSKeychainLogger.log('Setting property: ' + prop.name);
 		switch (prop.name) {
 			// nsILoginInfo properties...
 			case "hostname":
@@ -240,7 +240,7 @@ MacOSKeychain.updateItemWithProperties = function (item, properties) {
 			case "timesUsedIncrement":
 			case "timeLastUsed":
 			case "timePasswordChanged":
-				MacOSKeychainLogger.debug('--Unsupported property: ' + prop.name);
+				MacOSKeychainLogger.log('--Unsupported property: ' + prop.name);
 				// not supported
 				break;
 
@@ -251,7 +251,7 @@ MacOSKeychain.updateItemWithProperties = function (item, properties) {
 
 			// Fail if caller requests setting an unknown property.
 			default:
-				MacOSKeychainLogger.debug('**Unknown property: ' + prop.name);
+				MacOSKeychainLogger.warning('**Unknown property: ' + prop.name);
 				unknownProps.push(prop.name);
 		}
 	}
@@ -276,7 +276,7 @@ MacOSKeychain.updateItemWithProperties = function (item, properties) {
  * We also take the same approach with the username field.
  */
 MacOSKeychain.findKeychainItems = function (username, hostname, formSubmitURL, httpRealm) {
-	MacOSKeychainLogger.debug("findKeychainItems["
+	MacOSKeychainLogger.trace("findKeychainItems["
 					 + " username:" + username
 					 + " hostname:" + hostname
 					 + " formSubmitURL:" + formSubmitURL
@@ -323,7 +323,7 @@ MacOSKeychain.findKeychainItems = function (username, hostname, formSubmitURL, h
 	
 	var protocolType = Security.protocolForScheme(scheme);
 	
-	MacOSKeychainLogger.debug("About to call KeychainItem.findInternetPasswords["
+	MacOSKeychainLogger.trace("About to call KeychainItem.findInternetPasswords["
 					 + " account:" + accountName
 					 + " protocol:" + Security.stringFromProtocolType(protocolType)
 					 + " server:" + host
@@ -345,7 +345,7 @@ MacOSKeychain.findKeychainItems = function (username, hostname, formSubmitURL, h
  *	is returned. If none is found, null is returned.
  */
 MacOSKeychain.findKeychainItemForLoginInfo = function (login) {
-	MacOSKeychainLogger.debug("findKeychainItemForLoginInfo[ login:" + login + " ]");
+	MacOSKeychainLogger.trace("findKeychainItemForLoginInfo[ login:" + login + " ]");
 	
 	var items = this.findKeychainItems(login.username,
 										login.hostname,
@@ -395,7 +395,7 @@ function _url (urlString) {
  *	If any of the values is missing, null is provided for that position.
  */
 MacOSKeychain.splitLoginInfoHostname = function (hostname) {
-	MacOSKeychainLogger.debug("splitLoginInfoHostname[ hostname:" + hostname + " ]");
+	MacOSKeychainLogger.trace("splitLoginInfoHostname[ hostname:" + hostname + " ]");
 	var scheme = null;
 	var host = null;
 	var port = null;
@@ -412,7 +412,7 @@ MacOSKeychain.splitLoginInfoHostname = function (hostname) {
 			port = null;
 	}
 	
-	MacOSKeychainLogger.debug("  scheme:" + scheme + " host:" + host + " port:" + port);
+	MacOSKeychainLogger.log("  scheme:" + scheme + " host:" + host + " port:" + port);
 	return [scheme, host, port];
 };
 
@@ -448,7 +448,7 @@ MacOSKeychain.debugStringForKeychainItem = function (item) {
  * Import logins from the old login storage provider into the keychain.
  */
 MacOSKeychain.importLogins = function () {
-	MacOSKeychainLogger.debug("importLogins()");
+	MacOSKeychainLogger.trace("importLogins()");
 	var logins = this.defaultStorage.getAllLogins({});
 	
 	for (var i in logins) {
@@ -486,7 +486,7 @@ MacOSKeychain.addLogin = function (login) {
 												 null /*comment*/, fields.label);
 	item.description = fields.description;
 	
-	MacOSKeychainLogger.debug("  keychain item: (" + this.debugStringForKeychainItem(item) + ")");
+	MacOSKeychainLogger.log("  keychain item: (" + this.debugStringForKeychainItem(item) + ")");
 	
 };
 
