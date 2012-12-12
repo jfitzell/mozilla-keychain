@@ -34,8 +34,8 @@
  *
  * ***** END LICENSE BLOCK ***** */
 Components.utils.import('resource://gre/modules/ctypes.jsm');
-Components.utils.import('resource://macos-keychain/MacTypes.jsm');
-Components.utils.import('resource://macos-keychain/Framework.jsm');
+Components.utils.import('resource://macos-keychain/frameworks/MacTypes.jsm');
+Components.utils.import('resource://macos-keychain/frameworks/Framework.jsm');
 
 const EXPORTED_SYMBOLS = ['CoreFoundation'];
 

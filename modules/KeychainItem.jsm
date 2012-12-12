@@ -34,9 +34,9 @@
  *
  * ***** END LICENSE BLOCK ***** */
 Components.utils.import('resource://gre/modules/ctypes.jsm');
-Components.utils.import('resource://macos-keychain/MacTypes.jsm');
-Components.utils.import('resource://macos-keychain/CoreFoundation.jsm');
-Components.utils.import('resource://macos-keychain/Security.jsm');
+Components.utils.import('resource://macos-keychain/frameworks/MacTypes.jsm');
+Components.utils.import('resource://macos-keychain/frameworks/CoreFoundation.jsm');
+Components.utils.import('resource://macos-keychain/frameworks/Security.jsm');
 
 const EXPORTED_SYMBOLS = ['KeychainItem'];
 

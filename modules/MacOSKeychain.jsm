@@ -34,8 +34,8 @@
  *
  * ***** END LICENSE BLOCK ***** */
 Components.utils.import("resource://gre/modules/ctypes.jsm");
-Components.utils.import("resource://macos-keychain/CoreFoundation.jsm");
-Components.utils.import("resource://macos-keychain/Security.jsm");
+Components.utils.import("resource://macos-keychain/frameworks/CoreFoundation.jsm");
+Components.utils.import("resource://macos-keychain/frameworks/Security.jsm");
 Components.utils.import("resource://macos-keychain/KeychainItem.jsm");
 Components.utils.import("resource://macos-keychain/MacOSKeychainLogger.jsm");
 
