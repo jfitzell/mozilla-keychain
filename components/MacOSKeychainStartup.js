@@ -33,31 +33,23 @@
  * the terms of any one of the MPL, the GPL or the LGPL.
  *
  * ***** END LICENSE BLOCK ***** */
- 
+
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import("resource://gre/modules/Services.jsm");
+
+Components.utils.import("resource://macos-keychain/MacOSKeychain.jsm");
+Components.utils.import("resource://macos-keychain/Logger.jsm");
+Components.utils.import("resource://macos-keychain/Importer.jsm");
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
-Components.utils.import("resource://macos-keychain/MacOSKeychain.jsm");
-Components.utils.import("resource://macos-keychain/MacOSKeychainLogger.jsm");
-Components.utils.import("resource://macos-keychain/MacOSKeychainImporter.jsm");
-
-const contractObserverService = '@mozilla.org/observer-service;1';
-
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-
-function MacOSKeychainStartupImporter() {
+function MacOSKeychainStartup() {
 }
 
-MacOSKeychainStartupImporter.prototype = {
+MacOSKeychainStartup.prototype = {
 	classID: Components.ID("{494c2389-8d87-42cd-98b4-95b26a2f9ef3}"),
 	QueryInterface : XPCOMUtils.generateQI([Ci.nsIObserver]),
-
-	get _observerService() {
-		if (!this.__observerService)
-			this.__observerService = Cc[contractObserverService].getService(Ci.nsIObserverService);
-		
-		return this.__observerService;
-	},
 	
 	
 	/**
@@ -68,18 +60,18 @@ MacOSKeychainStartupImporter.prototype = {
 	
 		
 	observe: function (subject, topic, data) {
-		MacOSKeychainLogger.log("Observed " + subject + " " + topic + " " + data);
+		Logger.log("Observed " + subject + " " + topic + " " + data);
 		switch(topic) {
 			case "profile-after-change":
-				this._observerService.addObserver(this, "final-ui-startup", false);
+				Services.obs.addObserver(this, "final-ui-startup", false);
 				break;
 			case "final-ui-startup":
-				this._observerService.removeObserver(this, "final-ui-startup");
+				Services.obs.removeObserver(this, "final-ui-startup");
 				MacOSKeychain.verifySignature();
-				MacOSKeychainImporter.confirmImport();
+				Importer.confirmImport();
 				break;
 		}
 	},
 };
 
-var NSGetFactory = XPCOMUtils.generateNSGetFactory([MacOSKeychainStartupImporter]);
+var NSGetFactory = XPCOMUtils.generateNSGetFactory([MacOSKeychainStartup]);

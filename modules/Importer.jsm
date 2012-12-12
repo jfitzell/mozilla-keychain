@@ -35,43 +35,30 @@
  * ***** END LICENSE BLOCK ***** */
 
 Components.utils.import('resource://gre/modules/XPCOMUtils.jsm');
+Components.utils.import('resource://gre/modules/Services.jsm');
 Components.utils.import("resource://macos-keychain/MacOSKeychain.jsm");
-Components.utils.import("resource://macos-keychain/MacOSKeychainLogger.jsm");
-Components.utils.import("resource://macos-keychain/MacOSKeychainPreferences.jsm");
+Components.utils.import("resource://macos-keychain/Logger.jsm");
+Components.utils.import("resource://macos-keychain/Preferences.jsm");
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
-const prefImportPrompt = "startup-import-prompt";
-const contractPreferencesService = '@mozilla.org/preferences-service;1';
-const contractPromptService = '@mozilla.org/embedcomp/prompt-service;1';
+const EXPORTED_SYMBOLS = ['Importer'];
 
-const EXPORTED_SYMBOLS = ['MacOSKeychainImporter'];
-
-var MacOSKeychainImporter = {};
-
-var __prefService = null;
-function _prefService() {
-	if (!__prefService)
-		__prefService = Cc[contractPreferencesService].getService(Ci.nsIPrefService);
-	
-	return __prefService;
-};
-	
+var Importer = {};
 	
 /**
  * Check whether we should prompt the user to import their old logins.
  *	If we should and they confirm it, then start the import process.
  */
-MacOSKeychainImporter.confirmImport = function () {
-	MacOSKeychainLogger.log("confirmImport()");
+Importer.confirmImport = function () {
+	Logger.log("confirmImport()");
 	
-	if (MacOSKeychainPreferences.startupImportPrompt.value) {
-		var promptSvc = Cc[contractPromptService].getService(Ci.nsIPromptService);
-		var flags = promptSvc.BUTTON_POS_0 * promptSvc.BUTTON_TITLE_IS_STRING +
-					promptSvc.BUTTON_POS_1 * promptSvc.BUTTON_TITLE_IS_STRING +
-					promptSvc.BUTTON_POS_2 * promptSvc.BUTTON_TITLE_IS_STRING;
-		var result = promptSvc.confirmEx(null,
+	if (Preferences.startupImportPrompt.value) {
+		var flags = Services.prompt.BUTTON_POS_0 * Services.prompt.BUTTON_TITLE_IS_STRING +
+					Services.prompt.BUTTON_POS_1 * Services.prompt.BUTTON_TITLE_IS_STRING +
+					Services.prompt.BUTTON_POS_2 * Services.prompt.BUTTON_TITLE_IS_STRING;
+		var result = Services.prompt.confirmEx(null,
 						"Import saved logins into Keychain Services?",
 						"The Keychain Service Integration extension can import your existing saved logins into Keychain Services. This allows them to be shared with other applications on your computer. Your original logins will be left in place and will still be available if you disable this extension later. Do you want to import your saved logins now?",
 						flags, "Yes", "No", "No, but ask me later",
@@ -81,37 +68,37 @@ MacOSKeychainImporter.confirmImport = function () {
 			try {
 				this.importLogins();
 			} catch (e) {
-				MacOSKeychainLogger.error('importLogins() failed with: ' + e);
+				Logger.error('importLogins() failed with: ' + e);
 				return;
 			}
 		}
 		
 		if (result != 2)
-			MacOSKeychainPreferences.startupImportPrompt.value = false;
+			Preferences.startupImportPrompt.value = false;
 	} 
 };
 
 /**
  * Import logins from the old login storage provider into the keychain.
  */
-MacOSKeychainImporter.importLogins = function () {
-	MacOSKeychainLogger.trace("importLogins()");
+Importer.importLogins = function () {
+	Logger.trace("importLogins()");
 	var logins = MacOSKeychain.defaultStorage.getAllLogins({});
 	
 	for (var i in logins) {
 		var login = logins[i];
 		try {
-			MacOSKeychainLogger.log('  Importing ' + login.username + '@' + login.hostname);
+			Logger.log('  Importing ' + login.username + '@' + login.hostname);
 			var items = MacOSKeychain.findKeychainItems(login.username, login.hostname,
 												login.formSubmitURL, login.httpRealm);
 			if (items.length == 0) {
 				MacOSKeychain.addLogin(login);
-				MacOSKeychainLogger.log('   --> Success!');
+				Logger.log('   --> Success!');
 			} else {
-				MacOSKeychainLogger.log('   --> Duplicate keychain item found... skipping.');
+				Logger.log('   --> Duplicate keychain item found... skipping.');
 			}
 		} catch (e) {
-			MacOSKeychainLogger.log('   --> Skipping due to exception: ' + e);
+			Logger.log('   --> Skipping due to exception: ' + e);
 		}
 	}
 };

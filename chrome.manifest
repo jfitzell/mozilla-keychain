@@ -1,7 +1,7 @@
 #Components.classes['@fitzell.ca/macos-keychain/startup-importer;1'].
-component {494c2389-8d87-42cd-98b4-95b26a2f9ef3} components/MacOSKeychainStartupImporter.js
-contract @fitzell.ca/macos-keychain/startup-importer;1 {494c2389-8d87-42cd-98b4-95b26a2f9ef3}
-category profile-after-change @fitzell.ca/macos-keychain/startup-importer;1 @fitzell.ca/macos-keychain/startup-importer;1
+component {494c2389-8d87-42cd-98b4-95b26a2f9ef3} components/MacOSKeychainStartup.js
+contract @fitzell.ca/macos-keychain/startup;1 {494c2389-8d87-42cd-98b4-95b26a2f9ef3}
+category profile-after-change @fitzell.ca/macos-keychain/startup;1 @fitzell.ca/macos-keychain/startup;1
 
 component {87d15ebf-2a51-4e54-9290-315a54feea25} components/MacOSKeychainStorage.js
 contract @fitzell.ca/macos-keychain/storage;1 {87d15ebf-2a51-4e54-9290-315a54feea25}

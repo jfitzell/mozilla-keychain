@@ -36,7 +36,7 @@
 
 Components.utils.import("resource://macos-keychain/KeychainItem.jsm");
 Components.utils.import("resource://macos-keychain/MacOSKeychain.jsm");
-Components.utils.import("resource://macos-keychain/MacOSKeychainLogger.jsm");
+Components.utils.import("resource://macos-keychain/Logger.jsm");
  
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -78,7 +78,7 @@ MacOSKeychainStorage.prototype = {
 	 *	don't know what else we'd do with them.
 	 */
 	initWithFile: function (aInputFile, aOutputFile) {
-		MacOSKeychainLogger.trace("initWithFile(" + aInputFile + "," + aOutputFile + ")");
+		Logger.trace("initWithFile(" + aInputFile + "," + aOutputFile + ")");
 		
 		MacOSKeychain.initializeDefaultStorage(aInputFile, aOutputFile);
 	},
@@ -88,49 +88,49 @@ MacOSKeychainStorage.prototype = {
 	},
 	
 	addLogin: function (login) {
-		MacOSKeychainLogger.trace("addLogin[ login: (" + MacOSKeychain.debugStringForLoginInfo(login) + ") ]");
+		Logger.trace("addLogin[ login: (" + MacOSKeychain.debugStringForLoginInfo(login) + ") ]");
 
 		try {
 			MacOSKeychain.addLogin(login);
 		} catch (e) {
 			// we don't yet support storing things with hostnames that are not
 			//	valid URLs. We could store them as Generic items in the future.
-			MacOSKeychainLogger.log('Adding login failed with: ' + e);
-			MacOSKeychainLogger.log('Falling back on mozilla storage...');
+			Logger.log('Adding login failed with: ' + e);
+			Logger.log('Falling back on mozilla storage...');
 			return MacOSKeychain.defaultStorage.addLogin(login);
 		}
 	},
 	
 	
 	removeLogin: function (login) {
-		MacOSKeychainLogger.trace("removeLogin()");
+		Logger.trace("removeLogin()");
 		//return MacOSKeychain.defaultStorage.removeLogin(login);
 		if (! MacOSKeychain.supportedURL(login.hostname)) {
-			MacOSKeychainLogger.log('Chrome URLs are not currently supported. Falling back on mozilla storage...');
+			Logger.log('Chrome URLs are not currently supported. Falling back on mozilla storage...');
 			return MacOSKeychain.defaultStorage.removeLogin(login);
 		}
 		
 		var item = MacOSKeychain.findKeychainItemForLoginInfo(login);
 		if (item) {
 			item.delete();
-			MacOSKeychainLogger.log("  Login successfully removed");
+			Logger.log("  Login successfully removed");
 		} else {
-			MacOSKeychainLogger.log("  No matching login found");
+			Logger.log("  No matching login found");
 		}
 	},
 	
 	
 	modifyLogin: function (oldLogin, newLoginData) {
-		MacOSKeychainLogger.trace('modifyLogin[ oldLogin:' + oldLogin + ' newLogin:' + newLoginData + ' ]');
+		Logger.trace('modifyLogin[ oldLogin:' + oldLogin + ' newLogin:' + newLoginData + ' ]');
 		//return MacOSKeychain.defaultStorage.modifyLogin(oldLogin, newLogin);
 		if (! MacOSKeychain.supportedURL(oldLogin.hostname)) {
-			MacOSKeychainLogger.log('Chrome URLs are not currently supported. Falling back on mozilla storage...');
+			Logger.log('Chrome URLs are not currently supported. Falling back on mozilla storage...');
 			return MacOSKeychain.defaultStorage.modifyLogin(oldLogin, newLogin);
 		}
 		
 		var item = MacOSKeychain.findKeychainItemForLoginInfo(oldLogin);
 		if (! item) {
-			MacOSKeychainLogger.log('  No matching login found');
+			Logger.log('  No matching login found');
 			throw Error('No matching login found');
 			return;
 		}
@@ -146,7 +146,7 @@ MacOSKeychainStorage.prototype = {
 	
 	
 	getAllLogins: function (count) {
-		MacOSKeychainLogger.trace('getAllLogins()');
+		Logger.trace('getAllLogins()');
 		//return MacOSKeychain.defaultStorage.getAllLogins(count);
 		
 		var items = KeychainItem.findInternetPasswords(null /*accountName*/,
@@ -158,7 +158,7 @@ MacOSKeychainStorage.prototype = {
 
 		var logins = MacOSKeychain.convertKeychainItemsToLoginInfos(items);
 		
-		MacOSKeychainLogger.log('  Found ' + logins.length + ' logins');
+		Logger.log('  Found ' + logins.length + ' logins');
 		
 		count.value = logins.length;
 		return logins;
@@ -166,7 +166,7 @@ MacOSKeychainStorage.prototype = {
 	
 	
 	removeAllLogins: function () {
-		MacOSKeychainLogger.trace('removeAllLogins()');
+		Logger.trace('removeAllLogins()');
 		//return MacOSKeychain.defaultStorage.removeAllLogins();
 		var items = KeychainItem.findInternetPasswords(null /*accountName*/,
 														null /*protocol*/,
@@ -176,26 +176,26 @@ MacOSKeychainStorage.prototype = {
 														null /*securityDomain*/);
 		
 		for ( var i in items ) {
-			MacOSKeychainLogger.log('  Deleting ' + items[i].serverName);
+			Logger.log('  Deleting ' + items[i].serverName);
 			items[i].delete();
 		}
 	},
 	
 	
 	getAllDisabledHosts: function (count) {
-		MacOSKeychainLogger.trace('getAllDisabledHosts()');
+		Logger.trace('getAllDisabledHosts()');
 		return MacOSKeychain.defaultStorage.getAllDisabledHosts(count);
 	},
 	
 	
 	getLoginSavingEnabled: function (hostname) {
-		MacOSKeychainLogger.trace('getLoginSavingEnabled[ hostname:' + hostname + ' ]');
+		Logger.trace('getLoginSavingEnabled[ hostname:' + hostname + ' ]');
 		return MacOSKeychain.defaultStorage.getLoginSavingEnabled(hostname);
 	},
 	
 	
 	setLoginSavingEnabled: function (hostname, enabled) {
-		MacOSKeychainLogger.trace('setLoginSavingEnabled[ hostname:' + hostname + ' enabled:' + enabled + ' ]');
+		Logger.trace('setLoginSavingEnabled[ hostname:' + hostname + ' enabled:' + enabled + ' ]');
 		return MacOSKeychain.defaultStorage.setLoginSavingEnabled(hostname, enabled);
 	},
 	
@@ -206,12 +206,12 @@ MacOSKeychainStorage.prototype = {
 	 *	ALL values and a null value means match only items with NO value
 	 */
 	findLogins: function (count, hostname, formSubmitURL, httpRealm) {
-		MacOSKeychainLogger.trace('findLogins['
+		Logger.trace('findLogins['
 						 + ' hostname:' + hostname
 						 + ' formSubmitURL:' + formSubmitURL
 						 + ' httpRealm:' + httpRealm + ' ]');
 		if (! MacOSKeychain.supportedURL(hostname)) {
-			MacOSKeychainLogger.log('Chrome URLs are not currently supported. Falling back on mozilla storage...');
+			Logger.log('Chrome URLs are not currently supported. Falling back on mozilla storage...');
 			return MacOSKeychain.defaultStorage.findLogins(count, hostname, formSubmitURL, httpRealm);
 		}
 		
@@ -222,7 +222,7 @@ MacOSKeychainStorage.prototype = {
 		} catch (e) {
 			// LoginManager seems to silently catch errors thrown by findLogins()
 			//  so we log them instead
-			MacOSKeychainLogger.error('findKeychainItems() [1] failed with: ' + e);
+			Logger.error('findKeychainItems() [1] failed with: ' + e);
 			items = new Array();
 		}
 		
@@ -233,7 +233,7 @@ MacOSKeychainStorage.prototype = {
 				items = MacOSKeychain.findKeychainItems('' /*username*/, hostname,
 											formSubmitURL, '' /*httpRealm*/);
 			} catch (e) {
-				MacOSKeychainLogger.error('findKeychainItems() [2] failed with: ' + e);
+				Logger.error('findKeychainItems() [2] failed with: ' + e);
 				items = new Array();
 			}								
 											
@@ -243,7 +243,7 @@ MacOSKeychainStorage.prototype = {
 		}
 		
 		if (items.length == 0 /* && an appropriate preference is set*/) {
-			MacOSKeychainLogger.log('No items found. Checking mozilla storage...');
+			Logger.log('No items found. Checking mozilla storage...');
 			return MacOSKeychain.defaultStorage.findLogins(count, hostname, formSubmitURL, httpRealm);
 		}
 		
@@ -251,7 +251,7 @@ MacOSKeychainStorage.prototype = {
 		try {
 			logins = MacOSKeychain.convertKeychainItemsToLoginInfos(items);
 		} catch (e) {
-			MacOSKeychainLogger.error('convertKeychainItemsToLoginInfos() failed with: ' + e);
+			Logger.error('convertKeychainItemsToLoginInfos() failed with: ' + e);
 			logins = new Array();
 		}	
 		
@@ -261,12 +261,12 @@ MacOSKeychainStorage.prototype = {
 	
 	
 	countLogins: function (hostname, formSubmitURL, httpRealm) {
-		MacOSKeychainLogger.trace('countLogins['
+		Logger.trace('countLogins['
 						 + ' hostname:' + hostname
 						 + ' formSubmitURL:' + formSubmitURL
 						 + ' httpRealm:' + httpRealm + ' ]');
 		if (! MacOSKeychain.supportedURL(hostname)) {
-			MacOSKeychainLogger.log('Chrome URLs are not currently supported. Falling back on mozilla storage...');
+			Logger.log('Chrome URLs are not currently supported. Falling back on mozilla storage...');
 			return MacOSKeychain.defaultStorage.countLogins(hostname, formSubmitURL, httpRealm);
 		}
 		
@@ -277,7 +277,7 @@ MacOSKeychainStorage.prototype = {
 		} catch (e) {
 			// LoginManager seems to silently catch errors thrown by countLogins()
 			//  so we log them instead
-			MacOSKeychainLogger.error('findKeychainItems() [1] failed with: ' + e);
+			Logger.error('findKeychainItems() [1] failed with: ' + e);
 			items = new Array();
 		}
 				
@@ -290,13 +290,13 @@ MacOSKeychainStorage.prototype = {
 			} catch (e) {
 				// LoginManager seems to silently catch errors thrown by countLogins()
 				//  so we log them instead
-				MacOSKeychainLogger.error('findKeychainItems() [2] failed with: ' + e);
+				Logger.error('findKeychainItems() [2] failed with: ' + e);
 				items = new Array();
 			}
 		}
 				
 		if (items.length == 0 /* && TODO: an appropriate preference is set*/) {
-			MacOSKeychainLogger.log('No items found. Checking mozilla storage...');
+			Logger.log('No items found. Checking mozilla storage...');
 			return MacOSKeychain.defaultStorage.countLogins(hostname, formSubmitURL, httpRealm);
 		}
 		
