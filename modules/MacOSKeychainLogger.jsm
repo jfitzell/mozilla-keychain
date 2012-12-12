@@ -35,12 +35,10 @@
  * ***** END LICENSE BLOCK ***** */
 
 Components.utils.import('resource://gre/modules/XPCOMUtils.jsm');
+Components.utils.import('resource://gre/modules/Services.jsm');
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
-
-const contractConsoleService = '@mozilla.org/consoleservice;1';
-const contractPreferencesService = '@mozilla.org/preferences-service;1';
 
 const EXPORTED_SYMBOLS = ['MacOSKeychainLogger'];
 
@@ -48,24 +46,15 @@ const logPrefix = 'MacOSKeychain';
 
 var MacOSKeychainLogger = {};
 
-var _logService = null;
-function logService() {
-	if (! _logService) {
-		_logService = Cc[contractConsoleService].getService(Ci.nsIConsoleService);
-	}
-	
-	return _logService;
-}
-
 function logScriptError(message, flags) {
 	var scriptError = Cc["@mozilla.org/scripterror;1"].createInstance(Ci.nsIScriptError);
 	scriptError.init(logPrefix + ': ' + message, null, null, null, null,
 					flags, 'component javascript');
-	logService().logMessage(scriptError);
+	Services.console.logMessage(scriptError);
 };
 
 function logConsoleMessage(message) {
-	logService().logStringMessage(logPrefix + ': ' + message);
+	Services.console.logStringMessage(logPrefix + ': ' + message);
 };
 
 function logCommandLineConsoleMessage(message) {
@@ -76,8 +65,7 @@ function logCommandLineConsoleMessage(message) {
 var _debugEnabled = false;
 function initDebugEnabled() {
 	// Connect to the correct preferences branch.
-	var prefService = Cc[contractPreferencesService].getService(Ci.nsIPrefService);
-	var signonPrefs = prefService.getBranch('signon.');
+	var signonPrefs = Services.prefs.getBranch('signon.');
 	signonPrefs.QueryInterface(Ci.nsIPrefBranch2);
 	_debugEnabled = signonPrefs.getBoolPref('debug');
 	
