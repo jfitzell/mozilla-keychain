@@ -43,8 +43,6 @@ Components.utils.import("resource://macos-keychain/MacOSKeychainLogger.jsm");
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
-const prefImportPrompt = "startup-import-prompt";
-
 /**
  POSSIBLE TODO:
 	+ two-way conversion between keychain and mozStorage

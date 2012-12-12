@@ -37,6 +37,7 @@
 Components.utils.import('resource://gre/modules/XPCOMUtils.jsm');
 Components.utils.import("resource://macos-keychain/MacOSKeychain.jsm");
 Components.utils.import("resource://macos-keychain/MacOSKeychainLogger.jsm");
+Components.utils.import("resource://macos-keychain/MacOSKeychainPreferences.jsm");
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -65,17 +66,7 @@ function _prefService() {
 MacOSKeychainImporter.confirmImport = function () {
 	MacOSKeychainLogger.log("confirmImport()");
 	
-	var prefs = _prefService().getBranch("extensions." + MacOSKeychain.extensionId + ".");
-	prefs.QueryInterface(Ci.nsIPrefBranch2);
-	
-	var shouldImport;
-	try {
-		shouldImport = prefs.getBoolPref(prefImportPrompt);
-	} catch (e) {
-		shouldImport = false;
-	}
-	
-	if (shouldImport) {
+	if (MacOSKeychainPreferences.startupImportPrompt.value) {
 		var promptSvc = Cc[contractPromptService].getService(Ci.nsIPromptService);
 		var flags = promptSvc.BUTTON_POS_0 * promptSvc.BUTTON_TITLE_IS_STRING +
 					promptSvc.BUTTON_POS_1 * promptSvc.BUTTON_TITLE_IS_STRING +
@@ -96,7 +87,7 @@ MacOSKeychainImporter.confirmImport = function () {
 		}
 		
 		if (result != 2)
-			prefs.setBoolPref(prefImportPrompt, false);
+			MacOSKeychainPreferences.startupImportPrompt.value = false;
 	} 
 };
 
