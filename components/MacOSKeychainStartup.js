@@ -64,10 +64,10 @@ MacOSKeychainStartup.prototype = {
 		switch(topic) {
 			case "profile-after-change":
 				Services.obs.addObserver(this, "final-ui-startup", false);
+				MacOSKeychain.verifySignature();
 				break;
 			case "final-ui-startup":
 				Services.obs.removeObserver(this, "final-ui-startup");
-				MacOSKeychain.verifySignature();
 				Importer.confirmImport();
 				break;
 		}
