@@ -316,3 +316,28 @@ MacOSKeychainStorage.prototype = {
 
 
 var NSGetFactory = XPCOMUtils.generateNSGetFactory([MacOSKeychainStorage]);
+
+
+/*
+// This code could form the start of not needing chrome.manifest to register
+//   components. This is needed if you want to install components without restarting.
+//   Unfortunately, it doesn't actually look like that will work, since LoginManager
+//   only checks on startup. Could maybe submit a patch for that, though?
+   
+// Register component (not tested... may not be quite right)
+Components.manager.QueryInterface(Ci.nsIComponentRegistrar).registerFactory(
+	MacOSKeychainStorage.classID,
+	'@fitzell.ca/macos-keychain/storage;1',
+	'@fitzell.ca/macos-keychain/storage;1',
+	NSGetFactory);
+
+// Register the new component so that LoginManager will use it (this is tested
+   and works, but needs to happen before LoginManager first tried to get a password,
+   which means it doesn't help avoid a restart after installing)
+var catman = Cc['@mozilla.org/categorymanager;1'].getService(Ci.nsICategoryManager);
+catman.addCategoryEntry('login-manager-storage',
+	'nsILoginManagerStorage',
+	'@fitzell.ca/macos-keychain/storage;1',
+	false,
+	true);
+*/
