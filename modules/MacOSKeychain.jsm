@@ -486,7 +486,7 @@ MacOSKeychain.verifySignature = function() {
 			}
 		}
 		
-		Logger.warning('The application binary does not pass signature verification. Keychain Services may not work properly until this is corrected. Try deleting and reinstalling the application.');
+		Logger.warning('The application binary''s signature cannot be verified; Keychain services may not function properly or you may be prompted repeatedly to allow access. Try upgrading your application to the newest version or deleting and reinstalling the application.');
 		return false;
 	} catch (e) {
 		Logger.log('Verification of application signature failed with: ' + e);
