@@ -1,3 +1,6 @@
+1.1.5
+- Fix a bug causing an import prompt on every startup for new installations
+
 1.1.4
 - Fix null pointer exception in some cases when loading the password from
   a KeychainItem

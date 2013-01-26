@@ -94,7 +94,7 @@ Bool.prototype.__defineGetter__('value', function () {
 	}
 });
 	
-Bool.prototype.__defineSetter__('value', function (val) {
+Bool.prototype.__defineSetter__('value', function (value) {
 	Logger.trace('Setting boolean preference ' + this.name + ' to ' + value);
 	_branch().setBoolPref(this.name, value);
 });
