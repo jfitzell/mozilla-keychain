@@ -1,3 +1,5 @@
+- Fix "Manage Passwords..." button on the security preferences panel
+
 1.1.5
 - Fix a bug causing an import prompt on every startup for new installations
 

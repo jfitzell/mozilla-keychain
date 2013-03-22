@@ -40,8 +40,8 @@ var KeychainServices = {
   },*/
 
 	launchKeychainAccess: function() {
-		Components.utils.import('resource://macos-keychain/CoreServices.jsm');
-		Components.utils.import('resource://macos-keychain/CoreFoundation.jsm');
+		Components.utils.import('resource://macos-keychain/frameworks/CoreServices.jsm');
+		Components.utils.import('resource://macos-keychain/frameworks/CoreFoundation.jsm');
 
 		var fsRef = new CoreServices.FSRef();
 		var bundleId = CoreFoundation.JSStringToCFString('com.apple.keychainaccess');
