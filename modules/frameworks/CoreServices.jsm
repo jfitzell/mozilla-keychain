@@ -49,6 +49,11 @@ var CoreServices = new CoreServicesFramework();
 
 var cs = CoreServicesFramework.prototype;
 
+// Errors defined in MacErrors.h
+cs.userCanceledErr = -128;
+
+
+
 cs.FSRef = new ctypes.StructType("FSRef", [
 				{hidden: MacTypes.UInt8.array(80)}
 			]);
