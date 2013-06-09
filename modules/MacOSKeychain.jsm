@@ -33,13 +33,13 @@
  * the terms of any one of the MPL, the GPL or the LGPL.
  *
  * ***** END LICENSE BLOCK ***** */
-Components.utils.import("resource://gre/modules/ctypes.jsm");
-Components.utils.import("resource://macos-keychain/frameworks/CoreFoundation.jsm");
-Components.utils.import("resource://macos-keychain/frameworks/Security.jsm");
-Components.utils.import("resource://macos-keychain/KeychainItem.jsm");
-Components.utils.import("resource://macos-keychain/Logger.jsm");
+Components.utils.import('resource://gre/modules/ctypes.jsm');
+Components.utils.import('resource://macos-keychain/frameworks/CoreFoundation.jsm');
+Components.utils.import('resource://macos-keychain/frameworks/Security.jsm');
+Components.utils.import('resource://macos-keychain/KeychainItem.jsm');
+Components.utils.import('resource://macos-keychain/Logger.jsm');
 
-const extensionId = "macos-keychain@fitzell.ca";
+const extensionId = 'macos-keychain@fitzell.ca';
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -50,7 +50,7 @@ const EXPORTED_SYMBOLS = ['MacOSKeychain'];
 //  Doing so here makes getting new instances faster later since some of
 //   the work is done up front and cached.
 var LoginInfo = new Components.Constructor(
-	"@mozilla.org/login-manager/loginInfo;1", Ci.nsILoginInfo);
+	'@mozilla.org/login-manager/loginInfo;1', Ci.nsILoginInfo);
 
 var MacOSKeychain = {};
 
@@ -321,16 +321,16 @@ MacOSKeychain.findKeychainItems = function (username, hostname, formSubmitURL, h
 	else // match non-form logins only
 		authType = Security.kSecAuthenticationTypeDefault;
 	
-	var protocolType = Security.protocolForScheme(scheme);
+	var protocol = Security.protocolForScheme(scheme);
 	
 	Logger.trace("About to call KeychainItem.findInternetPasswords["
 					 + " account:" + accountName
-					 + " protocol:" + Security.stringFromProtocolType(protocolType)
+					 + " protocol:" + Security.stringFromProtocolType(protocol)
 					 + " server:" + host
 					 + " port:" + port
 					 + " authenticationType:" + Security.stringFromAuthenticationType(authType)
 					 + " securityDomain:" + securityDomain + " ]");
-	var items = KeychainItem.findInternetPasswords(accountName, protocolType, host,
+	var items = KeychainItem.findInternetPasswords(accountName, protocol, host,
 												 port, authType, securityDomain);
 																				 
 	Logger.log("  Items found: " + items.length);
@@ -450,7 +450,7 @@ MacOSKeychain.addLogin = function (login) {
 	}
 	
 	var fields = this.extractKeychainFieldsFromLoginInfo(login);
-	if (fields.protocolType == Security.kSecProtocolTypeAny)
+	if (fields.protocol == Security.kSecProtocolTypeAny)
 			throw Error('Unable to determine ProtocolType for hostname: ' + login.hostname);
 
 	var item = KeychainItem.addInternetPassword(fields.accountName, fields.password,
@@ -459,9 +459,13 @@ MacOSKeychain.addLogin = function (login) {
 												 fields.authenticationType,
 												 fields.securityDomain,
 												 null /*comment*/, fields.label);
-	item.description = fields.description;
 	
-	Logger.log("  keychain item: (" + this.debugStringForKeychainItem(item) + ")");
+	if (item !== null) {
+		item.description = fields.description;
+		
+		Logger.log("  keychain item: (" +
+			this.debugStringForKeychainItem(item) + ")");
+	}
 	
 };
 
