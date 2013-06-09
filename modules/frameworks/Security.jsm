@@ -33,10 +33,10 @@
  * the terms of any one of the MPL, the GPL or the LGPL.
  *
  * ***** END LICENSE BLOCK ***** */
-Components.utils.import("resource://gre/modules/ctypes.jsm");
-Components.utils.import("resource://macos-keychain/frameworks/MacTypes.jsm");
-Components.utils.import("resource://macos-keychain/frameworks/Framework.jsm");
-Components.utils.import("resource://macos-keychain/frameworks/CoreFoundation.jsm");
+Components.utils.import('resource://gre/modules/ctypes.jsm');
+Components.utils.import('resource://macos-keychain/frameworks/MacTypes.jsm');
+Components.utils.import('resource://macos-keychain/frameworks/Framework.jsm');
+Components.utils.import('resource://macos-keychain/frameworks/CoreFoundation.jsm');
 
 const EXPORTED_SYMBOLS = ['Security'];
 
@@ -232,7 +232,7 @@ var protocolTypes = [
 ['kSecProtocolTypeHTTP',		'http', 'http'],
 ['kSecProtocolTypeIRC',			'irc ', 'irc'],
 ['kSecProtocolTypeNNTP',		'nntp', 'nntp'],
-['kSecProtocolTypePOP3',		'pop3', ''],
+['kSecProtocolTypePOP3',		'pop3', 'pop'],
 ['kSecProtocolTypeSMTP',		'smtp', 'smtp'],
 ['kSecProtocolTypeSOCKS',		'sox ', ''],
 ['kSecProtocolTypeIMAP',		'imap', 'imap'],
@@ -256,9 +256,9 @@ var protocolTypes = [
 ['kSecProtocolTypeNNTPS',		'ntps', ''],
 ['kSecProtocolTypeLDAPS',		'ldps', 'ldaps'],
 ['kSecProtocolTypeTelnetS',		'tels', ''],
-['kSecProtocolTypeIMAPS',		'imps', ''],
+['kSecProtocolTypeIMAPS',		'imps', 'imaps'],
 ['kSecProtocolTypeIRCS',		'ircs', ''],
-['kSecProtocolTypePOP3S',		'pops', ''],
+['kSecProtocolTypePOP3S',		'pops', 'pops'],
 ['kSecProtocolTypeCVSpserver',	'cvsp', ''], //10.5
 ['kSecProtocolTypeSVN',			'svn ', 'svn'], //10.5
 ];
