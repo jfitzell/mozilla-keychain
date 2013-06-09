@@ -116,7 +116,7 @@ Logger.log = function (message) {
 };
 	
 Logger.trace = function (message) {
-	this.log(message);
+	this.log('+ ' + message);
 };
 
 Logger.warning = function (message) {
