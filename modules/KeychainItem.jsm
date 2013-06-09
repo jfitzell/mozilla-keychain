@@ -34,9 +34,16 @@
  *
  * ***** END LICENSE BLOCK ***** */
 Components.utils.import('resource://gre/modules/ctypes.jsm');
+Components.utils.import('resource://gre/modules/FileUtils.jsm');
 Components.utils.import('resource://macos-keychain/frameworks/MacTypes.jsm');
+Components.utils.import('resource://macos-keychain/frameworks/CoreServices.jsm');
 Components.utils.import('resource://macos-keychain/frameworks/CoreFoundation.jsm');
 Components.utils.import('resource://macos-keychain/frameworks/Security.jsm');
+Components.utils.import('resource://macos-keychain/Logger.jsm');
+Components.utils.import('resource://macos-keychain/Preferences.jsm');
+
+const PATH_BUFFER_SIZE = 1024;
+
 
 const EXPORTED_SYMBOLS = ['KeychainItem'];
 
@@ -329,23 +336,54 @@ function doWithReadKeychainRef(thisArg, func) {
 // This will check if a keychain path has been specified in the preferences and
 //  try to use it. If not set, the default keychain will be used.
 function doWithWriteKeychainRef(thisArg, func) {
-	var path = null; // TODO: replace with a all to read a preference
 	var keychainRef = new Security.SecKeychainRef;
 	var keychainStatus = new Security.SecKeychainStatus;
-	var status;
+	var status = -1;
 	var result;
+	var path = '';
 	
-	// DEBUG log the path being used
 	try {
-		if ('' == path || null === path) {
-			status = Security.SecKeychainCopyDefault(keychainRef.address());
-			testStatus(status, 'SecKeychainCopyDefault');
-		} else {
-			status = Security.SecKeychainOpen(path, keychainRef.address());
-			testStatus(status, 'SecKeychainOpen');
+		// Try the user-specified keychain if there is one
+		if (Preferences.writeKeychain.hasUserValue()) {
+			// Use an nsIFile to expand ~ and so on in path
+			var file = new FileUtils.File(Preferences.writeKeychain.value);
+			path = file.path;
+			Logger.log('Opening keychain for write: ' + path);
+			status = Security.SecKeychainOpen(
+					path,
+					keychainRef.address());
+			if (status != Security.errSecSuccess) {
+				Logger.error('Error opening keychain: '
+						+ Security.stringForStatus(status));
+			}
 		}
 		
-		status = Security.SecKeychainGetStatus(keychainRef, keychainStatus.address());
+		// If no keychain was specified or there was an error, then use the default
+		if (status != Security.errSecSuccess) {
+			Logger.log('Opening default keychain for write');
+			status = Security.SecKeychainCopyDefault(keychainRef.address());
+			testStatus(status, 'SecKeychainCopyDefault');
+			
+			// Get the path of the default keychain for logging purposes below
+			var sizeParam = MacTypes.UInt32(PATH_BUFFER_SIZE);
+			var charArray = ctypes.char.array(PATH_BUFFER_SIZE)();
+			status = Security.SecKeychainGetPath(keychainRef,
+					sizeParam.address(),
+					ctypes.cast(charArray.address(), ctypes.char.ptr));
+			if (status == Security.errSecBufferTooSmall) {
+				Logger.warning('Buffer too small (' + PATH_BUFFER_SIZE
+						+ ') fetching keychain path');
+				path = '<buffer to small>';
+			} else {
+				testStatus(status, 'SecKeychainGetPath');
+				path = charArray.readString();
+			}	
+		}
+		
+		status = Security.SecKeychainGetStatus(keychainRef,
+				keychainStatus.address());
+		Logger.log('SecKeychainGetStatus result: '
+				+ Security.stringForStatus(status));
 		if (status == Security.errSecNoSuchKeychain)
 			throw Error('Error opening keychain: no keychain found at filesystem path ' + path);
 		else if (status == Security.errSecInvalidKeychain)
@@ -353,7 +391,6 @@ function doWithWriteKeychainRef(thisArg, func) {
 		else
 			testStatus(status, 'SecKeychainGetStatus');
 	
-		//DEBUG: log the status (locked?)
 		result = func.call(thisArg, keychainRef);
 	} finally {
 		if (! keychainRef.isNull()) CoreFoundation.CFRelease(keychainRef);
@@ -389,6 +426,11 @@ KeychainItem.addInternetPassword = function(accountName,
 						 keychainItemRef.address());
 	});
 	
+	if (status == CoreServices.userCanceledErr) {
+		Logger.log('User canceled SecKeychainAddInternetPassword operation');
+		return null;
+	}
+	
 	testStatus(status, 'SecKeychainAddInternetPassword');
 	
 	try {
@@ -414,7 +456,7 @@ KeychainItem.addInternetPassword = function(accountName,
    */
 KeychainItem.findInternetPasswords = function (account, protocolType, server,
                                         port, authenticationType, securityDomain) {
-/*    this.log("_findInternetPasswordItems["
+/*    this.trace("_findInternetPasswordItems["
              + " accountName:" + accountName
              + " protocol:" + protocol
              + " serverName:" + serverName
