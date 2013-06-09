@@ -36,13 +36,13 @@
 
 Components.utils.import('resource://gre/modules/XPCOMUtils.jsm');
 Components.utils.import('resource://gre/modules/Services.jsm');
-Components.utils.import('resource://macos-keychain/MacOSKeychain.jsm');
+//Components.utils.import('resource://macos-keychain/MacOSKeychain.jsm');
 Components.utils.import('resource://macos-keychain/Logger.jsm');
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
-const branchName = 'extensions.' + MacOSKeychain.extensionId + '.'
+const branchName = 'extensions.' + 'macos-keychain@fitzell.ca.'; //MacOSKeychain.extensionId + '.';
 
 const EXPORTED_SYMBOLS = ['Preferences'];
 
@@ -68,7 +68,7 @@ Preference.prototype = {
 		this._name = prefName;
 	},
 	
-	get hasUserValue() {
+	hasUserValue: function() {
 		return _branch().prefHasUserValue(this.name);
 	},
 	
@@ -77,39 +77,71 @@ Preference.prototype = {
 	}
 };
 
-var Bool = function (prefName) {
+var BoolPreference = function (prefName) {
 	this.name = prefName;
 };
-Bool.prototype = new Preference();
+BoolPreference.prototype = new Preference();
 
-Bool.prototype.__defineGetter__('value', function () {
+BoolPreference.prototype.__defineGetter__('value', function () {
 	Logger.trace('Getting boolean preference ' + this.name);
 	try {
 		var value = _branch().getBoolPref(this.name);
-		Logger.log('Preference has value: ' + value);
+		Logger.trace('Preference has value: ' + value);
 		return value;
 	} catch (e) {
-		Logger.log('Getting preference failed with: ' + e);
+		Logger.warning('Getting preference failed with: ' + e);
 		return undefined;
 	}
 });
 	
-Bool.prototype.__defineSetter__('value', function (value) {
+BoolPreference.prototype.__defineSetter__('value', function (value) {
 	Logger.trace('Setting boolean preference ' + this.name + ' to ' + value);
 	_branch().setBoolPref(this.name, value);
 });
 
-Preferences.startupImportPrompt = new Bool('startup-import-prompt');
+
+var StringPreference = function (prefName) {
+	this.name = prefName;
+};
+StringPreference.prototype = new Preference();
+
+StringPreference.prototype.__defineGetter__('value', function () {
+	Logger.trace('Getting string preference ' + this.name);
+	try {
+		var value = _branch()
+			.getComplexValue(this.name, Ci.nsISupportsString)
+			.data;
+		Logger.trace('Preference has value: ' + value);
+		return value;
+	} catch (e) {
+		Logger.warning('Getting preference failed with: ' + e);
+		return undefined;
+	}
+});
+	
+StringPreference.prototype.__defineSetter__('value', function (value) {
+	Logger.trace('Setting string preference ' + this.name + ' to ' + value);
+	var str = Cc['@mozilla.org/supports-string;1']
+		.createInstance(Ci.nsISupportsString);
+	str.data = value;
+	_branch().setComplexValue(this.name, Ci.nsISupportsString, str);
+});
+
+
+
+Preferences.startupImportPrompt = new BoolPreference('startup-import-prompt');
+Preferences.writeKeychain = new StringPreference('write-keychain');
+Preferences.readPath = new StringPreference('read-path');
 
 
 
 
 
 
-// function _getBool(prefName) {
+// function _getBoolPreference(prefName) {
 // 	Logger.trace('Getting boolean preference ' + prefName);
 // 	try {
-// 		var value = _branch().getBoolPref(prefName);
+// 		var value = _branch().getBoolPreferencePref(prefName);
 // 		Logger.log('Preference has value: ' + value);
 // 		return value;
 // 	} catch (e) {
@@ -118,16 +150,16 @@ Preferences.startupImportPrompt = new Bool('startup-import-prompt');
 // 	}
 // };
 // 
-// function _setBool(prefName, value) {
+// function _setBoolPreference(prefName, value) {
 // 	Logger.trace('Setting boolean preference ' + prefName + ' to ' + value);
-// 	_branch().setBoolPref(prefName, value);
+// 	_branch().setBoolPreferencePref(prefName, value);
 // };
 // 
 // function bool(prefName, propertyName) {
 // 	Preferences.__defineGetter__(propertyName,
-// 		function() { return _getBool(prefName); } );
+// 		function() { return _getBoolPreference(prefName); } );
 // 	Preferences.__defineSetter__(propertyName,
-// 		function(value) { _setBool(prefName, value); } );
+// 		function(value) { _setBoolPreference(prefName, value); } );
 // }
 // 
 // bool('startup-import-prompt', 'startupImportPrompt');
