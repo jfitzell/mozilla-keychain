@@ -68,16 +68,16 @@ function initDebugEnabled() {
 	var signonPrefs = Services.prefs.getBranch('signon.');
 	signonPrefs.QueryInterface(Ci.nsIPrefBranch2);
 	_debugEnabled = signonPrefs.getBoolPref('debug');
-	
+
 	var _prefsObserver = {
 		QueryInterface : XPCOMUtils.generateQI([Ci.nsIObserver]),
-		
+
 		// nsObserver
 		observe : function (subject, topic, data) {
 			if (topic == 'nsPref:changed') {
 				var prefName = data;
 				Logger.log('Logger notified of change to preference signon.' + prefName);
-		
+
 				if (prefName == 'debug') {
 					_debugEnabled = signonPrefs.getBoolPref(prefName);
 					if (_debugEnabled)
@@ -94,7 +94,7 @@ function initDebugEnabled() {
 			}
 		}
 	};
-	
+
 	signonPrefs.addObserver('', _prefsObserver, false);
 };
 initDebugEnabled();
@@ -102,7 +102,22 @@ initDebugEnabled();
 //var _prefBranch = null;
 //this._prefBranch = prefService.getBranch('extensions.' + MacOSKeychain.extensionId + '.');
 //this._prefBranch.QueryInterface(Ci.nsIPrefBranch2);
-	
+
+function stackTrace() {
+	try {
+		throw new Error();
+	} catch (e) {
+		return e.stack.split("\n").slice(1,-1).map(function(s) {
+			var matches = /^([^@]*)@(.*):(\d*)$/.exec(s);
+			return {
+				fn: matches[1] || null,
+				file: matches[2] || null,
+				line: matches[3] || null
+			};
+		});
+	}
+};
+
 /**
  * Log a debug message if debugging is turned on via the signon.debug
  *	preference.
@@ -110,13 +125,62 @@ initDebugEnabled();
 Logger.log = function (message) {
 	if (! _debugEnabled)
 		return;
-		
+
 	logCommandLineConsoleMessage(message);
 	logConsoleMessage(message);
 };
-	
-Logger.trace = function (message) {
-	this.log('+ ' + message);
+
+Logger.trace = function (messageOrArguments, offset) {
+	function extractFirstArgument() {
+		var message, args;
+		if (typeof messageOrArguments == 'string') {
+			message = messageOrArguments;
+			args = '';
+		} else if (! messageOrArguments) {
+			message = args = '';
+		} else {
+			message = '';
+			args = Array.slice(messageOrArguments, 0)
+						.map(function stringify(arg) {
+				if (typeof arg == 'string')
+					return "'" + arg + "'";
+				else if (typeof arg == 'undefined')
+					return 'undefined';
+				else if (typeof arg == 'function')
+				    return 'function()';
+				else if (null === arg)
+					return 'null';
+				else if (Array.isArray(arg))
+				    return '[' + arg.map(stringify).toString() + ']';
+				else
+					return arg;
+				}).toString();
+		}
+
+		return [message, args];
+	};
+
+	function location(context) {
+		if (context.file || context.line) {
+			return ' ['
+				+ (context.file
+					? context.file.split('/').slice(-2).join('/')
+					: '')
+				+ (context.line ? (':' + context.line) : '')
+				+ ']';
+		} else {
+			return '';
+		}
+	};
+
+	var context = stackTrace().slice(1 + (offset || 0))[0];
+	var [message, args] = extractFirstArgument();
+
+	this.log('+  '
+			+ message
+			+ ((message && context.fn) ? '   in ' : '')
+			+ (context.fn ? (context.fn + '(' + args + ')') : '')
+			+ location(context) );
 };
 
 Logger.warning = function (message) {
