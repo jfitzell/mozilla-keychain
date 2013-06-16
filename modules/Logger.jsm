@@ -212,10 +212,31 @@ function logScriptError(flags, loggerFrames) {
 
 
 /**
+ * Convert an argument to a string representation that can be safely logged.
+ *
+ * @param {*} arg
+ */
+Logger.stringify = function(arg) {
+	if (typeof arg == 'string')
+		return "'" + arg + "'";
+	else if (typeof arg == 'undefined')
+		return 'undefined';
+	else if (typeof arg == 'function')
+		return 'function()';
+	else if (null === arg)
+		return 'null';
+	else if (Array.isArray(arg))
+		return '[' + arg.map(Logger.stringify).toString() + ']';
+	else
+		return arg.toString();
+}
+
+
+/**
  * Log a debugging message to the Mozilla Error Console and the system console.
  *  Debugging must be turned on via the signon.debug preference.
  *
- * @param {string} Message text to be logged
+ * @param {string} message Text to be logged
  */
 Logger.log = function (message) {
 	if (! _debugEnabled)
@@ -245,20 +266,7 @@ Logger.trace = function (messageOrArguments, userFrames) {
 		} else {
 			message = '';
 			args = Array.slice(messageOrArguments, 0)
-						.map(function stringify(arg) {
-				if (typeof arg == 'string')
-					return "'" + arg + "'";
-				else if (typeof arg == 'undefined')
-					return 'undefined';
-				else if (typeof arg == 'function')
-				    return 'function()';
-				else if (null === arg)
-					return 'null';
-				else if (Array.isArray(arg))
-				    return '[' + arg.map(stringify).toString() + ']';
-				else
-					return arg;
-				}).toString();
+						.map(Logger.stringify).toString();
 		}
 
 		return [message, args];
