@@ -256,6 +256,9 @@ Logger.log = function (message) {
  * @param {integer} [userFrames=0] Number of stack frames to skip from the caller in order to find the function call being logged.
  */
 Logger.trace = function (messageOrArguments, userFrames) {
+	if (! _debugEnabled) // TODO: use a separate flag for this?
+		return;
+
 	function extractFirstArgument() {
 		var message, args;
 		if (typeof messageOrArguments == 'string') {
@@ -275,7 +278,7 @@ Logger.trace = function (messageOrArguments, userFrames) {
 	var frame = stackTrace().slice(1 + (userFrames || 0))[0];
 	var [message, args] = extractFirstArgument();
 
-	this.log('+  '
+	logSystemConsoleMessage('+  '
 			+ message
 			+ ((message && frame.fn) ? '   in ' : '')
 			+ (frame.fn ? (frame.fn + '(' + args + ')') : '')
