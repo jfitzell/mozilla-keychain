@@ -44,23 +44,39 @@ Components.utils.import("resource://macos-keychain/Importer.jsm");
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
+
+/**
+ * This interface is implemented by an object that wishes to observe
+ *  notifications. These notifications are often, though not always,
+ *  broadcast via the nsIObserverService.
+ * @external nsIObserver
+ * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsIObserver}
+ */
+
+/**
+ * An observer which is registered to receive startup notifications
+ * @constructor
+ * @augments external:nsIObserver
+ */
 function MacOSKeychainStartup() {
 }
 
 MacOSKeychainStartup.prototype = {
 	classID: Components.ID("{494c2389-8d87-42cd-98b4-95b26a2f9ef3}"),
 	QueryInterface : XPCOMUtils.generateQI([Ci.nsIObserver]),
-	
-	
+
+
 	/**
 	 =======================================
 		nsIObserver implementation
 	 =======================================
 	 */
-	
-		
+
+	/**
+	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsIObserver#observe()}
+	 */
 	observe: function (subject, topic, data) {
-		Logger.log("Observed " + subject + " " + topic + " " + data);
+		Logger.trace(arguments);
 		switch(topic) {
 			case "profile-after-change":
 				Services.obs.addObserver(this, "final-ui-startup", false);
