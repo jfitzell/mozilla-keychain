@@ -99,9 +99,7 @@ MacOSKeychainStorage.prototype = {
 	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#init()}
 	 */
 	init: function () {
-		Logger.log('-> init('
-			+ MacOSKeychain.debugStringForLoginInfo(login)
-			+ ')');
+		Logger.log('-> init()');
 	},
 
 
