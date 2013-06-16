@@ -40,26 +40,22 @@ Components.utils.import('resource://gre/modules/Services.jsm');
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
+/** @module Logger */
 const EXPORTED_SYMBOLS = ['Logger'];
 
-const logPrefix = 'MacOSKeychain';
-
+/** @exports Logger*/
 var Logger = {};
 
-function logScriptError(message, flags) {
-	var scriptError = Cc["@mozilla.org/scripterror;1"].createInstance(Ci.nsIScriptError);
-	scriptError.init(logPrefix + ': ' + message, null, null, null, null,
-					flags, 'component javascript');
-	Services.console.logMessage(scriptError);
-};
+const logPrefix = 'MacOSKeychain';
 
 function logConsoleMessage(message) {
 	Services.console.logStringMessage(logPrefix + ': ' + message);
 };
 
-function logCommandLineConsoleMessage(message) {
+function logSystemConsoleMessage(message) {
 	dump(logPrefix + ': ' + message + "\n");
 };
+
 
 // mirrors signon.debug
 var _debugEnabled = false;
@@ -84,7 +80,7 @@ function initDebugEnabled() {
 						Logger.log('Logging enabled');
 					else {
 						logConsoleMessage('Logging disabled');
-						logCommandLineConsoleMessage('Logging disabled');
+						logSystemConsoleMessage('Logging disabled');
 					}
 				} else {
 					Logger.log('Unhandled preference signon.' + prefName);
@@ -99,38 +95,146 @@ function initDebugEnabled() {
 };
 initDebugEnabled();
 
-//var _prefBranch = null;
-//this._prefBranch = prefService.getBranch('extensions.' + MacOSKeychain.extensionId + '.');
-//this._prefBranch.QueryInterface(Ci.nsIPrefBranch2);
 
-function stackTrace() {
+/**
+ * Generate a stack trace for the caller or, if provided, an exception
+ *
+ * @param {exception} [e] An exception from which to generate a stack trace
+ * @returns {array}
+ */
+function stackTrace(e) {
+	var exception = e;
+	var drop = 0; // If an exception is passed in, we keep the whole stack
+
 	try {
-		throw new Error();
+		if (!exception)
+			throw new Error();
 	} catch (e) {
-		return e.stack.split("\n").slice(1,-1).map(function(s) {
-			var matches = /^([^@]*)@(.*):(\d*)$/.exec(s);
-			return {
-				fn: matches[1] || null,
-				file: matches[2] || null,
-				line: matches[3] || null
-			};
-		});
+		exception = e;
+		// If generating a stack, we want to drop our own stack frame
+		drop = 1;
+	}
+
+	return exception.stack.split("\n").slice(drop,-1).map(function(s) {
+		var matches = /^([^@]*)@(.*):(\d*)$/.exec(s);
+		return {
+			fn: matches[1] || null,
+			file: matches[2] || null,
+			line: matches[3] || null
+		};
+	});
+};
+
+
+/**
+ * Return a string describing the filename and line number of the stack frame
+ *
+ * @param {object} frame A stack frame object returned by {@link stackTrace()}
+ */
+function sourceLineLocation(frame) {
+	if (frame.file || frame.line) {
+		return ' ['
+			+ (frame.file
+				? frame.file.split('/').slice(-2).join('/')
+				: '')
+			+ (frame.line ? (':' + frame.line) : '')
+			+ ']';
+	} else {
+		return '';
 	}
 };
 
+
 /**
- * Log a debug message if debugging is turned on via the signon.debug
- *	preference.
+ * Log a "script error" to the mozilla Error Console
+ *
+ *  @param {integer} flags nsIScriptError bitmask flags
+ *  @param {integer} loggerFrames Number of Logger stack frames to ignore
+ *  @param {string} [message] A string to log
+ *  @param {exception} [exception] An exception to log and use for stack trace
+ *  @param {integer} [userFrames] Number of user-generated stack frames to ignore
+ */
+function logScriptError(flags, loggerFrames) {
+	// Work out our optional arguments based on number/type
+	var optArgs = Array.slice(arguments, 2, 5);
+	if ( !(optArgs[0] === undefined || optArgs[0] === null)
+			&& typeof optArgs[0] != 'string' )
+		optArgs.unshift(undefined);
+
+	if ( !(optArgs[1] === undefined || optArgs[1] === null)
+			&& optArgs[1].stack === undefined )
+		optArgs.splice(1, 0, undefined);
+
+	var [message, exception, userFrames] = optArgs;
+	message = message || '';
+	exception = exception || null;
+	userFrames = userFrames || 0;
+
+
+	// If we were passed an exception, include its description in the message
+	if (exception) {
+		if (message)
+			message += ': ';
+
+		message += exception;
+	}
+
+
+	// Get a stack trace from the exception if it was passed in, or from
+	//  our caller otherwise, and grab the top stack frame
+	var frame;
+	if (exception) {
+		frame = stackTrace(exception).slice(userFrames)[0];
+	} else {
+		// 1 for this function, plus frames in the logger, plus user frames
+		frame = stackTrace().slice(1 + loggerFrames + userFrames)[0];
+	}
+	// make sure we don't have an undefined frame
+	frame = frame || {};
+
+
+	// First log to the system console if we're debugging
+	if (_debugEnabled)
+		logSystemConsoleMessage(
+				((flags & Ci.nsIScriptError.warningFlag) ? 'WARNING' : 'ERROR')
+				+ ' - ' + message
+				+ sourceLineLocation(frame));
+
+
+	// Finally, log to the Mozilla console
+	var scriptError = Cc["@mozilla.org/scripterror;1"]
+			.createInstance(Ci.nsIScriptError);
+	scriptError.init(logPrefix + ': ' + message,
+			frame.file, null, frame.line, null,
+			flags, 'component javascript');
+	Services.console.logMessage(scriptError);
+}
+
+
+/**
+ * Log a debugging message to the Mozilla Error Console and the system console.
+ *  Debugging must be turned on via the signon.debug preference.
+ *
+ * @param {string} Message text to be logged
  */
 Logger.log = function (message) {
 	if (! _debugEnabled)
 		return;
 
-	logCommandLineConsoleMessage(message);
+	logSystemConsoleMessage(message);
 	logConsoleMessage(message);
 };
 
-Logger.trace = function (messageOrArguments, offset) {
+
+/**
+ * Note the execution of a function or other event to aid in tracing flow.
+ *  The name and location of the caller will be used unless the second
+ *  argument specifies how far back in the stack to look.
+ *
+ * @param  {string|arguments object} messageOrArguments Either the {@linkcode arguments} object of the function call being logged or a message to log.
+ * @param {integer} [userFrames=0] Number of stack frames to skip from the caller in order to find the function call being logged.
+ */
+Logger.trace = function (messageOrArguments, userFrames) {
 	function extractFirstArgument() {
 		var message, args;
 		if (typeof messageOrArguments == 'string') {
@@ -160,37 +264,42 @@ Logger.trace = function (messageOrArguments, offset) {
 		return [message, args];
 	};
 
-	function location(context) {
-		if (context.file || context.line) {
-			return ' ['
-				+ (context.file
-					? context.file.split('/').slice(-2).join('/')
-					: '')
-				+ (context.line ? (':' + context.line) : '')
-				+ ']';
-		} else {
-			return '';
-		}
-	};
-
-	var context = stackTrace().slice(1 + (offset || 0))[0];
+	var frame = stackTrace().slice(1 + (userFrames || 0))[0];
 	var [message, args] = extractFirstArgument();
 
 	this.log('+  '
 			+ message
-			+ ((message && context.fn) ? '   in ' : '')
-			+ (context.fn ? (context.fn + '(' + args + ')') : '')
-			+ location(context) );
+			+ ((message && frame.fn) ? '   in ' : '')
+			+ (frame.fn ? (frame.fn + '(' + args + ')') : '')
+			+ sourceLineLocation(frame) );
 };
 
-Logger.warning = function (message) {
-	logScriptError(message, Ci.nsIScriptError.warningFlag);
-	if (_debugEnabled)
-		logCommandLineConsoleMessage('WARNING - ' + message);
+
+/**
+ * Log a warning
+ *
+ *  @param {string} [message] A string to log
+ *  @param {exception} [exception] An exception to log
+ *  @param {integer} [userFrames] Number of user-generated stack frames to ignore
+ */
+Logger.warning = function () {
+	// Log a warning and drop one stack frame
+	logScriptError.apply(
+		this,
+		[Ci.nsIScriptError.warningFlag, 1].concat(Array.slice(arguments)));
 };
 
-Logger.error = function (message) {
-	logScriptError(message, Ci.nsIScriptError.errorFlag);
-	if (_debugEnabled)
-		logCommandLineConsoleMessage('ERROR - ' + message);
+
+/**
+ * Log an error
+ *
+ *  @param {string} [message] A string to log
+ *  @param {exception} [exception] An exception to log
+ *  @param {integer} [userFrames] Number of user-generated stack frames to ignore
+ */
+Logger.error = function () {
+	// Log an error and drop one stack frame
+	logScriptError.apply(
+		this,
+		[Ci.nsIScriptError.errorFlag, 1].concat(Array.slice(arguments)));
 };
