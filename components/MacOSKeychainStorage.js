@@ -81,22 +81,31 @@ MacOSKeychainStorage.prototype = {
 	 */
 
 	/**
-	 * Just pass the filenames on to our mozilla storage instance. The filenames
+	 * We pass the filenames on to our mozilla storage instance. The filenames
 	 *	are kind of useless to this implementation of the storage interface so I
 	 *	don't know what else we'd do with them.
+	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#initWithFile()}
 	 */
 	initWithFile: function (aInputFile, aOutputFile) {
-		Logger.trace(arguments);
+		Logger.log('-> initWithFile('
+			+ [aInputFile, aOutputFile].map(Logger.stringify).toString()
+			+ ')');
 
 		MacOSKeychain.initializeDefaultStorage(aInputFile, aOutputFile);
 	},
 
-	init: function () {
-		Logger.trace(arguments);
 
+	/**
+	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#init()}
+	 */
+	init: function () {
+		Logger.log('-> init('
+			+ MacOSKeychain.debugStringForLoginInfo(login)
+			+ ')');
 	},
 
-	/*
+
+	/**
 	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#addLogin()}
 	 */
 	addLogin: function (login) {
@@ -117,7 +126,7 @@ MacOSKeychainStorage.prototype = {
 	},
 
 
-	/*
+	/**
 	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#removeLogin()}
 	 */
 	removeLogin: function (login) {
@@ -142,7 +151,7 @@ MacOSKeychainStorage.prototype = {
 	},
 
 
-	/*
+	/**
 	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#modifyLogin()}
 	 */
 	modifyLogin: function (oldLogin, newLoginData) {
@@ -178,7 +187,7 @@ MacOSKeychainStorage.prototype = {
 	},
 
 
-	/*
+	/**
 	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#getAllLogins()}
 	 */
 	getAllLogins: function (count) {
@@ -208,7 +217,7 @@ MacOSKeychainStorage.prototype = {
 	},*/
 
 
-	/*
+	/**
 	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#removeAllLogins()}
 	 */
 	removeAllLogins: function () {
@@ -227,7 +236,7 @@ MacOSKeychainStorage.prototype = {
 	},
 
 
-	/*
+	/**
 	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#getAllDisabledHosts()}
 	 */
 	getAllDisabledHosts: function (count) {
@@ -238,7 +247,7 @@ MacOSKeychainStorage.prototype = {
 	},
 
 
-	/*
+	/**
 	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#getLoginSavingEnabled()}
 	 */
 	getLoginSavingEnabled: function (hostname) {
@@ -250,7 +259,7 @@ MacOSKeychainStorage.prototype = {
 	},
 
 
-	/*
+	/**
 	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#setLoginSavingEnabled()}
 	 */
 	setLoginSavingEnabled: function (hostname, enabled) {
@@ -328,7 +337,7 @@ MacOSKeychainStorage.prototype = {
 	},
 
 
-	/*
+	/**
 	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#countLogins()}
 	 */
 	countLogins: function (hostname, formSubmitURL, httpRealm) {
@@ -377,7 +386,7 @@ MacOSKeychainStorage.prototype = {
 	},
 
 
-	/*
+	/**
 	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#searchLogins()}
 	 */
 	searchLogins: function() {
@@ -389,7 +398,7 @@ MacOSKeychainStorage.prototype = {
 	},
 
 
-	/*
+	/**
 	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#Attributes}
 	 */
 	get uiBusy() {
