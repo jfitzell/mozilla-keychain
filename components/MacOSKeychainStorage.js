@@ -34,14 +34,13 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-Components.utils.import("resource://macos-keychain/KeychainItem.jsm");
 Components.utils.import("resource://macos-keychain/MacOSKeychain.jsm");
 Components.utils.import("resource://macos-keychain/Logger.jsm");
- 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
-/**
+/***
  POSSIBLE TODO:
 	+ two-way conversion between keychain and mozStorage
 	+ fall-through to mozStorage
@@ -57,59 +56,82 @@ const Ci = Components.interfaces;
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
+/**
+ * This interface is implemented by modules that wish to provide storage
+ *  mechanisms for the Login Manager.
+ * @external nsILoginManagerStorage
+ * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage}
+ */
+
+/**
+ * @constructor
+ * @augments external:nsILoginManagerStorage
+ */
 function MacOSKeychainStorage() {
 };
 
 MacOSKeychainStorage.prototype = {
 	classID: Components.ID("{87d15ebf-2a51-4e54-9290-315a54feea25}"),
-	QueryInterface : XPCOMUtils.generateQI([Ci.nsILoginManagerStorage,
-										Ci.IMacOSKeychainStartupImporter]),
-	
+	QueryInterface : XPCOMUtils.generateQI([Ci.nsILoginManagerStorage]),
+
 	/**
 	 =======================================
 		Mozilla Storage API implementations
 	 =======================================
 	 */
-	
+
 	/**
-	 * initWithFile()
 	 * Just pass the filenames on to our mozilla storage instance. The filenames
 	 *	are kind of useless to this implementation of the storage interface so I
 	 *	don't know what else we'd do with them.
 	 */
 	initWithFile: function (aInputFile, aOutputFile) {
-		Logger.trace("initWithFile(" + aInputFile + "," + aOutputFile + ")");
-		
+		Logger.trace(arguments);
+
 		MacOSKeychain.initializeDefaultStorage(aInputFile, aOutputFile);
 	},
-	
+
 	init: function () {
-	
+		Logger.trace(arguments);
+
 	},
-	
+
+	/*
+	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#addLogin()}
+	 */
 	addLogin: function (login) {
-		Logger.trace("addLogin[ login: (" + MacOSKeychain.debugStringForLoginInfo(login) + ") ]");
+		Logger.log('-> addLogin('
+			+ MacOSKeychain.debugStringForLoginInfo(login)
+			+ ')');
+
 
 		try {
 			MacOSKeychain.addLogin(login);
 		} catch (e) {
 			// we don't yet support storing things with hostnames that are not
 			//	valid URLs. We could store them as Generic items in the future.
-			Logger.log('Adding login failed with: ' + e);
+			Logger.warning('Adding login failed', e);
 			Logger.log('Falling back on mozilla storage...');
 			return MacOSKeychain.defaultStorage.addLogin(login);
 		}
 	},
-	
-	
+
+
+	/*
+	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#removeLogin()}
+	 */
 	removeLogin: function (login) {
-		Logger.trace("removeLogin()");
+		Logger.log('-> removeLogin('
+			+ MacOSKeychain.debugStringForLoginInfo(login)
+			+ ')');
 		//return MacOSKeychain.defaultStorage.removeLogin(login);
+
+
 		if (! MacOSKeychain.supportedURL(login.hostname)) {
-			Logger.log('Chrome URLs are not currently supported. Falling back on mozilla storage...');
+			Logger.warning('Chrome URLs are not currently supported. Falling back on mozilla storage...');
 			return MacOSKeychain.defaultStorage.removeLogin(login);
 		}
-		
+
 		var item = MacOSKeychain.findKeychainItemForLoginInfo(login);
 		if (item) {
 			item.delete();
@@ -118,23 +140,34 @@ MacOSKeychainStorage.prototype = {
 			Logger.log("  No matching login found");
 		}
 	},
-	
-	
+
+
+	/*
+	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#modifyLogin()}
+	 */
 	modifyLogin: function (oldLogin, newLoginData) {
-		Logger.trace('modifyLogin[ oldLogin:' + oldLogin + ' newLogin:' + newLoginData + ' ]');
+		Logger.log('-> removeLogin('
+			+ MacOSKeychain.debugStringForLoginInfo(oldLogin)
+			+ ', '
+			+ ((newLoginData instanceof Ci.nsILoginInfo) ?
+				MacOSKeychain.debugStringForLoginInfo(newLoginData) :
+				MacOSKeychain.debugStringForPropertyBag(newLoginData))
+			+ ')');
 		//return MacOSKeychain.defaultStorage.modifyLogin(oldLogin, newLogin);
+
+
 		if (! MacOSKeychain.supportedURL(oldLogin.hostname)) {
-			Logger.log('Chrome URLs are not currently supported. Falling back on mozilla storage...');
+			Logger.warning('Chrome URLs are not currently supported. Falling back on mozilla storage...');
 			return MacOSKeychain.defaultStorage.modifyLogin(oldLogin, newLogin);
 		}
-		
+
 		var item = MacOSKeychain.findKeychainItemForLoginInfo(oldLogin);
 		if (! item) {
 			Logger.log('  No matching login found');
 			throw Error('No matching login found');
 			return;
 		}
-		
+
 		if (newLoginData instanceof Ci.nsILoginInfo) {
 			MacOSKeychain.updateItemWithLoginInfo(item, newLoginData);
 		} else if (newLoginData instanceof Ci.nsIPropertyBag) {
@@ -143,78 +176,112 @@ MacOSKeychainStorage.prototype = {
 			throw Error('Unsupported parameter type provided for new login data');
 		}
 	},
-	
-	
+
+
+	/*
+	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#getAllLogins()}
+	 */
 	getAllLogins: function (count) {
-		Logger.trace('getAllLogins()');
+		Logger.log('-> getAllLogins()');
 		//return MacOSKeychain.defaultStorage.getAllLogins(count);
-		
-		var items = KeychainItem.findInternetPasswords(null /*accountName*/,
-														null /*protocol*/,
-														null /*serverName*/, 
-														null /*port*/,
-														null /*authType*/,
-														null /*securityDomain*/);
+
+
+		var items = MacOSKeychain.findKeychainItems(
+				'' /*username*/, '' /*hostname*/,
+				'' /*formSubmitURL*/, '' /*httpRealm*/);
 
 		var logins = MacOSKeychain.convertKeychainItemsToLoginInfos(items);
-		
+
 		Logger.log('  Found ' + logins.length + ' logins');
-		
-		count.value = logins.length;
+
+		if (count)
+			count.value = logins.length;
 		return logins;
 	},
-	
-	
+
+
+/*	getAllEncryptedLogins: function() {
+		Logger.log('-> getAllEncryptedLogins()');
+
+
+		throw Error('Not yet implemented: getAllEncryptedLogins()');
+	},*/
+
+
+	/*
+	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#removeAllLogins()}
+	 */
 	removeAllLogins: function () {
-		Logger.trace('removeAllLogins()');
+		Logger.log('-> removeAllLogins()');
 		//return MacOSKeychain.defaultStorage.removeAllLogins();
-		var items = KeychainItem.findInternetPasswords(null /*accountName*/,
-														null /*protocol*/,
-														null /*serverName*/, 
-														null /*port*/,
-														null /*authType*/,
-														null /*securityDomain*/);
-		
+
+
+		var items = MacOSKeychain.findKeychainItems(
+				'' /*username*/, '' /*hostname*/,
+				'' /*formSubmitURL*/, '' /*httpRealm*/);
+
 		for ( var i in items ) {
 			Logger.log('  Deleting ' + items[i].serverName);
 			items[i].delete();
 		}
 	},
-	
-	
+
+
+	/*
+	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#getAllDisabledHosts()}
+	 */
 	getAllDisabledHosts: function (count) {
-		Logger.trace('getAllDisabledHosts()');
+		Logger.log('-> getAllDisabledHosts()');
+
+
 		return MacOSKeychain.defaultStorage.getAllDisabledHosts(count);
 	},
-	
-	
+
+
+	/*
+	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#getLoginSavingEnabled()}
+	 */
 	getLoginSavingEnabled: function (hostname) {
-		Logger.trace('getLoginSavingEnabled[ hostname:' + hostname + ' ]');
+		Logger.log('-> getLoginSavingEnabled('
+				+ Logger.stringify(hostname) + ')');
+
+
 		return MacOSKeychain.defaultStorage.getLoginSavingEnabled(hostname);
 	},
-	
-	
+
+
+	/*
+	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#setLoginSavingEnabled()}
+	 */
 	setLoginSavingEnabled: function (hostname, enabled) {
-		Logger.trace('setLoginSavingEnabled[ hostname:' + hostname + ' enabled:' + enabled + ' ]');
+		Logger.log('-> setLoginSavingEnabled('
+				+ [hostname, enabled].map(Logger.stringify).toString()
+				+ ')');
+
+
 		return MacOSKeychain.defaultStorage.setLoginSavingEnabled(hostname, enabled);
 	},
-	
+
 	/**
 	 * Note: as specified in the Mozilla documentation at:
 	 *	 https://developer.mozilla.org/en/NsILoginManagerStorage#findLogins%28%29
 	 *	An empty string for hostname, formSubmitURL, and httpRealm means match
 	 *	ALL values and a null value means match only items with NO value
+	 *
+	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#findLogins()}
 	 */
 	findLogins: function (count, hostname, formSubmitURL, httpRealm) {
-		Logger.trace('findLogins['
-						 + ' hostname:' + hostname
-						 + ' formSubmitURL:' + formSubmitURL
-						 + ' httpRealm:' + httpRealm + ' ]');
+		Logger.log('-> findLogins('
+				+ [hostname, formSubmitURL,
+					httpRealm].map(Logger.stringify).toString()
+				+ ')');
+
+
 		if (! MacOSKeychain.supportedURL(hostname)) {
-			Logger.log('Chrome URLs are not currently supported. Falling back on mozilla storage...');
+			Logger.warning('Chrome URLs are not currently supported. Falling back on mozilla storage...');
 			return MacOSKeychain.defaultStorage.findLogins(count, hostname, formSubmitURL, httpRealm);
 		}
-		
+
 		var items;
 		try {
 			items = MacOSKeychain.findKeychainItems('' /*username*/, hostname,
@@ -222,10 +289,10 @@ MacOSKeychainStorage.prototype = {
 		} catch (e) {
 			// LoginManager seems to silently catch errors thrown by findLogins()
 			//  so we log them instead
-			Logger.error('findKeychainItems() [1] failed with: ' + e);
+			Logger.error('Finding logins[1] failed', e);
 			items = new Array();
 		}
-		
+
 		// Safari seems not to store the HTTP Realm in the securityDomain
 		//	field so we try the search again without it.
 		if (items.length == 0 && httpRealm != null && httpRealm != '') {
@@ -233,43 +300,49 @@ MacOSKeychainStorage.prototype = {
 				items = MacOSKeychain.findKeychainItems('' /*username*/, hostname,
 											formSubmitURL, '' /*httpRealm*/);
 			} catch (e) {
-				Logger.error('findKeychainItems() [2] failed with: ' + e);
+				Logger.error('Finding logins[2] failed', e);
 				items = new Array();
-			}								
-											
+			}
+
 			for (var i in items) {
 				items[i].securityDomain = httpRealm;
 			}
 		}
-		
+
 		if (items.length == 0 /* && an appropriate preference is set*/) {
 			Logger.log('No items found. Checking mozilla storage...');
 			return MacOSKeychain.defaultStorage.findLogins(count, hostname, formSubmitURL, httpRealm);
 		}
-		
+
 		var logins;
 		try {
 			logins = MacOSKeychain.convertKeychainItemsToLoginInfos(items);
 		} catch (e) {
-			Logger.error('convertKeychainItemsToLoginInfos() failed with: ' + e);
+			Logger.error('Finding logins[3] failed', e);
 			logins = new Array();
-		}	
-		
-		count.value = logins.length;
+		}
+
+		if (count)
+			count.value = logins.length;
 		return logins;
 	},
-	
-	
+
+
+	/*
+	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#countLogins()}
+	 */
 	countLogins: function (hostname, formSubmitURL, httpRealm) {
-		Logger.trace('countLogins['
-						 + ' hostname:' + hostname
-						 + ' formSubmitURL:' + formSubmitURL
-						 + ' httpRealm:' + httpRealm + ' ]');
+		Logger.log('-> countLogins('
+				+ [hostname, formSubmitURL,
+					httpRealm].map(Logger.stringify).toString()
+				+ ')');
+
+
 		if (! MacOSKeychain.supportedURL(hostname)) {
-			Logger.log('Chrome URLs are not currently supported. Falling back on mozilla storage...');
+			Logger.warning('Chrome URLs are not currently supported. Falling back on mozilla storage...');
 			return MacOSKeychain.defaultStorage.countLogins(hostname, formSubmitURL, httpRealm);
 		}
-		
+
 		var items;
 		try {
 			items = MacOSKeychain.findKeychainItems('' /*username*/, hostname,
@@ -277,10 +350,10 @@ MacOSKeychainStorage.prototype = {
 		} catch (e) {
 			// LoginManager seems to silently catch errors thrown by countLogins()
 			//  so we log them instead
-			Logger.error('findKeychainItems() [1] failed with: ' + e);
+			Logger.error('Counting logins[1] failed', e);
 			items = new Array();
 		}
-				
+
 		// Safari seems not to store the HTTP Realm in the securityDomain
 		//	field so we try the search again without it.
 		if (items.length == 0 && httpRealm != null && httpRealm != '') {
@@ -290,29 +363,39 @@ MacOSKeychainStorage.prototype = {
 			} catch (e) {
 				// LoginManager seems to silently catch errors thrown by countLogins()
 				//  so we log them instead
-				Logger.error('findKeychainItems() [2] failed with: ' + e);
+				Logger.error('Counting logins[2] failed', e);
 				items = new Array();
 			}
 		}
-				
+
 		if (items.length == 0 /* && TODO: an appropriate preference is set*/) {
 			Logger.log('No items found. Checking mozilla storage...');
 			return MacOSKeychain.defaultStorage.countLogins(hostname, formSubmitURL, httpRealm);
 		}
-		
+
 		return items.length;
 	},
-	
+
+
+	/*
+	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#searchLogins()}
+	 */
 	searchLogins: function() {
+		Logger.log('-> searchLogins()');
+
+
 		// to be implemented (See Issue 36)
 		throw Error('Not yet implemented: searchLogins()');
 	},
-	
+
+
+	/*
+	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#Attributes}
+	 */
 	get uiBusy() {
-		return false;
+		return MacOSKeychain.defaultStorage.uiBusy;
 	}
 };
-
 
 
 var NSGetFactory = XPCOMUtils.generateNSGetFactory([MacOSKeychainStorage]);
@@ -320,10 +403,12 @@ var NSGetFactory = XPCOMUtils.generateNSGetFactory([MacOSKeychainStorage]);
 
 /*
 // This code could form the start of not needing chrome.manifest to register
-//   components. This is needed if you want to install components without restarting.
-//   Unfortunately, it doesn't actually look like that will work, since LoginManager
-//   only checks on startup. Could maybe submit a patch for that, though?
-   
+//   components. This is needed if you want to install components without
+//   restarting.
+// Unfortunately, it doesn't actually look like that will work, since
+//   LoginManager only checks on startup. Could maybe submit a patch for that,
+//   though?
+
 // Register component (not tested... may not be quite right)
 Components.manager.QueryInterface(Ci.nsIComponentRegistrar).registerFactory(
 	MacOSKeychainStorage.classID,
@@ -331,9 +416,10 @@ Components.manager.QueryInterface(Ci.nsIComponentRegistrar).registerFactory(
 	'@fitzell.ca/macos-keychain/storage;1',
 	NSGetFactory);
 
-// Register the new component so that LoginManager will use it (this is tested
-   and works, but needs to happen before LoginManager first tried to get a password,
-   which means it doesn't help avoid a restart after installing)
+// Register the new component so that LoginManager will use it (this is
+//  tested and works, but needs to happen before LoginManager first tried
+//  to get a password, which means it doesn't help avoid a restart after
+//  installing)
 var catman = Cc['@mozilla.org/categorymanager;1'].getService(Ci.nsICategoryManager);
 catman.addCategoryEntry('login-manager-storage',
 	'nsILoginManagerStorage',
