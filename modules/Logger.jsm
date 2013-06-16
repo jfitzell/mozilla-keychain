@@ -43,7 +43,7 @@ const Ci = Components.interfaces;
 /** @module Logger */
 const EXPORTED_SYMBOLS = ['Logger'];
 
-/** @exports Logger*/
+/** @exports Logger */
 var Logger = {};
 
 const logPrefix = 'MacOSKeychain';
@@ -100,7 +100,7 @@ initDebugEnabled();
  * Generate a stack trace for the caller or, if provided, an exception
  *
  * @param {exception} [e] An exception from which to generate a stack trace
- * @returns {array}
+ * @returns {Array<{fn:String, file:String, line:String}>}
  */
 function stackTrace(e) {
 	var exception = e;
@@ -231,7 +231,7 @@ Logger.log = function (message) {
  *  The name and location of the caller will be used unless the second
  *  argument specifies how far back in the stack to look.
  *
- * @param  {string|arguments object} messageOrArguments Either the {@linkcode arguments} object of the function call being logged or a message to log.
+ * @param  {string|object} messageOrArguments Either the {@linkcode arguments} object of the function call being logged or a message to log.
  * @param {integer} [userFrames=0] Number of stack frames to skip from the caller in order to find the function call being logged.
  */
 Logger.trace = function (messageOrArguments, userFrames) {
