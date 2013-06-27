@@ -43,15 +43,22 @@ const Ci = Components.interfaces;
 /** @module Logger */
 const EXPORTED_SYMBOLS = ['Logger'];
 
-/** @exports Logger */
-var Logger = {};
-
 const logPrefix = 'MacOSKeychain';
 
+
+/**
+ * Log a message to the Mozilla Error Console
+ * @param {string} message
+ */
 function logConsoleMessage(message) {
 	Services.console.logStringMessage(logPrefix + ': ' + message);
 };
 
+
+/**
+ * Log a message to the system console
+ * @param {string} message
+ */
 function logSystemConsoleMessage(message) {
 	dump(logPrefix + ': ' + message + "\n");
 };
@@ -70,9 +77,12 @@ function initDebugEnabled() {
 
 		// nsObserver
 		observe : function (subject, topic, data) {
+			Logger.trace(arguments);
+
 			if (topic == 'nsPref:changed') {
 				var prefName = data;
-				Logger.log('Logger notified of change to preference signon.' + prefName);
+				Logger.log('Logger notified of change to preference signon.'
+						+ prefName);
 
 				if (prefName == 'debug') {
 					_debugEnabled = signonPrefs.getBoolPref(prefName);
@@ -86,7 +96,7 @@ function initDebugEnabled() {
 					Logger.log('Unhandled preference signon.' + prefName);
 				}
 			} else {
-				Logger.error('Logger received unexpected notification: ' + topic);
+				Logger.error('Unexpected notification received: ' + topic);
 			}
 		}
 	};
@@ -148,11 +158,12 @@ function sourceLineLocation(frame) {
 /**
  * Log a "script error" to the mozilla Error Console
  *
- *  @param {integer} flags nsIScriptError bitmask flags
- *  @param {integer} loggerFrames Number of Logger stack frames to ignore
- *  @param {string} [message] A string to log
- *  @param {exception} [exception] An exception to log and use for stack trace
- *  @param {integer} [userFrames] Number of user-generated stack frames to ignore
+ * @param {integer} flags nsIScriptError bitmask flags
+ * @param {integer} loggerFrames Number of Logger stack frames to ignore
+ * @param {string} [message] A string to log
+ * @param {exception} [exception] An exception to log and use for stack trace
+ * @param {integer} [userFrames] Number of user-generated stack frames
+ *  to ignore
  */
 function logScriptError(flags, loggerFrames) {
 	// Work out our optional arguments based on number/type
@@ -210,107 +221,118 @@ function logScriptError(flags, loggerFrames) {
 	Services.console.logMessage(scriptError);
 }
 
-
 /**
- * Convert an argument to a string representation that can be safely logged.
- *
- * @param {*} arg
+ * @namespace
+ * @memberof module:Logger
  */
-Logger.stringify = function(arg) {
-	if (typeof arg == 'string')
-		return "'" + arg + "'";
-	else if (typeof arg == 'undefined')
-		return 'undefined';
-	else if (typeof arg == 'function')
-		return 'function()';
-	else if (null === arg)
-		return 'null';
-	else if (Array.isArray(arg))
-		return '[' + arg.map(Logger.stringify).toString() + ']';
-	else
-		return arg.toString();
-}
+var Logger = {
+	/**
+	 * Convert an argument to a string representation that can be safely logged.
+	 *
+	 * @param {*} arg
+	 */
+	stringify: function(arg) {
+		if (typeof arg == 'string')
+			return "'" + arg + "'";
+		else if (typeof arg == 'undefined')
+			return 'undefined';
+		else if (typeof arg == 'function')
+			return 'function()';
+		else if (null === arg)
+			return 'null';
+		else if (Array.isArray(arg))
+			return '[' + arg.map(Logger.stringify).toString() + ']';
+		else
+			return arg.toString();
+	},
 
 
-/**
- * Log a debugging message to the Mozilla Error Console and the system console.
- *  Debugging must be turned on via the signon.debug preference.
- *
- * @param {string} message Text to be logged
- */
-Logger.log = function (message) {
-	if (! _debugEnabled)
-		return;
+	/**
+	 * Log a debugging message to the Mozilla Error Console and the
+	 *  system console. Debugging must be turned on via the
+	 *  {@linkcode signon.debug} preference.
+	 *
+	 * @param {string} message Text to be logged
+	 */
+	log: function (message) {
+		if (! _debugEnabled)
+			return;
 
-	logSystemConsoleMessage(message);
-	logConsoleMessage(message);
-};
-
-
-/**
- * Note the execution of a function or other event to aid in tracing flow.
- *  The name and location of the caller will be used unless the second
- *  argument specifies how far back in the stack to look.
- *
- * @param  {string|object} messageOrArguments Either the {@linkcode arguments} object of the function call being logged or a message to log.
- * @param {integer} [userFrames=0] Number of stack frames to skip from the caller in order to find the function call being logged.
- */
-Logger.trace = function (messageOrArguments, userFrames) {
-	if (! _debugEnabled) // TODO: use a separate flag for this?
-		return;
-
-	function extractFirstArgument() {
-		var message, args;
-		if (typeof messageOrArguments == 'string') {
-			message = messageOrArguments;
-			args = '';
-		} else if (! messageOrArguments) {
-			message = args = '';
-		} else {
-			message = '';
-			args = Array.slice(messageOrArguments, 0)
-						.map(Logger.stringify).toString();
-		}
-
-		return [message, args];
-	};
-
-	var frame = stackTrace().slice(1 + (userFrames || 0))[0];
-	var [message, args] = extractFirstArgument();
-
-	logSystemConsoleMessage('+  '
-			+ message
-			+ ((message && frame.fn) ? '   in ' : '')
-			+ (frame.fn ? (frame.fn + '(' + args + ')') : '')
-			+ sourceLineLocation(frame) );
-};
+		logSystemConsoleMessage(message);
+		logConsoleMessage(message);
+	},
 
 
-/**
- * Log a warning
- *
- *  @param {string} [message] A string to log
- *  @param {exception} [exception] An exception to log
- *  @param {integer} [userFrames] Number of user-generated stack frames to ignore
- */
-Logger.warning = function () {
-	// Log a warning and drop one stack frame
-	logScriptError.apply(
-		this,
-		[Ci.nsIScriptError.warningFlag, 1].concat(Array.slice(arguments)));
-};
+	/**
+	 * Note the execution of a function or other event to aid in tracing flow.
+	 *  The name and location of the caller will be used unless the second
+	 *  argument specifies how far back in the stack to look.
+	 *
+	 * @param  {string|object} messageOrArguments Either the
+	 *  {@linkcode arguments} object of the function call being logged
+	 *  or a message to log.
+	 * @param {integer} [userFrames=0] Number of stack frames to skip from
+	 *   the caller in order to find the function call being logged.
+	 */
+	trace: function (messageOrArguments, userFrames) {
+		if (! _debugEnabled) // TODO: use a separate flag for this?
+			return;
+
+		function extractFirstArgument() {
+			var message, args;
+			if (typeof messageOrArguments == 'string') {
+				message = messageOrArguments;
+				args = '';
+			} else if (! messageOrArguments) {
+				message = args = '';
+			} else {
+				message = '';
+				args = Array.slice(messageOrArguments, 0)
+							.map(Logger.stringify).toString();
+			}
+
+			return [message, args];
+		};
+
+		var frame = stackTrace().slice(1 + (userFrames || 0))[0];
+		var [message, args] = extractFirstArgument();
+
+		logSystemConsoleMessage('+  '
+				+ message
+				+ ((message && frame.fn) ? '   in ' : '')
+				+ (frame.fn ? (frame.fn + '(' + args + ')') : '')
+				+ sourceLineLocation(frame) );
+	},
 
 
-/**
- * Log an error
- *
- *  @param {string} [message] A string to log
- *  @param {exception} [exception] An exception to log
- *  @param {integer} [userFrames] Number of user-generated stack frames to ignore
- */
-Logger.error = function () {
-	// Log an error and drop one stack frame
-	logScriptError.apply(
-		this,
-		[Ci.nsIScriptError.errorFlag, 1].concat(Array.slice(arguments)));
+	/**
+	 * Log a warning
+	 *
+	 * @param {string} [message] A string to log
+	 * @param {exception} [exception] An exception to log
+	 * @param {integer} [userFrames] Number of user-generated stack
+	 *  frames to ignore
+	 */
+	warning: function () {
+		// Log a warning and drop one stack frame
+		logScriptError.apply(
+			this,
+			[Ci.nsIScriptError.warningFlag, 1].concat(Array.slice(arguments)));
+	},
+
+
+	/**
+	 * Log an error
+	 *
+	 * @param {string} [message] A string to log
+	 * @param {exception} [exception] An exception to log
+	 * @param {integer} [userFrames] Number of user-generated stack frames
+	 *  to ignore
+	 */
+	error: function () {
+		// Log an error and drop one stack frame
+		logScriptError.apply(
+			this,
+			[Ci.nsIScriptError.errorFlag, 1].concat(Array.slice(arguments)));
+	},
 };
