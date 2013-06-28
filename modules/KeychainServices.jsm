@@ -59,146 +59,156 @@ const EXPORTED_SYMBOLS = ['KeychainServices'];
 
 /**
  * @namespace KeychainServices
- * @memberof module:KeychainServices.
  */
-var KeychainServices = {};
+var KeychainServices =
+/** @lends KeychainServices. */
+{
 
-/**
- *
- * @memberof module:KeychainServices
- */
-KeychainServices.addInternetPassword = function(accountName,
-									password,
-									protocolType,
-									serverName,
-									port,
-									path,
-									authenticationType,
-									securityDomain,
-									comment,
-									label) {
-	var keychainItemRef = new Security.SecKeychainItemRef;
+	/**
+	 *
+	 * @function
+	 */
+	addInternetPassword: function(accountName,
+										password,
+										protocolType,
+										serverName,
+										port,
+										path,
+										authenticationType,
+										securityDomain,
+										comment,
+										label) {
+		var keychainItemRef = new Security.SecKeychainItemRef;
 
-	var portNumber = port ? port : 0;
+		var portNumber = port ? port : 0;
 
-	var status;
-	doWithWriteKeychainRef(this, function(keychainRef) {
-		var passwordArray = ctypes.char.array()(password);
+		var status;
+		doWithWriteKeychainRef(this, function(keychainRef) {
+			var passwordArray = ctypes.char.array()(password);
 
-		status = Security.SecKeychainAddInternetPassword(keychainRef,
-						 lengthOrZero(serverName), serverName,
-						 lengthOrZero(securityDomain), securityDomain,
-						 lengthOrZero(accountName), accountName,
-						 lengthOrZero(path), path,
-						 portNumber,
-						 protocolType, authenticationType,
-						 lengthOrZero(password),
-						 ctypes.cast(passwordArray.address(), ctypes.voidptr_t),
-						 keychainItemRef.address());
-	});
-
-	if (status == CoreServices.userCanceledErr) {
-		Logger.log('User canceled SecKeychainAddInternetPassword operation');
-		return null;
-	}
-
-	testStatus(status, 'SecKeychainAddInternetPassword');
-
-	try {
-		var item = new KeychainItem(keychainItemRef);
-		item.comment = comment;
-
-		if (! label)
-			item.setDefaultLabel();
-		else
-			item.label = label;
-	} catch (e) {
-		Security.SecKeychainItemDelete(keychainItemRef);
-		// DEBUG: log the status in case it fails
-		throw e;
-	}
-
-	return item;
-};
-
-/**
-   * A value of null for any parameter is interpreted as matching ALL values
-   *  (ie. the parameter is not included in the search criteria)
-   *
-   * @memberof module:KeychainServices
-   */
-KeychainServices.findInternetPasswords = function (account, protocol,
-		server, port, authenticationType, securityDomain) {
-    Logger.trace(arguments);
-
-	// We need to keep objects created inside nativeAttribute() in scope
-	//  to prevent garbage collection
-	var referencedObjects = [];
-
-	var attributes = [];
-	function addCriterion(tag, value) {
-		if (value !== null) {
-			var attribute = new KeychainItem.Attribute(tag);
-			attribute.value = value;
-			attributes.push(attribute.nativeAttribute(referencedObjects));
-		}
-	}
-
-	addCriterion(Security.kSecAccountItemAttr, account);
-	addCriterion(Security.kSecProtocolItemAttr, protocol);
-	addCriterion(Security.kSecServerItemAttr, server);
-	addCriterion(Security.kSecPortItemAttr, port);
-	addCriterion(Security.kSecAuthenticationTypeItemAttr, authenticationType);
-	addCriterion(Security.kSecSecurityDomainItemAttr, securityDomain);
-
-//	Logger.log(attributes.toSource());
-
-	var searchCriteria = new Security.SecKeychainAttributeList();
-	searchCriteria.count = attributes.length;
-	if (attributes.length > 0) {
-		var array = Security.SecKeychainAttribute.array()(attributes);
-		searchCriteria.attr = array[0].address();
-	} else {
-		// It should be initialized to null anyway, but let's be clear what's goin on...
-		searchCriteria.attr = null;
-	}
-
-	var searchRef = new Security.SecKeychainSearchRef;
-	var status;
-	var results = new Array();
-	try { // Make sure to release searchRef
-		doWithReadKeychainRef(this, function(keychainRef) {
-			status = Security.SecKeychainSearchCreateFromAttributes(
+			status = Security.SecKeychainAddInternetPassword(
 					keychainRef,
-					Security.kSecInternetPasswordItemClass,
-					searchCriteria.address(),
-					searchRef.address());
+					lengthOrZero(serverName), serverName,
+					lengthOrZero(securityDomain), securityDomain,
+					lengthOrZero(accountName), accountName,
+					lengthOrZero(path), path,
+					portNumber,
+					protocolType, authenticationType,
+					lengthOrZero(password),
+					ctypes.cast(passwordArray.address(), ctypes.voidptr_t),
+					keychainItemRef.address());
 		});
 
-		testStatus(status, 'SecKeychainSearchCreateFromAttributes');
+		if (status == CoreServices.userCanceledErr) {
+			Logger.log(
+					'User canceled SecKeychainAddInternetPassword operation');
+			return null;
+		}
 
-		var keychainItemRef = new Security.SecKeychainItemRef();
-		try { // Make sure to release all keychainItemRefs if we're unsuccessful
-			while ((status = Security.SecKeychainSearchCopyNext(searchRef, keychainItemRef.address())) == Security.errSecSuccess) {
-				results[results.length] = new KeychainItem(keychainItemRef);
-			}
-		} finally {
-			if (status != Security.errSecItemNotFound) { // i.e. if we weren't done
-				for (var i in results) {
-					results[i].release();
-				}
-				if (! keychainItemRef.isNull())
-					CoreFoundation.CFRelease(keychainItemRef);
-				testStatus(status, 'SecKeychainSearchCopyNext');
+		testStatus(status, 'SecKeychainAddInternetPassword');
+
+		try {
+			var item = new KeychainItem(keychainItemRef);
+			item.comment = comment;
+
+			if (! label)
+				item.setDefaultLabel();
+			else
+				item.label = label;
+		} catch (e) {
+			Security.SecKeychainItemDelete(keychainItemRef);
+			// DEBUG: log the status in case it fails
+			throw e;
+		}
+
+		return item;
+	},
+
+	/**
+	   * A value of null for any parameter is interpreted as matching ALL values
+	   *  (ie. the parameter is not included in the search criteria)
+	   */
+	findInternetPasswords: function (account, protocol,
+			server, port, authenticationType, securityDomain) {
+		Logger.trace(arguments);
+
+		// We need to keep objects created inside nativeAttribute() in scope
+		//  to prevent garbage collection
+		var referencedObjects = [];
+
+		var attributes = [];
+		function addCriterion(tag, value) {
+			if (value !== null) {
+				var attribute = new KeychainItem.Attribute(tag);
+				attribute.value = value;
+				attributes.push(attribute.nativeAttribute(referencedObjects));
 			}
 		}
-	} finally {
-		if (! searchRef.isNull())
-			CoreFoundation.CFRelease(searchRef);
-	}
 
-	return results;
+		addCriterion(Security.kSecAccountItemAttr, account);
+		addCriterion(Security.kSecProtocolItemAttr, protocol);
+		addCriterion(Security.kSecServerItemAttr, server);
+		addCriterion(Security.kSecPortItemAttr, port);
+		addCriterion(Security.kSecAuthenticationTypeItemAttr,
+				authenticationType);
+		addCriterion(Security.kSecSecurityDomainItemAttr, securityDomain);
+
+	//	Logger.log(attributes.toSource());
+
+		var searchCriteria = new Security.SecKeychainAttributeList();
+		searchCriteria.count = attributes.length;
+		if (attributes.length > 0) {
+			var array = Security.SecKeychainAttribute.array()(attributes);
+			searchCriteria.attr = array[0].address();
+		} else {
+			/* It should be initialized to null anyway,
+			   but let's be clear what's going on... */
+			searchCriteria.attr = null;
+		}
+
+		var searchRef = new Security.SecKeychainSearchRef;
+		var status;
+		var results = new Array();
+		try { // Make sure to release searchRef
+			doWithReadKeychainRef(this, function(keychainRef) {
+				status = Security.SecKeychainSearchCreateFromAttributes(
+						keychainRef,
+						Security.kSecInternetPasswordItemClass,
+						searchCriteria.address(),
+						searchRef.address());
+			});
+
+			testStatus(status, 'SecKeychainSearchCreateFromAttributes');
+
+			var keychainItemRef = new Security.SecKeychainItemRef();
+			try {
+				while ((status = Security.SecKeychainSearchCopyNext(
+							searchRef,
+							keychainItemRef.address()))
+						== Security.errSecSuccess) {
+					results[results.length] = new KeychainItem(keychainItemRef);
+				}
+			} finally {
+				// Check whether we managed to get through the whole list
+				//  and release all keychainItemRefs if we hit an error
+				if (status != Security.errSecItemNotFound) {
+					for (var i in results) {
+						results[i].release();
+					}
+					if (! keychainItemRef.isNull())
+						CoreFoundation.CFRelease(keychainItemRef);
+					testStatus(status, 'SecKeychainSearchCopyNext');
+				}
+			}
+		} finally {
+			if (! searchRef.isNull())
+				CoreFoundation.CFRelease(searchRef);
+		}
+
+		return results;
+	},
 };
+
 
 /**
  * Evaluate a passed function with a valid reference to the keychain or
@@ -256,7 +266,7 @@ function doWithWriteKeychainRef(thisArg, func) {
 			}
 		}
 
-		// If no keychain was specified or there was an error, then use the default
+		// If no keychain was specified or there was an error, use the default
 		if (status != Security.errSecSuccess) {
 			Logger.log('Opening default keychain for write');
 			status = Security.SecKeychainCopyDefault(keychainRef.address());
@@ -285,7 +295,8 @@ function doWithWriteKeychainRef(thisArg, func) {
 		if (status == Security.errSecNoSuchKeychain)
 			throw Error('Error opening keychain: no keychain found at filesystem path ' + path);
 		else if (status == Security.errSecInvalidKeychain)
-			throw Error ('Error opening keychain: keychain at filesystem path ' + path + ' is invalid');
+			throw Error ('Error opening keychain: keychain at filesystem path '
+					+ path + ' is invalid');
 		else
 			testStatus(status, 'SecKeychainGetStatus');
 
@@ -327,11 +338,14 @@ function lengthOrZero(object) {
  *  the call to the API
  */
 function testStatus(status, functionString, contextString) {
-	var whileString = (contextString === undefined) ? '' : 'While ' + contextString + ', ';
+	var whileString = (contextString === undefined)
+			? '' : 'While ' + contextString + ', ';
 	if (status == Security.errSecSuccess) {
 		Logger.trace(functionString + '() successful', 1);
 	} else  {
-		var err = new Error('KeychainServices.jsm - ' + whileString + functionString + '() returned ' + status.toString() + ': ' + Security.stringForStatus(status));
+		var err = new Error('KeychainServices.jsm - ' + whileString
+				+ functionString + '() returned '
+				+ status.toString() + ': ' + Security.stringForStatus(status));
 		err.name = 'Security Framework Error';
 		err.status = status;
 		err.fn = functionString;
