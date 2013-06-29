@@ -117,7 +117,7 @@ function stackTrace(e) {
 	var drop = 0; // If an exception is passed in, we keep the whole stack
 
 	try {
-		if (!exception)
+		if (!exception || exception.stack === undefined)
 			throw new Error();
 	} catch (e) {
 		exception = e;
@@ -160,45 +160,35 @@ function sourceLineLocation(frame) {
  *
  * @param {integer} flags nsIScriptError bitmask flags
  * @param {integer} loggerFrames Number of Logger stack frames to ignore
- * @param {string} [message] A string to log
- * @param {exception} [exception] An exception to log and use for stack trace
- * @param {integer} [userFrames] Number of user-generated stack frames
- *  to ignore
+ * @param {string} [message] A message to log
+ * @param {*} [exception] Any value that can be thrown as an exception
  */
-function logScriptError(flags, loggerFrames) {
-	// Work out our optional arguments based on number/type
-	var optArgs = Array.slice(arguments, 2, 5);
-	if ( !(optArgs[0] === undefined || optArgs[0] === null)
-			&& typeof optArgs[0] != 'string' )
-		optArgs.unshift(undefined);
-
-	if ( !(optArgs[1] === undefined || optArgs[1] === null)
-			&& optArgs[1].stack === undefined )
-		optArgs.splice(1, 0, undefined);
-
-	var [message, exception, userFrames] = optArgs;
-	message = message || '';
+function logScriptError(flags, loggerFrames, messageOrException, exception) {
+	if (messageOrException
+			&& messageOrException.stack !== undefined
+			&& exception === undefined) {
+		exception = messageOrException;
+		messageOrException = '';
+	}
+	var message = messageOrException || '';
 	exception = exception || null;
-	userFrames = userFrames || 0;
-
 
 	// If we were passed an exception, include its description in the message
 	if (exception) {
-		if (message)
+		if (message != '')
 			message += ': ';
 
 		message += exception;
 	}
 
-
 	// Get a stack trace from the exception if it was passed in, or from
 	//  our caller otherwise, and grab the top stack frame
 	var frame;
-	if (exception) {
-		frame = stackTrace(exception).slice(userFrames)[0];
+	if (exception && exception.stack) {
+		frame = stackTrace(exception)[0];
 	} else {
-		// 1 for this function, plus frames in the logger, plus user frames
-		frame = stackTrace().slice(1 + loggerFrames + userFrames)[0];
+		// 1 for this function, frames in the logger module, and user frames
+		frame = stackTrace().slice(1 + loggerFrames)[0];
 	}
 	// make sure we don't have an undefined frame
 	frame = frame || {};
@@ -308,31 +298,25 @@ var Logger = {
 	/**
 	 * Log a warning
 	 *
-	 * @param {string} [message] A string to log
-	 * @param {exception} [exception] An exception to log
-	 * @param {integer} [userFrames] Number of user-generated stack
-	 *  frames to ignore
+	 * @param {string} [message] A message to log
+	 * @param {*} [exception] Any value that can be thrown as an exception
 	 */
-	warning: function () {
+	warning: function (messageOrException, exception) {
 		// Log a warning and drop one stack frame
-		logScriptError.apply(
-			this,
-			[Ci.nsIScriptError.warningFlag, 1].concat(Array.slice(arguments)));
+		logScriptError(Ci.nsIScriptError.warningFlag, 1,
+				messageOrException, exception);
 	},
 
 
 	/**
 	 * Log an error
 	 *
-	 * @param {string} [message] A string to log
-	 * @param {exception} [exception] An exception to log
-	 * @param {integer} [userFrames] Number of user-generated stack frames
-	 *  to ignore
+	 * @param {string} [message] A message to log
+	 * @param {*} [exception] Any value that can be thrown as an exception
 	 */
-	error: function () {
+	error: function (messageOrException, exception) {
 		// Log an error and drop one stack frame
-		logScriptError.apply(
-			this,
-			[Ci.nsIScriptError.errorFlag, 1].concat(Array.slice(arguments)));
+		logScriptError(Ci.nsIScriptError.errorFlag, 1,
+				messageOrException, exception);
 	},
 };
