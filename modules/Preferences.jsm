@@ -54,7 +54,7 @@ function _branch() {
 		__branch = Services.prefs.getBranch(branchName);
 		__branch.QueryInterface(Ci.nsIPrefBranch);
 	}
-	
+
 	return __branch;
 };
 
@@ -63,15 +63,19 @@ Preference.prototype = {
 	get name() {
 		return this._name;
 	},
-	
+
 	set name(prefName) {
 		this._name = prefName;
 	},
-	
+
+	get path() {
+		return _branch().root + this._name;
+	},
+
 	hasUserValue: function() {
 		return _branch().prefHasUserValue(this.name);
 	},
-	
+
 	clear: function () {
 		return _branch().clearUserPref(this.name);
 	}
@@ -93,7 +97,7 @@ BoolPreference.prototype.__defineGetter__('value', function () {
 		return undefined;
 	}
 });
-	
+
 BoolPreference.prototype.__defineSetter__('value', function (value) {
 	Logger.trace('Setting boolean preference ' + this.name + ' to ' + value);
 	_branch().setBoolPref(this.name, value);
@@ -118,7 +122,7 @@ StringPreference.prototype.__defineGetter__('value', function () {
 		return undefined;
 	}
 });
-	
+
 StringPreference.prototype.__defineSetter__('value', function (value) {
 	Logger.trace('Setting string preference ' + this.name + ' to ' + value);
 	var str = Cc['@mozilla.org/supports-string;1']
@@ -131,7 +135,7 @@ StringPreference.prototype.__defineSetter__('value', function (value) {
 
 Preferences.startupImportPrompt = new BoolPreference('startup-import-prompt');
 Preferences.writeKeychain = new StringPreference('write-keychain');
-Preferences.readPath = new StringPreference('read-path');
+Preferences.searchKeychains = new StringPreference('search-keychains');
 
 
 
@@ -149,19 +153,19 @@ Preferences.readPath = new StringPreference('read-path');
 // 		return undefined;
 // 	}
 // };
-// 
+//
 // function _setBoolPreference(prefName, value) {
 // 	Logger.trace('Setting boolean preference ' + prefName + ' to ' + value);
 // 	_branch().setBoolPreferencePref(prefName, value);
 // };
-// 
+//
 // function bool(prefName, propertyName) {
 // 	Preferences.__defineGetter__(propertyName,
 // 		function() { return _getBoolPreference(prefName); } );
 // 	Preferences.__defineSetter__(propertyName,
 // 		function(value) { _setBoolPreference(prefName, value); } );
 // }
-// 
+//
 // bool('startup-import-prompt', 'startupImportPrompt');
-// 
-// 
+//
+//
