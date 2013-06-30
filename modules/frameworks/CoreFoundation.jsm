@@ -59,6 +59,7 @@ cf.CFDataRef = new ctypes.StructType('__CFData').ptr;
 cf.CFAllocatorRef = new ctypes.StructType('__CFAllocator').ptr;
 cf.CFArrayRef = new ctypes.StructType('__CFArray').ptr;
 
+
 /*
  * CFString functions
  */
@@ -84,7 +85,7 @@ cf.declare('CFStringGetCharacterAtIndex',
 				ctypes.jschar,
 				CoreFoundation.CFStringRef,
 				CoreFoundation.CFIndex);
-				
+
 cf.declare('CFStringCreateWithCharacters',
 				ctypes.default_abi,
 				CoreFoundation.CFStringRef,
@@ -92,16 +93,16 @@ cf.declare('CFStringCreateWithCharacters',
 				MacTypes.UniChar.ptr,
 				CoreFoundation.CFIndex);
 
+
 /*
  * CFData functions
  */
 cf.declare('CFDataCreate',
 				ctypes.default_abi,
 				CoreFoundation.CFDataRef,
-				ctypes.voidptr_t, //CFAllocatorRef allocator,
+				ctypes.voidptr_t, // CFAllocatorRef allocator,
 				MacTypes.UInt8.ptr, // bytes,
-				CoreFoundation.CFIndex // length
-				);
+				CoreFoundation.CFIndex); // length
 
 cf.declare('CFDataGetLength',
 				ctypes.default_abi,
@@ -120,17 +121,33 @@ cf.declare('CFDataGetBytePtr',
 				MacTypes.UInt8.ptr,
 				CoreFoundation.CFDataRef);
 
-// Generic CFType routines
+
+/*
+ * CFArray functions
+ */
+cf.declare('CFArrayCreate',
+				ctypes.default_abi,
+				CoreFoundation.CFArrayRef,
+				ctypes.voidptr_t, // CFAllocatorRef allocator
+				ctypes.voidptr_t.ptr, // values
+				CoreFoundation.CFIndex, // numValues
+				ctypes.voidptr_t); // CFArrayCallbacks* callBacks
+
+
+/*
+ * Generic CFType functions
+ */
 cf.declare('CFRelease',
 				ctypes.default_abi,
 				ctypes.void_t,
 				ctypes.voidptr_t);
-				
+
+
 cf.CFStringToJSString = function(cfstr) {
 	var len = this.CFStringGetLength(cfstr);
 	var buffer = ctypes.jschar.array(len+1)();
 	var i;
-	
+
 	for (i=0; i < len; i++) {
 		buffer[i] = this.CFStringGetCharacterAtIndex(cfstr, i);//, this.CFRange(0, len), buffer);
 	}
