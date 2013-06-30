@@ -168,9 +168,9 @@ var KeychainServices =
 
 		var searchRef = new Security.SecKeychainSearchRef;
 		var status;
-		var results = new Array();
+		var results = [];
 		try { // Make sure to release searchRef
-			doWithReadKeychainRef(this, function(keychainRef) {
+			doWithSearchKeychainRef(this, function(keychainRef) {
 				status = Security.SecKeychainSearchCreateFromAttributes(
 						keychainRef,
 						Security.kSecInternetPasswordItemClass,
@@ -214,23 +214,93 @@ var KeychainServices =
  * Evaluate a passed function with a valid reference to the keychain or
  *  serach list that should be used for reading.
  */
-function doWithReadKeychainRef(thisArg, func) {
-	var useSearchList = true; // TODO: replace this with a preference
+function doWithSearchKeychainRef(thisArg, func) {
+	var keychains = [];
 	var searchList;
 	var status;
 	var result;
 
-	if (! useSearchList)
-		return doWithWriteKeychainRef(thisArg, func);
-
-	var searchList = new CoreFoundation.CFArrayRef;
 	try {
-		var status = Security.SecKeychainCopySearchList(searchList.address());
-		testStatus(status, 'SecKeychainCopySearchList');
+		// Try the user-specified keychain if there is one
+		if (Preferences.searchKeychains.hasUserValue()) {
+			// Use an nsIFile to expand ~ and so on in path
+			var paths = Preferences.searchKeychains.value.split(':');
+
+			for (var i in paths) {
+				try {
+					var path = paths[i];
+					Logger.log('Adding keychain to search list: ' + path);
+					try {
+						path = (new FileUtils.File(path)).path;
+					} catch (e) {
+						throw new Error('Invalid path');
+					}
+
+					var keychainRef = new Security.SecKeychainRef;
+					status = Security.SecKeychainOpen(
+							path,
+							keychainRef.address());
+					testStatus(status, 'SecKeychainOpen');
+
+					var keychainStatus = new Security.SecKeychainStatus;
+					status = Security.SecKeychainGetStatus(keychainRef,
+							keychainStatus.address());
+					Logger.trace('SecKeychainGetStatus() result: '
+							+ Security.stringForStatus(status));
+
+					if (status == Security.errSecNoSuchKeychain
+							|| status == Security.errSecInvalidKeychain) {
+						throw new Error(Security.stringForStatus(status));
+					} else {
+						testStatus(status, 'SecKeychainGetStatus');
+
+						keychains.push(keychainRef);
+					}
+				} catch(e) {
+					if (keychainRef && !keychainRef.isNull())
+						CoreFoundation.CFRelease(keychainRef);
+
+					Logger.warning('Failed to open keychain ' + path, e);
+				}
+			}
+
+			if (keychains.length > 0) {
+				var KeychainArrayType = Security.SecKeychainRef.array();
+				var keychainArray = new KeychainArrayType(keychains);
+
+				searchList = CoreFoundation.CFArrayCreate(
+						null, /* use default memory allocator */
+						ctypes.cast(keychainArray.address(),
+								ctypes.voidptr_t.ptr),
+						keychains.length,
+						null /* release/retain callbaks structure */);
+
+				if (searchList.isNull())
+					throw new Error('CFArrayCreate returned null');
+			} else {
+				Logger.warning('Preference '
+					+ Preferences.searchKeychains.path
+					+ ' is set, but no keychains were found');
+			}
+		}
+
+		// If we encountered an error, use the default search list
+		if (!searchList) {
+			Logger.log('Using default keychain search list');
+			searchList = new CoreFoundation.CFArrayRef;
+			status = Security.SecKeychainCopySearchList(searchList.address());
+			testStatus(status, 'SecKeychainCopySearchList');
+		}
 
 		result = func.call(thisArg, searchList);
 	} finally {
-		if (! searchList.isNull()) CoreFoundation.CFRelease(searchList);
+		for (var i in keychains) {
+			var keychainRef = keychains[i];
+			CoreFoundation.CFRelease(keychainRef);
+		}
+
+		if (searchList && !searchList.isNull())
+			CoreFoundation.CFRelease(searchList);
 	}
 
 	return result;
@@ -292,11 +362,10 @@ function doWithWriteKeychainRef(thisArg, func) {
 				keychainStatus.address());
 		Logger.log('SecKeychainGetStatus result: '
 				+ Security.stringForStatus(status));
-		if (status == Security.errSecNoSuchKeychain)
-			throw Error('Error opening keychain: no keychain found at filesystem path ' + path);
-		else if (status == Security.errSecInvalidKeychain)
-			throw Error ('Error opening keychain: keychain at filesystem path '
-					+ path + ' is invalid');
+		if (status == Security.errSecNoSuchKeychain
+				|| status == Security.errSecInvalidKeychain)
+			throw Error('Error opening keychain ' + path + ': '
+					+ Security.stringForStatus(status));
 		else
 			testStatus(status, 'SecKeychainGetStatus');
 
