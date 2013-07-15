@@ -34,8 +34,8 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-Components.utils.import("resource://macos-keychain/MacOSKeychain.jsm");
-Components.utils.import("resource://macos-keychain/Logger.jsm");
+Components.utils.import('resource://macos-keychain/MacOSKeychain.jsm');
+Components.utils.import('resource://macos-keychain/Logger.jsm');
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -54,7 +54,7 @@ const Ci = Components.interfaces;
 	+ camino searches without port or domain because safari sometimes sets neither
 */
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import('resource://gre/modules/XPCOMUtils.jsm');
 
 /**
  * This interface is implemented by modules that wish to provide storage
@@ -71,7 +71,7 @@ function MacOSKeychainStorage() {
 };
 
 MacOSKeychainStorage.prototype = {
-	classID: Components.ID("{87d15ebf-2a51-4e54-9290-315a54feea25}"),
+	classID: Components.ID('{87d15ebf-2a51-4e54-9290-315a54feea25}'),
 	QueryInterface : XPCOMUtils.generateQI([Ci.nsILoginManagerStorage]),
 
 	/**
@@ -142,9 +142,9 @@ MacOSKeychainStorage.prototype = {
 		var item = MacOSKeychain.findKeychainItemForLoginInfo(login);
 		if (item) {
 			item.delete();
-			Logger.log("  Login successfully removed");
+			Logger.log('  Login successfully removed');
 		} else {
-			Logger.log("  No matching login found");
+			Logger.log('  No matching login found');
 		}
 	},
 
