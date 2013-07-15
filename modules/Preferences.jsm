@@ -36,13 +36,15 @@
 
 Components.utils.import('resource://gre/modules/XPCOMUtils.jsm');
 Components.utils.import('resource://gre/modules/Services.jsm');
-//Components.utils.import('resource://macos-keychain/MacOSKeychain.jsm');
 Components.utils.import('resource://macos-keychain/Logger.jsm');
+
+var constants = {};
+Components.utils.import('resource://macos-keychain/Constants.jsm', constants);
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
-const branchName = 'extensions.' + 'macos-keychain@fitzell.ca.'; //MacOSKeychain.extensionId + '.';
+const branchName = 'extensions.' + constants.extensionId + '.';
 
 const EXPORTED_SYMBOLS = ['Preferences'];
 

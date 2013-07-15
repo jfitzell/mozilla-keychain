@@ -47,8 +47,6 @@ const Ci = Components.interfaces;
 
 const EXPORTED_SYMBOLS = ['MacOSKeychain'];
 
-const extensionId = 'macos-keychain@fitzell.ca';
-
 /**
  * A constructor for nsILoginInfo instances
  *
@@ -67,7 +65,7 @@ var _defaultStorage = null;
  */
 function _uri (uriString) {
 	try {
-		var ios = Components.classes["@mozilla.org/network/io-service;1"].
+		var ios = Components.classes['@mozilla.org/network/io-service;1'].
 									getService(Components.interfaces.nsIIOService);
 		return ios.newURI(uriString, null, null);
 	} catch (e) {
@@ -95,14 +93,6 @@ function _url (urlString) {
  * @namespace module:MacOSKeychain.MacOSKeychain
  */
 var MacOSKeychain = {};
-
-/**
- * @constant {string} extensionId
- * @memberof module:MacOSKeychain.MacOSKeychain
- */
-MacOSKeychain.__defineGetter__('extensionId', function() {
-	return extensionId;
-});
 
 
 /**
@@ -284,43 +274,43 @@ MacOSKeychain.updateItemWithProperties = function (item, properties) {
 		Logger.log('Setting property: ' + prop.name);
 		switch (prop.name) {
 			// nsILoginInfo properties...
-			case "hostname":
+			case 'hostname':
 				var [scheme, host, port] = MacOSKeychain.splitLoginInfoHostname(prop.value);
 				item.protocol = Security.protocolForScheme(scheme);
 				item.serverName = host;
 				item.port = port;
 				break;
 
-			case "formSubmitURL":
+			case 'formSubmitURL':
 				if (null != prop.value)
 					item.authenticationType = Security.kSecAuthenticationTypeHTMLForm;
 				else
 					item.authenticationType = Security.kSecAuthenticationTypeDefault;
 				break;
 
-			case "httpRealm":
+			case 'httpRealm':
 				item.securityDomain = prop.value;
 				break;
 
-			case "username":
+			case 'username':
 				item.account = prop.value;
 				break;
 
-			case "password":
+			case 'password':
 				item.password = prop.value;
 				break;
 
-			case "usernameField":
-			case "passwordField":
-			case "timesUsedIncrement":
-			case "timeLastUsed":
-			case "timePasswordChanged":
+			case 'usernameField':
+			case 'passwordField':
+			case 'timesUsedIncrement':
+			case 'timeLastUsed':
+			case 'timePasswordChanged':
 				Logger.log('--Unsupported property: ' + prop.name);
 				// not supported
 				break;
 
 			// nsILoginMetaInfo properties...
-			case "guid":
+			case 'guid':
 				// ???
 				break;
 
@@ -356,8 +346,8 @@ MacOSKeychain.findKeychainItems = function (username, hostname, formSubmitURL, h
 
 	var accountName;
 	if (null == username) // match only entries with no username
-		accountName = "";
-	else if ("" == username) // match ALL usernames
+		accountName = '';
+	else if ('' == username) // match ALL usernames
 		accountName = null;
 	else
 		accountName = username;
@@ -365,7 +355,7 @@ MacOSKeychain.findKeychainItems = function (username, hostname, formSubmitURL, h
 	var scheme, host, port;
 	if (null == hostname) // a null hostname matches NO entries
 		return [];
-	else if ("" == hostname) // an empty hostname matches ALL entries
+	else if ('' == hostname) // an empty hostname matches ALL entries
 		scheme = host = port = null;
 	else {
 		try {
@@ -378,15 +368,15 @@ MacOSKeychain.findKeychainItems = function (username, hostname, formSubmitURL, h
 	}
 
 	var securityDomain;
-	if ("" == httpRealm) // match ALL realms
+	if ('' == httpRealm) // match ALL realms
 		securityDomain = null;
 	else if (null == httpRealm) // match only entries with NO realm
-		securityDomain = "";
+		securityDomain = '';
 	else
 		securityDomain = httpRealm;
 
 	var authType;
-	if ("" == formSubmitURL && "" == httpRealm) // match ANY type
+	if ('' == formSubmitURL && '' == httpRealm) // match ANY type
 		authType = null;
 	else if (null != formSubmitURL) // match form logins only
 		authType = Security.kSecAuthenticationTypeHTMLForm;
@@ -398,7 +388,7 @@ MacOSKeychain.findKeychainItems = function (username, hostname, formSubmitURL, h
 	var items = KeychainServices.findInternetPasswords(accountName, protocol, host,
 												 port, authType, securityDomain);
 
-	Logger.log("  Items found: " + items.length);
+	Logger.log('  Items found: ' + items.length);
 
 	return items;
 };
@@ -444,13 +434,13 @@ MacOSKeychain.splitLoginInfoHostname = function (hostname) {
 			host = uri.host;
 			port = uri.port;
 		} catch (e) {
-			throw Error("Unable to split hostname: " + e);
+			throw Error('Unable to split hostname: ' + e);
 		}
 		if (port == -1) // -1 indicates default port for the protocol
 			port = null;
 	}
 
-	Logger.log("  scheme:" + scheme + " host:" + host + " port:" + port);
+	Logger.log('  scheme:' + scheme + ' host:' + host + ' port:' + port);
 	return [scheme, host, port];
 };
 
@@ -479,16 +469,16 @@ MacOSKeychain.debugStringForKeychainItem = function (item) {
 	if (item === null)
 		return 'null';
 
-	return "protocol:" + Security.stringFromProtocolType(item.protocol) +
-				" server:" + item.server +
-				" port:" + item.port +
-				" securityDomain:" + item.securityDomain +
-				" account:" + item.account +
-				" password:(omitted)" +
-				" authenticationType:" + Security.stringFromAuthenticationType(item.authenticationType) +
-				" comment:" + item.comment +
-				" label:" + item.label +
-				" description:" + item.description;
+	return 'protocol:' + Security.stringFromProtocolType(item.protocol) +
+				' server:' + item.server +
+				' port:' + item.port +
+				' securityDomain:' + item.securityDomain +
+				' account:' + item.account +
+				' password:(omitted)' +
+				' authenticationType:' + Security.stringFromAuthenticationType(item.authenticationType) +
+				' comment:' + item.comment +
+				' label:' + item.label +
+				' description:' + item.description;
 };
 
 /**
@@ -525,8 +515,8 @@ MacOSKeychain.addLogin = function (login) {
 	if (item !== null) {
 		item.description = fields.description;
 
-		Logger.log("  keychain item: (" +
-			this.debugStringForKeychainItem(item) + ")");
+		Logger.log('  keychain item: (' +
+			this.debugStringForKeychainItem(item) + ')');
 	}
 
 };
@@ -565,7 +555,7 @@ MacOSKeychain.verifySignature = function() {
 			}
 		}
 
-		Logger.warning("The application binary's signature cannot be verified; Keychain services may not function properly or you may be prompted repeatedly to allow access. Try upgrading your application to the newest version or deleting and reinstalling the application.");
+		Logger.warning('The application binary\'s signature cannot be verified; Keychain services may not function properly or you may be prompted repeatedly to allow access. Try upgrading your application to the newest version or deleting and reinstalling the application.');
 		return false;
 	} catch (e) {
 		Logger.log('Verification of application signature failed with: ' + e);

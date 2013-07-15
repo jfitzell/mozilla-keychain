@@ -37,13 +37,14 @@
 Components.utils.import('resource://gre/modules/XPCOMUtils.jsm');
 Components.utils.import('resource://gre/modules/Services.jsm');
 
+var constants = {};
+Components.utils.import('resource://macos-keychain/Constants.jsm', constants);
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
 /** @module Logger */
 const EXPORTED_SYMBOLS = ['Logger'];
-
-const logPrefix = 'MacOSKeychain';
 
 
 /**
@@ -51,7 +52,7 @@ const logPrefix = 'MacOSKeychain';
  * @param {string} message
  */
 function logConsoleMessage(message) {
-	Services.console.logStringMessage(logPrefix + ': ' + message);
+	Services.console.logStringMessage(constants.logPrefix + ': ' + message);
 };
 
 
@@ -60,7 +61,7 @@ function logConsoleMessage(message) {
  * @param {string} message
  */
 function logSystemConsoleMessage(message) {
-	dump(logPrefix + ': ' + message + "\n");
+	dump(constants.logPrefix + ': ' + message + "\n");
 };
 
 
@@ -205,7 +206,7 @@ function logScriptError(flags, loggerFrames, messageOrException, exception) {
 	// Finally, log to the Mozilla console
 	var scriptError = Cc["@mozilla.org/scripterror;1"]
 			.createInstance(Ci.nsIScriptError);
-	scriptError.init(logPrefix + ': ' + message,
+	scriptError.init(constants.logPrefix + ': ' + message,
 			frame.file, null, frame.line, null,
 			flags, 'component javascript');
 	Services.console.logMessage(scriptError);
