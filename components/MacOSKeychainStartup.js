@@ -34,12 +34,12 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
+Components.utils.import('resource://gre/modules/XPCOMUtils.jsm');
+Components.utils.import('resource://gre/modules/Services.jsm');
 
-Components.utils.import("resource://macos-keychain/MacOSKeychain.jsm");
-Components.utils.import("resource://macos-keychain/Logger.jsm");
-Components.utils.import("resource://macos-keychain/Importer.jsm");
+Components.utils.import('resource://macos-keychain/MacOSKeychain.jsm');
+Components.utils.import('resource://macos-keychain/Logger.jsm');
+Components.utils.import('resource://macos-keychain/Importer.jsm');
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -62,7 +62,7 @@ function MacOSKeychainStartup() {
 }
 
 MacOSKeychainStartup.prototype = {
-	classID: Components.ID("{494c2389-8d87-42cd-98b4-95b26a2f9ef3}"),
+	classID: Components.ID('{494c2389-8d87-42cd-98b4-95b26a2f9ef3}'),
 	QueryInterface : XPCOMUtils.generateQI([Ci.nsIObserver]),
 
 
@@ -78,12 +78,12 @@ MacOSKeychainStartup.prototype = {
 	observe: function (subject, topic, data) {
 		Logger.trace(arguments);
 		switch(topic) {
-			case "profile-after-change":
-				Services.obs.addObserver(this, "final-ui-startup", false);
+			case 'profile-after-change':
+				Services.obs.addObserver(this, 'final-ui-startup', false);
 				MacOSKeychain.verifySignature();
 				break;
-			case "final-ui-startup":
-				Services.obs.removeObserver(this, "final-ui-startup");
+			case 'final-ui-startup':
+				Services.obs.removeObserver(this, 'final-ui-startup');
 				Importer.confirmImport();
 				break;
 		}
