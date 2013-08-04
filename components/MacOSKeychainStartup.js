@@ -81,6 +81,7 @@ MacOSKeychainStartup.prototype = {
 			case 'profile-after-change':
 				Services.obs.addObserver(this, 'final-ui-startup', false);
 				MacOSKeychain.verifySignature();
+				MacOSKeychain.verifyConfiguration(true);
 				break;
 			case 'final-ui-startup':
 				Services.obs.removeObserver(this, 'final-ui-startup');

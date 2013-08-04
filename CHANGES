@@ -8,6 +8,8 @@
      (separated by colons) to use when searching for passwords
 - Implement nsILoginStorage.isLoggedIn to always return true (see
    https://bugzilla.mozilla.org/show_bug.cgi?id=839961)
+- Log warnings to console on startup if signon.autofillForms or
+   signon.rememberSignons are false
 
 1.1.5
 - Fix a bug causing an import prompt on every startup for new installations

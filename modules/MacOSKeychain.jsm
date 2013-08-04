@@ -35,6 +35,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 Components.utils.import('resource://gre/modules/ctypes.jsm');
+Components.utils.import('resource://gre/modules/Services.jsm');
 Components.utils.import('resource://macos-keychain/frameworks/CoreFoundation.jsm');
 Components.utils.import('resource://macos-keychain/frameworks/Security.jsm');
 Components.utils.import('resource://macos-keychain/KeychainServices.jsm');
@@ -561,4 +562,35 @@ MacOSKeychain.verifySignature = function() {
 		Logger.log('Verification of application signature failed with: ' + e);
 		return null;
 	}
+};
+
+/**
+ * Check that Mozilla's configuration will allow passwords to be stored/filled
+ * @param {Boolean} [logWarnings] Whether to log warnings about configuration
+ *   problems
+ * @memberof module:MacOSKeychain.MacOSKeychain
+ * @returns {boolean}
+ */
+MacOSKeychain.verifyConfiguration = function(logWarnings) {
+	var signonPrefs = Services.prefs.getBranch('signon.');
+	signonPrefs.QueryInterface(Ci.nsIPrefBranch);
+
+	var ok = true;
+	logWarnings = logWarnings || false;
+
+	if (! signonPrefs.getBoolPref('rememberSignons')) {
+		if (logWarnings)
+			Logger.warning('The preference signon.rememberSignons is set to false. Passwords will not be stored.');
+
+		ok = false;
+	}
+
+	if (! signonPrefs.getBoolPref('autofillForms')) {
+		if (logWarnings)
+			Logger.warning('The preference signon.autofillForms is set to false. Password fields will not be filled with stored passwords.');
+
+		ok = false;
+	}
+
+	return ok;
 };
