@@ -402,6 +402,16 @@ MacOSKeychainStorage.prototype = {
 	get uiBusy() {
 		return MacOSKeychain.defaultStorage.uiBusy;
 	}
+
+	/**
+	 * @see {@link https://bugzilla.mozilla.org/show_bug.cgi?id=839961}
+	 *
+	 * We don't use the master password, so I guess we're always "logged in"?
+	 *  Sigh...
+	 */
+	get isLoggedIn() {
+		return true;
+	}
 };
 
 
