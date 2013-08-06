@@ -401,7 +401,7 @@ MacOSKeychainStorage.prototype = {
 	 */
 	get uiBusy() {
 		return MacOSKeychain.defaultStorage.uiBusy;
-	}
+	},
 
 	/**
 	 * @see {@link https://bugzilla.mozilla.org/show_bug.cgi?id=839961}
