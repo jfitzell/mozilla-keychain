@@ -10,6 +10,9 @@
    https://bugzilla.mozilla.org/show_bug.cgi?id=839961)
 - Log warnings to console on startup if signon.autofillForms or
    signon.rememberSignons are false
+- Work around a Mozilla bug reading IMAP URLs containing port numbers and
+   strip off default port numbers for all schemes supported by Keychain
+   Services
 
 1.1.5
 - Fix a bug causing an import prompt on every startup for new installations

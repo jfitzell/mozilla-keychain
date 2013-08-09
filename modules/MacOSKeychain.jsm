@@ -73,7 +73,7 @@ function _uri (uriString) {
 
 	var scheme = uriString.replace(/^([^:]+):.*$/, '$1');
 
-	// The default parser doesn't seem to support port numbers, so
+	// The default parser doesn't seem to support port numbers for IMAP, so
 	//  even things like imap://localhost:143/ won't parse. We therefore
 	//  avoid the default parser.
 	// https://bugzilla.mozilla.org/show_bug.cgi?id=902688
