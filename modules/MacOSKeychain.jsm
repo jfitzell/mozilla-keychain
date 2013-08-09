@@ -44,6 +44,10 @@ Components.utils.import('resource://macos-keychain/Logger.jsm');
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
+const ContractID_LoginInfo = '@mozilla.org/login-manager/loginInfo;1';
+const ContractID_IOService = '@mozilla.org/network/io-service;1';
+const ContractID_StandardURL = '@mozilla.org/network/standard-url;1';
+
 /** @module MacOSKeychain */
 
 const EXPORTED_SYMBOLS = ['MacOSKeychain'];
@@ -56,7 +60,7 @@ const EXPORTED_SYMBOLS = ['MacOSKeychain'];
  * @constructor
  */
 const LoginInfo = new Components.Constructor(
-	'@mozilla.org/login-manager/loginInfo;1', Ci.nsILoginInfo);
+					ContractID_LoginInfo, Ci.nsILoginInfo);
 
 // Holds an instance of the default storage component we replaced
 var _defaultStorage = null;
@@ -65,27 +69,30 @@ var _defaultStorage = null;
  * Return a new URI object for the given string
  */
 function _uri (uriString) {
-	try {
-		var ios = Components.classes['@mozilla.org/network/io-service;1'].
-									getService(Components.interfaces.nsIIOService);
-		return ios.newURI(uriString, null, null);
-	} catch (e) {
-		Logger.log(e);
-		throw Error('Invalid URI');
-	}
-};
+	var ios = Cc[ContractID_IOService].getService(Ci.nsIIOService);
 
-/**
- * Return a new URL object for the given string
- */
-function _url (urlString) {
-	var uri = _uri(urlString);
-	try {
-		var url = uri.QueryInterface(Ci.nsIURL);
-		return url;
-	} catch (e) {
-		Logger.log(e);
-		throw Error('Invalid URL');
+	var scheme = uriString.replace(/^([^:]+):.*$/, '$1');
+
+	// The default parser doesn't seem to support port numbers, so
+	//  even things like imap://localhost:143/ won't parse. We therefore
+	//  avoid the default parser.
+	// https://bugzilla.mozilla.org/show_bug.cgi?id=902688
+	if ( scheme != 'imap'
+			&& (ios.getProtocolHandler(scheme).defaultPort != 0) ) {
+		return ios.newURI(uriString, null, null);
+	} else { // rather than use Mozilla's default handler, we make our own
+			 // so we can support more port numbers
+		var protocol = Security.protocolForScheme(scheme);
+
+		if (protocol != null) {
+			var url = Cc[ContractID_StandardURL].
+						createInstance(Ci.nsIStandardURL);
+			url.init(url.URLTYPE_STANDARD, protocol.defaultPort,
+						uriString, null, null);
+			return url.QueryInterface(Ci.nsIURI);
+		} else {
+			throw Error('Unsupported URI: ', uriString);
+		}
 	}
 };
 
@@ -223,7 +230,7 @@ MacOSKeychain.extractKeychainFieldsFromLoginInfo = function (loginInfo) {
 	fields.password = loginInfo.password;
 
 	var [scheme, host, port] = MacOSKeychain.splitLoginInfoHostname(loginInfo.hostname);
-	fields.protocol = Security.protocolForScheme(scheme);
+	fields.protocol = Security.protocolTypeForScheme(scheme);
 	fields.serverName = host;
 	fields.port = port;
 	fields.label = host + ' (' + loginInfo.username + ')';
@@ -277,7 +284,7 @@ MacOSKeychain.updateItemWithProperties = function (item, properties) {
 			// nsILoginInfo properties...
 			case 'hostname':
 				var [scheme, host, port] = MacOSKeychain.splitLoginInfoHostname(prop.value);
-				item.protocol = Security.protocolForScheme(scheme);
+				item.protocol = Security.protocolTypeForScheme(scheme);
 				item.serverName = host;
 				item.port = port;
 				break;
@@ -384,7 +391,7 @@ MacOSKeychain.findKeychainItems = function (username, hostname, formSubmitURL, h
 	else // match non-form logins only
 		authType = Security.kSecAuthenticationTypeDefault;
 
-	var protocol = scheme === null ? null : Security.protocolForScheme(scheme);
+	var protocol = scheme === null ? null : Security.protocolTypeForScheme(scheme);
 
 	var items = KeychainServices.findInternetPasswords(accountName, protocol, host,
 												 port, authType, securityDomain);

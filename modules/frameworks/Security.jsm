@@ -134,7 +134,7 @@ sec.errSecDecode = -26275;
 sec.itemAttrFromString = MacTypes.fourCharCodeFromString;
 sec.stringFromItemAttr = MacTypes.stringFromFourCharCode;
 
-// SecItemAttr	
+// SecItemAttr
 sec.kSecCreationDateItemAttr        = Security.itemAttrFromString('cdat');
 sec.kSecModDateItemAttr             = Security.itemAttrFromString('mdat');
 sec.kSecDescriptionItemAttr         = Security.itemAttrFromString('desc');
@@ -191,15 +191,15 @@ function _littleEndian() {
 		var uint8 = ctypes.cast(uint32.address(), ctypes.uint8_t.ptr).contents;
 		__littleEndian = (1 == uint8);
 	}
-	
+
 	return __littleEndian;
 }
 
-sec.authenticationTypeFromString = function(string) {	
+sec.authenticationTypeFromString = function(string) {
 	var code = string;
 	if (code && _littleEndian())
 		code = code.split('').reverse().join('');
-		
+
 	return MacTypes.fourCharCodeFromString(code);
 };
 
@@ -207,7 +207,7 @@ sec.stringFromAuthenticationType = function(uint32) {
 	var code = MacTypes.stringFromFourCharCode(uint32);
 	if (code && _littleEndian())
 		code = code.split('').reverse().join('');
-	
+
 	return code;
 }
 
@@ -227,72 +227,77 @@ sec.stringFromProtocolType = MacTypes.stringFromFourCharCode;
 
 // SecProtocolType
 var protocolTypes = [
-['kSecProtocolTypeFTP',			'ftp ', 'ftp'],
-['kSecProtocolTypeFTPAccount',	'ftpa', ''],
-['kSecProtocolTypeHTTP',		'http', 'http'],
-['kSecProtocolTypeIRC',			'irc ', 'irc'],
-['kSecProtocolTypeNNTP',		'nntp', 'nntp'],
-['kSecProtocolTypePOP3',		'pop3', 'pop'],
-['kSecProtocolTypeSMTP',		'smtp', 'smtp'],
-['kSecProtocolTypeSOCKS',		'sox ', ''],
-['kSecProtocolTypeIMAP',		'imap', 'imap'],
-['kSecProtocolTypeLDAP',		'ldap', 'ldap'],
-['kSecProtocolTypeAppleTalk',	'atlk', ''],
-['kSecProtocolTypeAFP',			'afp ', 'afp'],
-['kSecProtocolTypeTelnet',		'teln', 'telnet'],
-['kSecProtocolTypeSSH',			'ssh ', 'ssh'],
-['kSecProtocolTypeFTPS',		'ftps', 'ftps'],
-['kSecProtocolTypeHTTPS',		'htps', 'https'],
-['kSecProtocolTypeHTTPProxy',	'htpx', ''],
-['kSecProtocolTypeHTTPSProx',	'htsx', ''],
-['kSecProtocolTypeFTPProxy',	'ftpx', ''],
-['kSecProtocolTypeCIFS',		'cifs', ''], //10.5
-['kSecProtocolTypeSMB',			'smb ', 'smb'],
-['kSecProtocolTypeRTSP',		'rtsp', ''],
-['kSecProtocolTypeRTSPProxy',	'rtsx', ''],
-['kSecProtocolTypeDAAP',		'daap', ''],
-['kSecProtocolTypeEPPC',		'eppc', ''],
-['kSecProtocolTypeIPP',			'ipp ', 'ipp'],
-['kSecProtocolTypeNNTPS',		'ntps', ''],
-['kSecProtocolTypeLDAPS',		'ldps', 'ldaps'],
-['kSecProtocolTypeTelnetS',		'tels', ''],
-['kSecProtocolTypeIMAPS',		'imps', 'imaps'],
-['kSecProtocolTypeIRCS',		'ircs', ''],
-['kSecProtocolTypePOP3S',		'pops', 'pops'],
-['kSecProtocolTypeCVSpserver',	'cvsp', ''], //10.5
-['kSecProtocolTypeSVN',			'svn ', 'svn'], //10.5
+['kSecProtocolTypeFTP',			'ftp ', 'ftp',		21],
+['kSecProtocolTypeFTPAccount',	'ftpa', '',			null],
+['kSecProtocolTypeHTTP',		'http', 'http',		80],
+['kSecProtocolTypeIRC',			'irc ', 'irc',		194],
+['kSecProtocolTypeNNTP',		'nntp', 'nntp',		119],
+['kSecProtocolTypePOP3',		'pop3', 'pop',		110],
+['kSecProtocolTypeSMTP',		'smtp', 'smtp',		25],
+['kSecProtocolTypeSOCKS',		'sox ', '',			1080],
+['kSecProtocolTypeIMAP',		'imap', 'imap',		143],
+['kSecProtocolTypeLDAP',		'ldap', 'ldap',		389],
+['kSecProtocolTypeAppleTalk',	'atlk', '',			null],
+['kSecProtocolTypeAFP',			'afp ', 'afp',		548],
+['kSecProtocolTypeTelnet',		'teln', 'telnet',	23],
+['kSecProtocolTypeSSH',			'ssh ', 'ssh',		22],
+['kSecProtocolTypeFTPS',		'ftps', 'ftps',		990],
+['kSecProtocolTypeHTTPS',		'htps', 'https',	443],
+['kSecProtocolTypeHTTPProxy',	'htpx', '',			null],
+['kSecProtocolTypeHTTPSProx',	'htsx', '',			null],
+['kSecProtocolTypeFTPProxy',	'ftpx', '',			null],
+['kSecProtocolTypeCIFS',		'cifs', '',			3020], //10.5
+['kSecProtocolTypeSMB',			'smb ', 'smb',		445],
+['kSecProtocolTypeRTSP',		'rtsp', '',			554],
+['kSecProtocolTypeRTSPProxy',	'rtsx', '',			null],
+['kSecProtocolTypeDAAP',		'daap', '',			3689],
+['kSecProtocolTypeEPPC',		'eppc', '',			3031],
+['kSecProtocolTypeIPP',			'ipp ', 'ipp',		631],
+['kSecProtocolTypeNNTPS',		'ntps', '',			563],
+['kSecProtocolTypeLDAPS',		'ldps', 'ldaps',	636],
+['kSecProtocolTypeTelnetS',		'tels', '',			992],
+['kSecProtocolTypeIMAPS',		'imps', 'imaps',	993],
+['kSecProtocolTypeIRCS',		'ircs', '',			994],
+['kSecProtocolTypePOP3S',		'pops', 'pops',		995],
+['kSecProtocolTypeCVSpserver',	'cvsp', '',			2401], //10.5
+['kSecProtocolTypeSVN',			'svn ', 'svn',		3690], //10.5
 ];
 sec.kSecProtocolTypeAny			= 0;
 
-var schemesByProtocolType = {};
-var protocolTypesByScheme = {};
+var protocolsByType = {};
+var protocolsByScheme = {};
 for (var i in protocolTypes) {
-	var label = protocolTypes[i][0];
-	var fourCharString = protocolTypes[i][1];
-	var schemeString = protocolTypes[i][2];
-	var fourCharInteger = Security.protocolTypeFromString(fourCharString);
-	
-	sec[label] = fourCharInteger;
-	if (schemeString) {
-		protocolTypesByScheme[schemeString] = fourCharInteger;
-		schemesByProtocolType[fourCharInteger] = schemeString;
+	var protocol = {};
+	protocol.label = protocolTypes[i][0];
+	protocol.scheme = protocolTypes[i][2];
+	protocol.defaultPort = protocolTypes[i][3];
+	protocol.protocolType =
+		Security.protocolTypeFromString(protocolTypes[i][1]);
+
+	sec[protocol.label] = protocol.protocolType;
+	if (protocol.scheme) {
+		protocolsByScheme[protocol.scheme] = protocol;
+		protocolsByType[protocol.protocolType] = protocol;
 	}
 }
 
-sec.schemeForProtocol = function(protocolType) {
-	if (schemesByProtocolType[protocolType] !== undefined)
-		return schemesByProtocolType[protocolType];
-	
+sec.schemeForProtocolType = function(protocolType) {
+	if (protocolsByType[protocolType] !== undefined)
+		return protocolsByType[protocolType].scheme;
+
 	return null;
 };
 
-sec.protocolForScheme = function(schemeString) {
-	if (protocolTypesByScheme[schemeString] !== undefined)
-		return protocolTypesByScheme[schemeString];
-	
+sec.protocolTypeForScheme = function(scheme) {
+	if (protocolsByScheme[scheme] !== undefined)
+		return protocolsByScheme[scheme].protocolType;
+
 	return sec.kSecProtocolTypeAny;
 };
 
+sec.protocolForScheme = function(scheme) {
+	return protocolsByScheme[scheme] || null;
+};
 
 
 // SecItemClass
@@ -323,7 +328,7 @@ sec.declare('SecKeychainCopyDefault', // OS X v10.2+
 				ctypes.default_abi,
 				MacTypes.OSStatus,
 				Security.SecKeychainRef.ptr);
-				
+
 sec.declare('SecKeychainGetStatus', // OS X v10.2+
 				ctypes.default_abi,
 				MacTypes.OSStatus,
@@ -381,7 +386,7 @@ sec.declare('SecKeychainAddInternetPassword', // OS X v10.2+
 				ctypes.voidptr_t, // passwordData
 				Security.SecKeychainItemRef.ptr // itemRef
 				);
-				
+
 sec.declare('SecKeychainFindInternetPassword', // OS X v10.2+
 				ctypes.default_abi,
 				MacTypes.OSStatus,
@@ -409,8 +414,8 @@ sec.declare('SecKeychainCopySearchList', // OS X v10.2+
 				ctypes.default_abi,
 				MacTypes.OSStatus,
 				CoreFoundation.CFArrayRef.ptr // searchList
-				); 
- 
+				);
+
 sec.declare('SecKeychainSearchCreateFromAttributes', // OS X v10.2+
 				ctypes.default_abi,
 				MacTypes.OSStatus,
@@ -436,7 +441,7 @@ sec.declare('SecKeychainItemDelete', // OS X v10.2+
 				Security.SecKeychainItemRef
 				);
 
-// Apparently this method exists in OS X 10.5 but is not public. Can we call it anyway?				
+// Apparently this method exists in OS X 10.5 but is not public. Can we call it anyway?
 sec.declare('SecKeychainItemCreatePersistentReference', // OS X v10.6+
 				ctypes.default_abi,
 				MacTypes.OSStatus,
@@ -474,7 +479,7 @@ sec.declare('SecKeychainItemModifyAttributesAndData', // OS X v10.2+
 				MacTypes.UInt32, // length,
 				ctypes.voidptr_t // data
 				);
-				
+
 sec.declare('SecKeychainItemFreeAttributesAndData', // OS X v10.2+
 				ctypes.default_abi,
 				MacTypes.OSStatus,
@@ -500,7 +505,7 @@ sec.declare('SecCodeCopySelf', // OS X v10.6+
 				Security.SecCSFlags, // flags
 				Security.SecCodeRef.ptr // self
 				);
-				
+
 sec.declare('SecCodeCheckValidity', // OS X v10.6+
 				ctypes.default_abi,
 				MacTypes.OSStatus,

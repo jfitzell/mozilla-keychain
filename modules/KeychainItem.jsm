@@ -291,7 +291,7 @@ KeychainItem.prototype = {
 		if (this.protocol == Security.kSecProtocolTypeAny || this.protocol === null)
 			return null;
 
-		var scheme = Security.schemeForProtocol(this.protocol);
+		var scheme = Security.schemeForProtocolType(this.protocol);
 		if (scheme)
 			return scheme;
 		else
