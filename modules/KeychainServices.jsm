@@ -66,61 +66,54 @@ var KeychainServices =
 
 	/**
 	 * Add an Internet Password item to the keychain
-	 * @param [accountName] {String}
-	 * @param [password] {String}
-	 * @param [protocolType] {Security.SecProtocolType}
-	 * @param [serverName] {String}
-	 * @param [port] {Integer}
-	 * @param [path] {String}
-	 * @param [authenticationType] {Security.SecAuthenticationType}
-	 * @param [securityDomain] {String}
-	 * @param [comment] {String}
-	 * @param [label] {String}
+	 * @param {string} [accountName=null]
+	 * @param {string} [password=null]
+	 * @param {Security.SecProtocolType} [protocolType=kSecProtocolTypeAny]
+	 * @param {string} [serverName=null]
+	 * @param {integer} [port=0]
+	 * @param {string} [path=null]
+	 * @param {Security.SecAuthenticationType}
+	 		[authenticationType=kSecAuthenticationTypeAny]
+	 * @param {string} [securityDomain=null]
+	 * @param {string} [comment=null]
+	 * @param {string} [label=null]
 	 */
 	addInternetPassword: function(accountName,
-										password,
-										protocolType,
-										serverName,
-										port,
-										path,
-										authenticationType,
-										securityDomain,
-										comment,
-										label) {
+									password,
+									protocolType,
+									serverName,
+									port,
+									path,
+									authenticationType,
+									securityDomain,
+									comment,
+									label) {
 		Logger.trace(arguments);
-		var keychainItemRef = new Security.SecKeychainItemRef;
 
 		// Set default values for optional parameters that Keychain requires
-		accountName = accountName || null;
-		password = password || null;
-		protocolType = protocolType || 0;
-		serverName = serverName || null;
 		port = port || 0;
-		path = path || null;
-		if (authenticationType === undefined
-				|| authenticationType === null)
-			authenticationType = Security.kSecAuthenticationTypeDefault;
-		securityDomain = securityDomain || null;
+		protocolType = protocolType || Security.kSecProtocolTypeAny;
+		authenticationType = authenticationType
+				|| Security.kSecAuthenticationTypeAny;
 
+		var serverNameData = convertString(serverName, ctypes.char.ptr);
+		var securityDomainData = convertString(securityDomain, ctypes.char.ptr);
+		var accountNameData = convertString(accountName, ctypes.char.ptr);
+		var pathData = convertString(path, ctypes.char.ptr);
+		var passwordData = convertString(password, ctypes.voidptr_t);
+
+		var keychainItemRef = new Security.SecKeychainItemRef;
 		var status;
 		doWithWriteKeychainRef(this, function(keychainRef) {
-			var passwordPtr = null;
-			if (password) {
-				var passwordArray = ctypes.char.array()(password);
-				passwordPtr = ctypes.cast(
-						passwordArray.address(),
-						ctypes.voidptr_t);
-			}
-
 			status = Security.SecKeychainAddInternetPassword(
 					keychainRef,
-					lengthOrZero(serverName), serverName,
-					lengthOrZero(securityDomain), securityDomain,
-					lengthOrZero(accountName), accountName,
-					lengthOrZero(path), path,
+					serverNameData.size, serverNameData.pointer,
+					securityDomainData.size, securityDomainData.pointer,
+					accountNameData.size, accountNameData.pointer,
+					pathData.size, pathData.pointer,
 					port,
 					protocolType, authenticationType,
-					lengthOrZero(password), passwordPtr,
+					passwordData.size, passwordData.pointer,
 					keychainItemRef.address());
 		});
 
@@ -149,35 +142,31 @@ var KeychainServices =
 
 	/**
 	 * Add a Generic Password item to the keychain
-	 * @param [serviceName] {String}
-	 * @param [accountName] {String}
-	 * @param [password] {String}
-	 * @param [comment] {String}
-	 * @param [label] {String}
+	 * @param {string} [accountName=null]
+	 * @param {string} [password=null]
+	 * @param {string} [serviceName=null]
+	 * @param {string} [comment=null]
+	 * @param {string} [label=null]
 	 */
-	addGenericPassword: function(serviceName,
-										accountName,
-										password,
-										comment,
-										label) {
+	addGenericPassword: function(accountName,
+									password,
+									serviceName,
+									comment,
+									label) {
 		Logger.trace(arguments);
+
+		var serviceNameData = convertString(serviceName, ctypes.char.ptr);
+		var accountNameData = convertString(accountName, ctypes.char.ptr);
+		var passwordData = convertString(password, ctypes.voidptr_t);
+
 		var keychainItemRef = new Security.SecKeychainItemRef;
-
-		// Set default values for optional parameters that Keychain requires
-		serviceName = serviceName || null;
-		accountName = accountName || null;
-		password = password || null;
-
 		var status;
 		doWithWriteKeychainRef(this, function(keychainRef) {
-			var passwordArray = ctypes.char.array()(password);
-
 			status = Security.SecKeychainAddGenericPassword(
 					keychainRef,
-					lengthOrZero(serviceName), serviceName,
-					lengthOrZero(accountName), accountName,
-					lengthOrZero(password),
-					ctypes.cast(passwordArray.address(), ctypes.voidptr_t),
+					serviceNameData.size, serviceNameData.pointer,
+					accountNameData.size, accountNameData.pointer,
+					passwordData.size, passwordData.pointer,
 					keychainItemRef.address());
 		});
 
@@ -287,12 +276,12 @@ var KeychainServices =
 	 * Search for Internet Password keychain items
 	 * A value of null for any parameter is interpreted as matching ALL values
 	 *  (ie. the parameter is not included in the search criteria)
-	 * @param [accountName] {String}
-	 * @param [protocolType] {Security.SecProtocolType}
-	 * @param [serverName] {String}
-	 * @param [port] {Integer}
-	 * @param [authenticationType] {Security.SecAuthenticationType}
-	 * @param [securityDomain] {String}
+	 * @param {string} [accountName]
+	 * @param {Security.SecProtocolType} [protocolType]
+	 * @param {string} [serverName]
+	 * @param {integer} [port]
+	 * @param {Security.SecAuthenticationType} [authenticationType]
+	 * @param {string} [securityDomain]
 	 */
 	findInternetPasswords: function (accountName, protocolType,
 			serverName, port, authenticationType, securityDomain) {
@@ -315,8 +304,8 @@ var KeychainServices =
 	 * Search for Generic Password keychain items
 	 * A value of null for any parameter is interpreted as matching ALL values
 	 *  (ie. the parameter is not included in the search criteria)
-	 * @param [accountName] {String}
-	 * @param [serviceName] {String}
+	 * @param {string} [accountName]
+	 * @param {string} [serviceName]
 	 */
 	findGenericPasswords: function (accountName, serviceName) {
 		Logger.trace(arguments);
@@ -501,21 +490,29 @@ function doWithWriteKeychainRef(thisArg, func) {
 
 
 /**
- * Return the length of the arguement, or 0 if it does not implement length
- *  or there is an error asking for the length.
+ * Convert a string for passing to keychain item creation functions.
+ *  (handles null and undefined values)
  *
- * @param {*} object
- * @returns {integer}
+ * @param {string|null|undefined} s The string to convert to a C array
+ * @param {external:CType} ptrType The type to cast the array pointer to
+ * @returns {{array:null|external:CData, size:integer,
+ 		pointer:null|external:CData}}
  */
-function lengthOrZero(object) {
-	if (! object)
-		return 0;
+function convertString(s, ptrType) {
+	var result = {
+		array: null,
+		size: 0,
+		pointer: null };
 
-	try {
-		return object.length;
-	} catch (e) {
-		return 0;
+	if (s !== null && s !== undefined) {
+		// hold onto the array to prevent it being GC'ed
+		result.array = ctypes.char.array()(s);
+		// don't count terminating NUL:
+		result.size = result.array.length - 1;
+		result.pointer = ctypes.cast(result.array.address(), ptrType);
 	}
+
+	return result;
 };
 
 
