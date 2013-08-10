@@ -407,6 +407,32 @@ sec.declare('SecKeychainFindInternetPassword', // OS X v10.2+
 				Security.SecKeychainItemRef.ptr // itemRef
 				);
 
+sec.declare('SecKeychainAddGenericPassword', // OS X v10.2+
+				ctypes.default_abi,
+				MacTypes.OSStatus,
+				Security.SecKeychainRef, // keychain
+				MacTypes.UInt32, // serviceNameLength
+				ctypes.char.ptr, // serviceName
+				MacTypes.UInt32, // accountNameLength
+				ctypes.char.ptr, // accountName
+				MacTypes.UInt32, // passwordLength
+				ctypes.voidptr_t, // passwordData
+				Security.SecKeychainItemRef.ptr // itemRef
+				);
+
+sec.declare('SecKeychainFindGenericPassword', // OS X v10.2+
+				ctypes.default_abi,
+				MacTypes.OSStatus,
+				CoreFoundation.CFTypeRef, // keychainOrArray
+				MacTypes.UInt32, // serviceNameLength,
+				ctypes.char.ptr, // serviceName,
+				MacTypes.UInt32, // accountNameLength,
+				ctypes.char.ptr, // accountName,
+				MacTypes.UInt32.ptr, // passwordLength,
+				ctypes.voidptr_t.ptr, // passwordData,
+				Security.SecKeychainItemRef.ptr // itemRef
+				);
+
 /*
  * Searching for Keychain Items
  */

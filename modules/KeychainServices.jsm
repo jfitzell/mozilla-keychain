@@ -65,8 +65,17 @@ var KeychainServices =
 {
 
 	/**
-	 *
-	 * @function
+	 * Add an Internet Password item to the keychain
+	 * @param [accountName] {String}
+	 * @param [password] {String}
+	 * @param [protocolType] {Security.SecProtocolType}
+	 * @param [serverName] {String}
+	 * @param [port] {Integer}
+	 * @param [path] {String}
+	 * @param [authenticationType] {Security.SecAuthenticationType}
+	 * @param [securityDomain] {String}
+	 * @param [comment] {String}
+	 * @param [label] {String}
 	 */
 	addInternetPassword: function(accountName,
 										password,
@@ -78,13 +87,30 @@ var KeychainServices =
 										securityDomain,
 										comment,
 										label) {
+		Logger.trace(arguments);
 		var keychainItemRef = new Security.SecKeychainItemRef;
 
-		var portNumber = port ? port : 0;
+		// Set default values for optional parameters that Keychain requires
+		accountName = accountName || null;
+		password = password || null;
+		protocolType = protocolType || 0;
+		serverName = serverName || null;
+		port = port || 0;
+		path = path || null;
+		if (authenticationType === undefined
+				|| authenticationType === null)
+			authenticationType = Security.kSecAuthenticationTypeDefault;
+		securityDomain = securityDomain || null;
 
 		var status;
 		doWithWriteKeychainRef(this, function(keychainRef) {
-			var passwordArray = ctypes.char.array()(password);
+			var passwordPtr = null;
+			if (password) {
+				var passwordArray = ctypes.char.array()(password);
+				passwordPtr = ctypes.cast(
+						passwordArray.address(),
+						ctypes.voidptr_t);
+			}
 
 			status = Security.SecKeychainAddInternetPassword(
 					keychainRef,
@@ -92,16 +118,14 @@ var KeychainServices =
 					lengthOrZero(securityDomain), securityDomain,
 					lengthOrZero(accountName), accountName,
 					lengthOrZero(path), path,
-					portNumber,
+					port,
 					protocolType, authenticationType,
-					lengthOrZero(password),
-					ctypes.cast(passwordArray.address(), ctypes.voidptr_t),
+					lengthOrZero(password), passwordPtr,
 					keychainItemRef.address());
 		});
 
 		if (status == CoreServices.userCanceledErr) {
-			Logger.log(
-					'User canceled SecKeychainAddInternetPassword operation');
+			Logger.trace('User canceled operation');
 			return null;
 		}
 
@@ -109,11 +133,10 @@ var KeychainServices =
 
 		try {
 			var item = new KeychainItem(keychainItemRef);
-			item.comment = comment;
+			if (comment)
+				item.comment = comment;
 
-			if (! label)
-				item.setDefaultLabel();
-			else
+			if (label)
 				item.label = label;
 		} catch (e) {
 			Security.SecKeychainItemDelete(keychainItemRef);
@@ -125,11 +148,69 @@ var KeychainServices =
 	},
 
 	/**
-	   * A value of null for any parameter is interpreted as matching ALL values
-	   *  (ie. the parameter is not included in the search criteria)
-	   */
-	findInternetPasswords: function (account, protocol,
-			server, port, authenticationType, securityDomain) {
+	 * Add a Generic Password item to the keychain
+	 * @param [serviceName] {String}
+	 * @param [accountName] {String}
+	 * @param [password] {String}
+	 * @param [comment] {String}
+	 * @param [label] {String}
+	 */
+	addGenericPassword: function(serviceName,
+										accountName,
+										password,
+										comment,
+										label) {
+		Logger.trace(arguments);
+		var keychainItemRef = new Security.SecKeychainItemRef;
+
+		// Set default values for optional parameters that Keychain requires
+		serviceName = serviceName || null;
+		accountName = accountName || null;
+		password = password || null;
+
+		var status;
+		doWithWriteKeychainRef(this, function(keychainRef) {
+			var passwordArray = ctypes.char.array()(password);
+
+			status = Security.SecKeychainAddGenericPassword(
+					keychainRef,
+					lengthOrZero(serviceName), serviceName,
+					lengthOrZero(accountName), accountName,
+					lengthOrZero(password),
+					ctypes.cast(passwordArray.address(), ctypes.voidptr_t),
+					keychainItemRef.address());
+		});
+
+		if (status == CoreServices.userCanceledErr) {
+			Logger.trace('User canceled operation');
+			return null;
+		}
+
+		testStatus(status, 'SecKeychainAddGenericPassword');
+
+		try {
+			var item = new KeychainItem(keychainItemRef);
+			if (comment)
+				item.comment = comment;
+
+			if (label)
+				item.label = label;
+		} catch (e) {
+			Security.SecKeychainItemDelete(keychainItemRef);
+			// DEBUG: log the status in case it fails
+			throw e;
+		}
+
+		return item;
+	},
+
+	/**
+	 * Search for keychain items
+	 * A value of null or undefined for any parameter is interpreted as
+	 *  matching ALL values
+	 *  (ie. the parameter is not included in the search criteria)
+	 */
+	findKeychainItems: function(itemClass, attributePairs) {
 		Logger.trace(arguments);
 
 		// We need to keep objects created inside nativeAttribute() in scope
@@ -138,22 +219,16 @@ var KeychainServices =
 
 		var attributes = [];
 		function addCriterion(tag, value) {
-			if (value !== null) {
+			if (value !== null && value !== undefined) {
 				var attribute = new KeychainItem.Attribute(tag);
 				attribute.value = value;
 				attributes.push(attribute.nativeAttribute(referencedObjects));
 			}
 		}
 
-		addCriterion(Security.kSecAccountItemAttr, account);
-		addCriterion(Security.kSecProtocolItemAttr, protocol);
-		addCriterion(Security.kSecServerItemAttr, server);
-		addCriterion(Security.kSecPortItemAttr, port);
-		addCriterion(Security.kSecAuthenticationTypeItemAttr,
-				authenticationType);
-		addCriterion(Security.kSecSecurityDomainItemAttr, securityDomain);
-
-	//	Logger.log(attributes.toSource());
+		for (var i in attributePairs) {
+			addCriterion(attributePairs[i][0], attributePairs[i][1]);
+		}
 
 		var searchCriteria = new Security.SecKeychainAttributeList();
 		searchCriteria.count = attributes.length;
@@ -173,7 +248,7 @@ var KeychainServices =
 			doWithSearchKeychainRef(this, function(keychainRef) {
 				status = Security.SecKeychainSearchCreateFromAttributes(
 						keychainRef,
-						Security.kSecInternetPasswordItemClass,
+						itemClass,
 						searchCriteria.address(),
 						searchRef.address());
 			});
@@ -206,6 +281,53 @@ var KeychainServices =
 		}
 
 		return results;
+	},
+
+	/**
+	 * Search for Internet Password keychain items
+	 * A value of null for any parameter is interpreted as matching ALL values
+	 *  (ie. the parameter is not included in the search criteria)
+	 * @param [accountName] {String}
+	 * @param [protocolType] {Security.SecProtocolType}
+	 * @param [serverName] {String}
+	 * @param [port] {Integer}
+	 * @param [authenticationType] {Security.SecAuthenticationType}
+	 * @param [securityDomain] {String}
+	 */
+	findInternetPasswords: function (accountName, protocolType,
+			serverName, port, authenticationType, securityDomain) {
+		Logger.trace(arguments);
+
+		var pairs = [
+			[Security.kSecAccountItemAttr, accountName],
+			[Security.kSecProtocolItemAttr, protocolType],
+			[Security.kSecServerItemAttr, serverName],
+			[Security.kSecPortItemAttr, port],
+			[Security.kSecAuthenticationTypeItemAttr, authenticationType],
+			[Security.kSecSecurityDomainItemAttr, securityDomain],
+		];
+
+		return this.findKeychainItems(
+				Security.kSecInternetPasswordItemClass, pairs);
+	},
+
+	/**
+	 * Search for Generic Password keychain items
+	 * A value of null for any parameter is interpreted as matching ALL values
+	 *  (ie. the parameter is not included in the search criteria)
+	 * @param [accountName] {String}
+	 * @param [serviceName] {String}
+	 */
+	findGenericPasswords: function (accountName, serviceName) {
+		Logger.trace(arguments);
+
+		var pairs = [
+			[Security.kSecAccountItemAttr, accountName],
+			[Security.kSecServiceItemAttr, serviceName],
+		];
+
+		return this.findKeychainItems(
+				Security.kSecGenericPasswordItemClass, pairs);
 	},
 };
 
