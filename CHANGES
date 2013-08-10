@@ -13,6 +13,9 @@
 - Work around a Mozilla bug reading IMAP URLs containing port numbers and
    strip off default port numbers for all schemes supported by Keychain
    Services
+- Fix Boolean attributes
+- Fix the creation of keychain items with extended (multibyte UTF-8)
+   characters
 
 1.1.5
 - Fix a bug causing an import prompt on every startup for new installations
