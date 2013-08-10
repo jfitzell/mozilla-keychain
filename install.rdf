@@ -41,6 +41,8 @@
     <em:id>macos-keychain@fitzell.ca</em:id>
     <em:type>2</em:type> <!-- Extensions -->
     <em:version>1.1.6a3</em:version>
+	<em:optionsURL>chrome://macos-keychain/content/options.xul</em:optionsURL>
+	<em:optionsType>2</em:optionsType>
 
     <em:targetPlatform>Darwin</em:targetPlatform>
     <!-- Firefox -->

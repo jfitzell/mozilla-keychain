@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+
+<vbox xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+  <setting type="bool" pref="signon.debug" title="Debugging" desc="Log debugging information to the console" />
+</vbox>

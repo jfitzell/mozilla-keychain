@@ -16,6 +16,7 @@
 - Fix Boolean attributes
 - Fix the creation of keychain items with extended (multibyte UTF-8)
    characters
+- Add preferences dialog (for now, just the ability to turn on debugging)
 
 1.1.5
 - Fix a bug causing an import prompt on every startup for new installations
