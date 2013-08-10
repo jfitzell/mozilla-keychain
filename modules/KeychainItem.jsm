@@ -505,17 +505,15 @@ KeychainItem.Attribute = (function() {
 		 * @returns {Boolean}
 		 */
 		readFrom: function(nativeAttribute) {
-			// what does a length of 0 mean??
-
-			if (nativeAttribute.length != MacTypes.Boolean.size)
-				throw Error('Attribute ' + nativeAttribute.tag
-						+ ' should be Boolean but is '
-						+ nativeAttribute.length + ' bytes.');
-
-			return ctypes.cast(
-					nativeAttribute.data,
-					MacTypes.Boolean.ptr)
-						.contents > 0;
+			if (nativeAttribute.length == 0)
+				return null;
+			else {
+				Logger.trace('Boolean length: ' + nativeAttribute.length);
+				return ctypes.cast(
+						nativeAttribute.data,
+						MacTypes.Boolean.ptr)
+							.contents > 0;
+			}
 		},
 
 		/**
