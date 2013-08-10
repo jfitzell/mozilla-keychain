@@ -2,9 +2,9 @@
 - Fix "Manage Passwords..." button on the security preferences panel
 - Improve logging when signon.debug is true
 - Support for specifying which keychain to use:
-  - extensions.macos-keychain@fitzell.ca.write-keychain: a path to a keychain
+  - extensions.macos-keychain.write-file: a path to a keychain
      to use for storing passwords (e.g. ~/Library/Keychains/my.keychain)
-  - extensions.macos-keychain@fitzell.ca.search-keychains: a list of keychains
+  - extensions.macos-keychain.search-path: a list of keychains
      (separated by colons) to use when searching for passwords
 - Implement nsILoginStorage.isLoggedIn to always return true (see
    https://bugzilla.mozilla.org/show_bug.cgi?id=839961)

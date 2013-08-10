@@ -36,5 +36,5 @@
 
 const EXPORTED_SYMBOLS = ['extensionId', 'logPrefix'];
 
-const extensionId = 'macos-keychain@fitzell.ca';
+const extensionId = 'macos-keychain';
 const logPrefix = 'Keychain';

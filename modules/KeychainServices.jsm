@@ -333,9 +333,9 @@ function doWithSearchKeychainRef(thisArg, func) {
 
 	try {
 		// Try the user-specified keychain if there is one
-		if (Preferences.searchKeychains.hasUserValue()) {
+		if (Preferences.searchPath.hasUserValue()) {
 			// Use an nsIFile to expand ~ and so on in path
-			var paths = Preferences.searchKeychains.value.split(':');
+			var paths = Preferences.searchPath.value.split(':');
 
 			for (var i in paths) {
 				try {
@@ -390,7 +390,7 @@ function doWithSearchKeychainRef(thisArg, func) {
 					throw new Error('CFArrayCreate returned null');
 			} else {
 				Logger.warning('Preference '
-					+ Preferences.searchKeychains.path
+					+ Preferences.searchPath.path
 					+ ' is set, but no keychains were found');
 			}
 		}
@@ -433,9 +433,9 @@ function doWithWriteKeychainRef(thisArg, func) {
 
 	try {
 		// Try the user-specified keychain if there is one
-		if (Preferences.writeKeychain.hasUserValue()) {
+		if (Preferences.writeFile.hasUserValue()) {
 			// Use an nsIFile to expand ~ and so on in path
-			var file = new FileUtils.File(Preferences.writeKeychain.value);
+			var file = new FileUtils.File(Preferences.writeFile.value);
 			path = file.path;
 			Logger.log('Opening keychain for write: ' + path);
 			status = Security.SecKeychainOpen(

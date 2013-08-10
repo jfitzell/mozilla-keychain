@@ -36,9 +36,9 @@
 
 Components.utils.import('resource://gre/modules/XPCOMUtils.jsm');
 Components.utils.import('resource://gre/modules/Services.jsm');
-Components.utils.import("resource://macos-keychain/MacOSKeychain.jsm");
-Components.utils.import("resource://macos-keychain/Logger.jsm");
-Components.utils.import("resource://macos-keychain/Preferences.jsm");
+Components.utils.import('resource://macos-keychain/MacOSKeychain.jsm');
+Components.utils.import('resource://macos-keychain/Logger.jsm');
+Components.utils.import('resource://macos-keychain/Preferences.jsm');
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -46,51 +46,61 @@ const Ci = Components.interfaces;
 const EXPORTED_SYMBOLS = ['Importer'];
 
 var Importer = {};
-	
+
 /**
  * Check whether we should prompt the user to import their old logins.
  *	If we should and they confirm it, then start the import process.
  */
 Importer.confirmImport = function () {
-	Logger.log("confirmImport()");
-	
+	Logger.trace(arguments);
+
+	// At one point we changed the namespace for our preferences
+	//  so try migrating before importing and then check the value again
+	if (! Preferences.startupImportPrompt.hasUservalue) {
+		Preferences._migrateNamespace();
+	}
+
 	if (Preferences.startupImportPrompt.value) {
-		var flags = Services.prompt.BUTTON_POS_0 * Services.prompt.BUTTON_TITLE_IS_STRING +
-					Services.prompt.BUTTON_POS_1 * Services.prompt.BUTTON_TITLE_IS_STRING +
-					Services.prompt.BUTTON_POS_2 * Services.prompt.BUTTON_TITLE_IS_STRING;
+		var flags = (Services.prompt.BUTTON_POS_0
+					* Services.prompt.BUTTON_TITLE_IS_STRING)
+				+ (Services.prompt.BUTTON_POS_1
+					* Services.prompt.BUTTON_TITLE_IS_STRING)
+				+ (Services.prompt.BUTTON_POS_2
+					* Services.prompt.BUTTON_TITLE_IS_STRING);
 		var result = Services.prompt.confirmEx(null,
-						"Import saved logins into Keychain Services?",
-						"The Keychain Service Integration extension can import your existing saved logins into Keychain Services. This allows them to be shared with other applications on your computer. Your original logins will be left in place and will still be available if you disable this extension later. Do you want to import your saved logins now?",
-						flags, "Yes", "No", "No, but ask me later",
-						null, {});
-		
+				'Import saved logins into Keychain Services?',
+				"The Keychain Service Integration extension can import your existing saved logins into Keychain Services. This allows them to be shared with other applications on your computer. Your original logins will be left in place and will still be available if you disable this extension later. Do you want to import your saved logins now?",
+				flags, 'Yes', 'No', 'No, but ask me later',
+				null, {});
+
 		if (result == 0) {
 			try {
 				this.importLogins();
 			} catch (e) {
-				Logger.error('importLogins() failed with: ' + e);
+				Logger.error('Error importing logins', e);
 				return;
 			}
 		}
-		
+
 		if (result != 2)
 			Preferences.startupImportPrompt.value = false;
-	} 
+	}
 };
 
 /**
  * Import logins from the old login storage provider into the keychain.
  */
 Importer.importLogins = function () {
-	Logger.trace("importLogins()");
+	Logger.trace(arguments);
 	var logins = MacOSKeychain.defaultStorage.getAllLogins({});
-	
+
 	for (var i in logins) {
 		var login = logins[i];
 		try {
 			Logger.log('  Importing ' + login.username + '@' + login.hostname);
-			var items = MacOSKeychain.findKeychainItems(login.username, login.hostname,
-												login.formSubmitURL, login.httpRealm);
+			var items = MacOSKeychain.findKeychainItems(
+					login.username, login.hostname,
+					login.formSubmitURL, login.httpRealm);
 			if (items.length == 0) {
 				MacOSKeychain.addLogin(login);
 				Logger.log('   --> Success!');

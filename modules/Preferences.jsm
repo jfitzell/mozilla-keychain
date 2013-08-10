@@ -51,7 +51,7 @@ const EXPORTED_SYMBOLS = ['Preferences'];
 var Preferences = {};
 
 var __branch = null;
-function _branch() {
+function defaultBranch() {
 	if (!__branch) {
 		__branch = Services.prefs.getBranch(branchName);
 		__branch.QueryInterface(Ci.nsIPrefBranch);
@@ -60,7 +60,14 @@ function _branch() {
 	return __branch;
 };
 
-var Preference = function () {};
+var Preference = function (branch) {
+	if (branch) {
+		this._branch = Services.prefs.getBranch(branch);
+		this._branch.QueryInterface(Ci.nsIPrefBranch);
+	} else {
+		this._branch = defaultBranch();
+	}
+};
 Preference.prototype = {
 	get name() {
 		return this._name;
@@ -71,19 +78,20 @@ Preference.prototype = {
 	},
 
 	get path() {
-		return _branch().root + this._name;
+		return this._branch.root + this._name;
 	},
 
 	hasUserValue: function() {
-		return _branch().prefHasUserValue(this.name);
+		return this._branch.prefHasUserValue(this.name);
 	},
 
 	clear: function () {
-		return _branch().clearUserPref(this.name);
+		return this._branch.clearUserPref(this.name);
 	}
 };
 
-var BoolPreference = function (prefName) {
+var BoolPreference = function (prefName, branch) {
+	Preference.call(this, branch);
 	this.name = prefName;
 };
 BoolPreference.prototype = new Preference();
@@ -91,7 +99,7 @@ BoolPreference.prototype = new Preference();
 BoolPreference.prototype.__defineGetter__('value', function () {
 	Logger.trace('Getting boolean preference ' + this.name);
 	try {
-		var value = _branch().getBoolPref(this.name);
+		var value = this._branch.getBoolPref(this.name);
 		Logger.trace('Preference has value: ' + value);
 		return value;
 	} catch (e) {
@@ -102,11 +110,12 @@ BoolPreference.prototype.__defineGetter__('value', function () {
 
 BoolPreference.prototype.__defineSetter__('value', function (value) {
 	Logger.trace('Setting boolean preference ' + this.name + ' to ' + value);
-	_branch().setBoolPref(this.name, value);
+	this._branch.setBoolPref(this.name, value);
 });
 
 
-var StringPreference = function (prefName) {
+var StringPreference = function (prefName, branch) {
+	Preference.call(this, branch);
 	this.name = prefName;
 };
 StringPreference.prototype = new Preference();
@@ -114,7 +123,7 @@ StringPreference.prototype = new Preference();
 StringPreference.prototype.__defineGetter__('value', function () {
 	Logger.trace('Getting string preference ' + this.name);
 	try {
-		var value = _branch()
+		var value = this._branch
 			.getComplexValue(this.name, Ci.nsISupportsString)
 			.data;
 		Logger.trace('Preference has value: ' + value);
@@ -130,24 +139,39 @@ StringPreference.prototype.__defineSetter__('value', function (value) {
 	var str = Cc['@mozilla.org/supports-string;1']
 		.createInstance(Ci.nsISupportsString);
 	str.data = value;
-	_branch().setComplexValue(this.name, Ci.nsISupportsString, str);
+	this._branch.setComplexValue(this.name, Ci.nsISupportsString, str);
 });
 
 
 
 Preferences.startupImportPrompt = new BoolPreference('startup-import-prompt');
-Preferences.writeKeychain = new StringPreference('write-keychain');
-Preferences.searchKeychains = new StringPreference('search-keychains');
+Preferences.writeFile = new StringPreference('write-file');
+Preferences.searchPath = new StringPreference('search-path');
+Preferences.logDebug = new StringPreference('debug', 'signon.');
 
 
+/*
+ * Migrate preferences from our old namespace to the new one
+ *  and delete preferences in the old namespace.
+ */
+Preferences._migrateNamespace = function() {
+	var oldBranch = Services.prefs.getBranch(
+			'extensions.macos-keychain@fitzell.ca.');
+	oldBranch.QueryInterface(Ci.nsIPrefBranch);
 
-
+	if (oldBranch.prefHasUserValue('startup-import-prompt')) {
+		Logger.log('Migrating preferences...');
+		this.startupImportPrompt.value =
+				oldBranch.getBoolPref('startup-import-prompt');
+		oldBranch.deleteBranch('');
+	}
+};
 
 
 // function _getBoolPreference(prefName) {
 // 	Logger.trace('Getting boolean preference ' + prefName);
 // 	try {
-// 		var value = _branch().getBoolPreferencePref(prefName);
+// 		var value = this._branch.getBoolPreferencePref(prefName);
 // 		Logger.log('Preference has value: ' + value);
 // 		return value;
 // 	} catch (e) {
@@ -158,7 +182,7 @@ Preferences.searchKeychains = new StringPreference('search-keychains');
 //
 // function _setBoolPreference(prefName, value) {
 // 	Logger.trace('Setting boolean preference ' + prefName + ' to ' + value);
-// 	_branch().setBoolPreferencePref(prefName, value);
+// 	this._branch.setBoolPreferencePref(prefName, value);
 // };
 //
 // function bool(prefName, propertyName) {
