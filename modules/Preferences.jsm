@@ -97,10 +97,10 @@ var BoolPreference = function (prefName, branch) {
 BoolPreference.prototype = new Preference();
 
 BoolPreference.prototype.__defineGetter__('value', function () {
-	Logger.trace('Getting boolean preference ' + this.name);
 	try {
 		var value = this._branch.getBoolPref(this.name);
-		Logger.trace('Preference has value: ' + value);
+		Logger.trace('Boolean preference ' + this.path
+			+ ' has value: ' + value);
 		return value;
 	} catch (e) {
 		Logger.warning('Getting preference failed with: ' + e);
@@ -109,7 +109,7 @@ BoolPreference.prototype.__defineGetter__('value', function () {
 });
 
 BoolPreference.prototype.__defineSetter__('value', function (value) {
-	Logger.trace('Setting boolean preference ' + this.name + ' to ' + value);
+	Logger.trace('Setting boolean preference ' + this.path + ' to ' + value);
 	this._branch.setBoolPref(this.name, value);
 });
 
@@ -121,12 +121,12 @@ var StringPreference = function (prefName, branch) {
 StringPreference.prototype = new Preference();
 
 StringPreference.prototype.__defineGetter__('value', function () {
-	Logger.trace('Getting string preference ' + this.name);
 	try {
 		var value = this._branch
 			.getComplexValue(this.name, Ci.nsISupportsString)
 			.data;
-		Logger.trace('Preference has value: ' + value);
+		Logger.trace('String preference ' + this.path
+			+ ' has value: ' + value);
 		return value;
 	} catch (e) {
 		Logger.warning('Getting preference failed with: ' + e);
@@ -135,7 +135,7 @@ StringPreference.prototype.__defineGetter__('value', function () {
 });
 
 StringPreference.prototype.__defineSetter__('value', function (value) {
-	Logger.trace('Setting string preference ' + this.name + ' to ' + value);
+	Logger.trace('Setting string preference ' + this.path + ' to ' + value);
 	var str = Cc['@mozilla.org/supports-string;1']
 		.createInstance(Ci.nsISupportsString);
 	str.data = value;
@@ -148,6 +148,18 @@ Preferences.startupImportPrompt = new BoolPreference('startup-import-prompt');
 Preferences.writeFile = new StringPreference('write-file');
 Preferences.searchPath = new StringPreference('search-path');
 Preferences.logDebug = new StringPreference('debug', 'signon.');
+Preferences.allowRemoveAll = new BoolPreference('remove-all.allow');
+Preferences.allowSanitizePasswords = new BoolPreference('sanitize.allow');
+
+Preferences.mozilla = {};
+Preferences.mozilla.rememberSignons =
+	new BoolPreference('rememberSignons', 'signon.');
+Preferences.mozilla.autofillForms =
+	new BoolPreference('autofillForms', 'signon.');
+Preferences.mozilla.sanitizeOnShutdown =
+	new BoolPreference('sanitize.sanitizeOnShutdown', 'privacy.');
+Preferences.mozilla.sanitizePasswords =
+	new BoolPreference('clearOnShutdown.passwords', 'privacy.');
 
 
 /*

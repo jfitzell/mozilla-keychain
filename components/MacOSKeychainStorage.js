@@ -222,13 +222,15 @@ MacOSKeychainStorage.prototype = {
 		Logger.log('-> removeAllLogins()');
 		//return MacOSKeychain.defaultStorage.removeAllLogins();
 
+		if (!MacOSKeychain.confirmRemoveAll())
+			return;
 
 		var items = MacOSKeychain.findKeychainItems(
 				'' /*username*/, '' /*hostname*/,
 				'' /*formSubmitURL*/, '' /*httpRealm*/);
 
 		for ( var i in items ) {
-			Logger.log('  Deleting ' + items[i].serverName);
+			Logger.log('  Deleting ' + items[i].label);
 			items[i].delete();
 		}
 	},

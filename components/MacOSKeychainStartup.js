@@ -85,6 +85,7 @@ MacOSKeychainStartup.prototype = {
 				break;
 			case 'final-ui-startup':
 				Services.obs.removeObserver(this, 'final-ui-startup');
+				MacOSKeychain.confirmSanitizePasswords();
 				Importer.confirmImport();
 				break;
 		}

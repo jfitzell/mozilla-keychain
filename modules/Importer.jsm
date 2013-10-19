@@ -68,8 +68,8 @@ Importer.confirmImport = function () {
 				+ (Services.prompt.BUTTON_POS_2
 					* Services.prompt.BUTTON_TITLE_IS_STRING);
 		var result = Services.prompt.confirmEx(null,
-				'Import saved logins into Keychain Services?',
-				"The Keychain Service Integration extension can import your existing saved logins into Keychain Services. This allows them to be shared with other applications on your computer. Your original logins will be left in place and will still be available if you disable this extension later. Do you want to import your saved logins now?",
+				'Import saved passwords into keychain?',
+				"The Keychain Services Integration extension can import your " + Services.appinfo.name + " saved passwords into your keychain, allowing you to share them with other applications on your computer. Your original passwords will be left in place and will be available again if you later disable this extension. Would you like to import your saved passwords now?",
 				flags, 'Yes', 'No', 'No, but ask me later',
 				null, {});
 

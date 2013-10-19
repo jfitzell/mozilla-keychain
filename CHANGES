@@ -1,3 +1,8 @@
+1.1.7
+- Warn and try to catch when the Sanitizer is set to clear passwords on
+  shutdown. Prompt the user the first time this happens and ask them
+  whether this is what they intended. [Issue 50]
+
 1.1.6
 - Fix "Manage Passwords..." button on the security preferences panel
 - Improve logging when signon.debug is true

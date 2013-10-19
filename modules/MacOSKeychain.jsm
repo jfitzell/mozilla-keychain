@@ -40,6 +40,8 @@ Components.utils.import('resource://macos-keychain/frameworks/CoreFoundation.jsm
 Components.utils.import('resource://macos-keychain/frameworks/Security.jsm');
 Components.utils.import('resource://macos-keychain/KeychainServices.jsm');
 Components.utils.import('resource://macos-keychain/Logger.jsm');
+Components.utils.import('resource://macos-keychain/Preferences.jsm');
+
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -77,6 +79,17 @@ function _uri (uriString) {
 	//  even things like imap://localhost:143/ won't parse. We therefore
 	//  avoid the default parser.
 	// https://bugzilla.mozilla.org/show_bug.cgi?id=902688
+/****
+Comment from the above bug:
+> Which sounds like what I want, but it doesn't seem like this works at all if
+> you can't parse arbitrary URIs with it.
+When you ask the IO service for a new URI, then you're right, we don't accept
+arbitrary URIs. We only accept URIs that we stand a chance of handling.
+
+If you want to parse a string in a known URI format, then you probably want to
+use one of the nsIURLParser services. The default parser has contract id
+@mozilla.org/network/url-parser;1?auth=maybe but you can also use yes and no.
+****/
 	if ( scheme != 'imap'
 			&& (ios.getProtocolHandler(scheme).defaultPort != 0) ) {
 		return ios.newURI(uriString, null, null);
@@ -96,12 +109,12 @@ function _uri (uriString) {
 	}
 };
 
-
 /**
  * @namespace module:MacOSKeychain.MacOSKeychain
  */
-var MacOSKeychain = {};
-
+var MacOSKeychain = {
+	_shuttingDown: false, // indicates the application is shutting down
+};
 
 /**
  * An instance of the default storage component
@@ -126,6 +139,8 @@ MacOSKeychain.__defineGetter__('defaultStorage', function() {
  * @param {external:nsIFile} [outFile]
  */
 MacOSKeychain.initializeDefaultStorage = function (inFile, outFile) {
+	Logger.trace(arguments);
+
 	try {
 		if ('@mozilla.org/login-manager/storage/mozStorage;1' in Cc) {
 			_defaultStorage =
@@ -539,6 +554,33 @@ MacOSKeychain.supportedURL = function(hostname) {
 	return ! /^chrome:\/\//.test(hostname);
 };
 
+
+Services.obs.addObserver(MacOSKeychain, 'quit-application', false);
+Services.obs.addObserver(MacOSKeychain, 'quit-application-requested', false);
+
+MacOSKeychain.observe = function(subject, topic, data) {
+	Logger.trace(arguments);
+	switch(topic) {
+		case 'quit-application':
+			Services.obs.removeObserver(this, 'quit-application');
+			Services.obs.removeObserver(this, 'quit-application-requested');
+
+			this._shuttingDown = true;
+			break;
+
+		case 'quit-application-requested':
+			subject.QueryInterface(Ci.nsISupportsPRBool);
+      		if (! subject.data) {
+      			// If someone else has blocked shutdown, we don't need to prompt
+				if (! this.confirmSanitizePasswords(true)) {
+					// block application quit
+					subject.data = true;
+				}
+			}
+			break;
+	}
+};
+
 /**
  * Check that the application binary's signature can be verified.
  *  Returns true or false unless verification cannot be completed on the
@@ -547,6 +589,8 @@ MacOSKeychain.supportedURL = function(hostname) {
  * @returns {boolean|null}
  */
 MacOSKeychain.verifySignature = function() {
+	Logger.trace(arguments);
+
 	try { // These APIs were only added in OS X 10.6
 		var code = new Security.SecCodeRef;
 
@@ -579,25 +623,114 @@ MacOSKeychain.verifySignature = function() {
  * @returns {boolean}
  */
 MacOSKeychain.verifyConfiguration = function(logWarnings) {
-	var signonPrefs = Services.prefs.getBranch('signon.');
-	signonPrefs.QueryInterface(Ci.nsIPrefBranch);
+	Logger.trace(arguments);
 
 	var ok = true;
 	logWarnings = logWarnings || false;
 
-	if (! signonPrefs.getBoolPref('rememberSignons')) {
+	if (! Preferences.mozilla.rememberSignons.value) {
 		if (logWarnings)
 			Logger.warning('The preference signon.rememberSignons is set to false. Passwords will not be stored.');
 
 		ok = false;
 	}
 
-	if (! signonPrefs.getBoolPref('autofillForms')) {
+	if (! Preferences.mozilla.autofillForms.value) {
 		if (logWarnings)
 			Logger.warning('The preference signon.autofillForms is set to false. Password fields will not be filled with stored passwords.');
 
 		ok = false;
 	}
 
+	if (Preferences.mozilla.sanitizeOnShutdown.value
+		&& Preferences.mozilla.sanitizePasswords.value) {
+		if (logWarnings)
+			Logger.warning('The preferences privacy.sanitize.sanitizeOnShutdown and privacy.clearOnShutdown.passwords are set to true. '
+				+ Services.appinfo.name
+				+ ' will attempt to delete all Keychain items when shutting down.');
+
+		ok = false;
+	}
+
 	return ok;
+};
+
+
+/**
+ *
+ * Confirm that the user wants to remove all passwords
+ * @memberof module:MacOSKeychain.MacOSKeychain
+ * @returns {boolean}
+ */
+MacOSKeychain.confirmRemoveAll = function() {
+	Logger.trace(arguments);
+
+	if (Preferences.allowRemoveAll.hasUserValue()) {
+		return Preferences.allowRemoveAll.value;
+	} else if (this._shuttingDown) {
+		Logger.warning('Requested to remove all logins while shutting down but user has not explicitly enabled this behaviour for Keychain passwords. Cannot safely prompt the user now, so ignoring the request.');
+		return false;
+	} else {
+		var flags = (Services.prompt.BUTTON_POS_0
+					* Services.prompt.BUTTON_TITLE_IS_STRING)
+				+ (Services.prompt.BUTTON_POS_1
+					* Services.prompt.BUTTON_TITLE_IS_STRING)
+//				+ (Services.prompt.BUTTON_POS_2
+//					* Services.prompt.BUTTON_TITLE_IS_STRING);
+		var remember = {value: false}
+		var result = Services.prompt.confirmEx(null,
+				'Remove all passwords from keychain?',
+				Services.appinfo.name + " is asking to clear all saved passwords. This is not recommended when storing passwords in your keychain, since these passwords may be needed by other applications on your computer.",
+				flags, 'Keep passwords', 'Clear keychain', null,
+				'Remember my decision', remember);
+
+		if (remember.value) {
+			Preferences.allowRemoveAll.value = (result == 1);
+		}
+
+		return (result == 1);
+	}
+};
+
+MacOSKeychain.confirmSanitizePasswords = function(showCancel) {
+	Logger.trace(arguments);
+
+	showCancel = showCancel || false;
+
+	if (! (Preferences.mozilla.sanitizeOnShutdown.value
+			&& Preferences.mozilla.sanitizePasswords.value) ) {
+		return true; // passwords are not being sanitized, so no need to block
+	} else if (Preferences.allowSanitizePasswords.value) {
+		return true; // we're allowing sanitizing, so shutdown can proceed
+	} else {
+		var flags = (Services.prompt.BUTTON_POS_0
+					* Services.prompt.BUTTON_TITLE_IS_STRING)
+				+ (Services.prompt.BUTTON_POS_1
+					* Services.prompt.BUTTON_TITLE_IS_STRING);
+
+		if (showCancel) {
+			flags = flags
+				+ (Services.prompt.BUTTON_POS_2
+					* Services.prompt.BUTTON_TITLE_IS_STRING);
+		}
+
+		var result = Services.prompt.confirmEx(null,
+				'Clear keychain passwords on shutdown?',
+				'You have configured ' + Services.appinfo.name + ' to clear saved passwords when shutting down. This is not recommended when storing passwords in your keychain, since these passwords may be needed by other applications on your computer.',
+				flags, 'Keep passwords', 'Clear keychain', 'Cancel shutdown',
+				null, {});
+
+		if (result == 2) { // Cancel
+			return false; // Return false to cancel shutdown
+		} else {
+			if (result == 0) { // Keep (default)
+				Preferences.mozilla.sanitizePasswords.value = false;
+			} else if (result == 1) { // Clear
+				Preferences.allowSanitizePasswords.value = true;
+				Preferences.allowRemoveAll.value = true;
+			}
+		}
+
+		return true; // After updating preferences, shutdown can proceed
+	}
 };
