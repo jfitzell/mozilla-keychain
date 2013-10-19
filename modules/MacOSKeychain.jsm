@@ -104,7 +104,7 @@ use one of the nsIURLParser services. The default parser has contract id
 						uriString, null, null);
 			return url.QueryInterface(Ci.nsIURI);
 		} else {
-			throw Error('Unsupported URI: ', uriString);
+			throw Error('Unsupported URI: ' + uriString);
 		}
 	}
 };

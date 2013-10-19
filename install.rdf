@@ -40,7 +40,7 @@
   <Description about="urn:mozilla:install-manifest">
     <em:id>macos-keychain@fitzell.ca</em:id>
     <em:type>2</em:type> <!-- Extensions -->
-    <em:version>1.1.6</em:version>
+    <em:version>1.1.7a1</em:version>
 	<em:optionsURL>chrome://macos-keychain/content/options.xul</em:optionsURL>
 	<em:optionsType>2</em:optionsType>
 
