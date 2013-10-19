@@ -55,7 +55,6 @@ function KeychainItem(ref) {
 
 KeychainItem.prototype = {
 	initWithReference: function(keychainItemRef) {
-		this._reference = null;
 		this._persistentReference = null;
 		this._password = undefined;
 		this._attributes = undefined;
@@ -87,7 +86,6 @@ KeychainItem.prototype = {
 		};
 
 		if (keychainItemRef !== undefined) {
-			//this._reference = keychainItemRef;
 			this._persistentReference =
 					createPersistentReference(keychainItemRef);
 		}
@@ -139,9 +137,7 @@ KeychainItem.prototype = {
 
 	doWithRef: function(thisArg, func) {
 		var result;
-		if (this._reference) {
-			result = func.call(thisArg, this._reference);
-		} else if (! this._persistentReference) {
+		if (! this._persistentReference) {
 			throw Error('Cannot obtain a reference for KeychainItem without a persistent reference.');
 		} else {
 			/*
@@ -302,10 +298,23 @@ KeychainItem.prototype = {
 	 * @member
 	 */
 	get uriString() {
-		return this.protocolString
-				+ '://'
-				+ this.server
-				+ (this.port == 0 ? '' : ':' + this.port);
+		var server = this.server;
+		if (server === null)
+			return null;
+
+		var uri = '';
+
+		var scheme = this.protocolString;
+		if (scheme !== null)
+			uri += scheme + ':';
+
+		uri += '//' + this.server;
+
+		var port = this.port;
+		if (port != 0)
+			uri += ':' + port;
+
+		return uri;
 	},
 
 	/**
@@ -320,25 +329,13 @@ KeychainItem.prototype = {
 		});
 
 		testStatus(status, 'SecKeychainItemDelete');
-
-		this.release();
-	},
-
-	/**
-	 * @function
-	 */
-	release: function() {
-		if (this._reference !== null) {
-			CoreFoundation.CFRelease(this._reference);
-			this._reference = null;
-		}
 	},
 
 	/**
 	 * @function
 	 */
 	ensureStored: function() {
-		if (! this._reference && ! this._persistentReference)
+		if (! this._persistentReference)
 			throw Error('KeychainItem has no reference');
 	},
 

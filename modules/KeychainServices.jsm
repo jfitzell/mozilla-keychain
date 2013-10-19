@@ -256,9 +256,6 @@ var KeychainServices =
 				// Check whether we managed to get through the whole list
 				//  and release all keychainItemRefs if we hit an error
 				if (status != Security.errSecItemNotFound) {
-					for (var i in results) {
-						results[i].release();
-					}
 					if (! keychainItemRef.isNull())
 						CoreFoundation.CFRelease(keychainItemRef);
 					testStatus(status, 'SecKeychainSearchCopyNext');
