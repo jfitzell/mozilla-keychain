@@ -59,32 +59,6 @@ KeychainItem.prototype = {
 		this._password = undefined;
 		this._attributes = undefined;
 
-		function createPersistentReference(keychainItemRef) {
-			var persistentReference = new Array();
-			var dataRef = new CoreFoundation.CFDataRef;
-			try {
-				var status = Security.SecKeychainItemCreatePersistentReference(
-						keychainItemRef,
-						dataRef.address());
-				testStatus(status, 'SecKeychainItemCreatePersistentReference');
-
-				var length = CoreFoundation.CFDataGetLength(dataRef);
-				//var range = new CoreFoundation.CFRange(1, 1);
-				//var buffer = MacTypes.UInt8.array(length)();
-				//CoreFoundation.CFDataGetBytes(dataRef, range, buffer.addressOfElement(0));
-				var bytePtr = CoreFoundation.CFDataGetBytePtr(dataRef);
-				var buffer = (ctypes.cast(bytePtr, MacTypes.UInt8.array(length).ptr)).contents;
-
-				for (var i = 0; i < buffer.length; i++)
-					persistentReference[i] = buffer[i];
-			} finally {
-				if (! dataRef.isNull())
-					CoreFoundation.CFRelease(dataRef);
-			}
-
-			return persistentReference;
-		};
-
 		if (keychainItemRef !== undefined) {
 			this._persistentReference =
 					createPersistentReference(keychainItemRef);
@@ -182,8 +156,13 @@ KeychainItem.prototype = {
 			try {
 				result = func.call(thisArg, keychainItemRef);
 			} finally {
-				if (! keychainItemRef.isNull())
+				if (! keychainItemRef.isNull()) {
+					// update the persistent reference (changes to e.g. the
+					//  protocol attribute seem to invalidate it)
+					this._persistentReference =
+						createPersistentReference(keychainItemRef);
 					CoreFoundation.CFRelease(keychainItemRef);
+				}
 			}
 		}
 
@@ -342,7 +321,31 @@ KeychainItem.prototype = {
 };
 
 
+function createPersistentReference(keychainItemRef) {
+	var persistentReference = new Array();
+	var dataRef = new CoreFoundation.CFDataRef;
+	try {
+		var status = Security.SecKeychainItemCreatePersistentReference(
+				keychainItemRef,
+				dataRef.address());
+		testStatus(status, 'SecKeychainItemCreatePersistentReference');
 
+		var length = CoreFoundation.CFDataGetLength(dataRef);
+		//var range = new CoreFoundation.CFRange(1, 1);
+		//var buffer = MacTypes.UInt8.array(length)();
+		//CoreFoundation.CFDataGetBytes(dataRef, range, buffer.addressOfElement(0));
+		var bytePtr = CoreFoundation.CFDataGetBytePtr(dataRef);
+		var buffer = (ctypes.cast(bytePtr, MacTypes.UInt8.array(length).ptr)).contents;
+
+		for (var i = 0; i < buffer.length; i++)
+			persistentReference[i] = buffer[i];
+	} finally {
+		if (! dataRef.isNull())
+			CoreFoundation.CFRelease(dataRef);
+	}
+
+	return persistentReference;
+};
 
 
 
