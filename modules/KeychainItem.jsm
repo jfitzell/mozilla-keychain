@@ -293,6 +293,10 @@ KeychainItem.prototype = {
 		if (port != 0)
 			uri += ':' + port;
 
+		var path = this.path;
+		if (path !== null)
+			uri += path;
+
 		return uri;
 	},
 

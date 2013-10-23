@@ -135,7 +135,7 @@ MacOSKeychainStorage.prototype = {
 
 
 		if (! MacOSKeychain.supportedURL(login.hostname)) {
-			Logger.warning('Chrome URLs are not currently supported. Falling back on mozilla storage...');
+			Logger.warning('URL scheme not currently supported. Falling back on mozilla storage...');
 			return MacOSKeychain.defaultStorage.removeLogin(login);
 		}
 
@@ -164,7 +164,7 @@ MacOSKeychainStorage.prototype = {
 
 
 		if (! MacOSKeychain.supportedURL(oldLogin.hostname)) {
-			Logger.warning('Chrome URLs are not currently supported. Falling back on mozilla storage...');
+			Logger.warning('URL scheme not currently supported. Falling back on mozilla storage...');
 			return MacOSKeychain.defaultStorage.modifyLogin(oldLogin, newLogin);
 		}
 
@@ -287,7 +287,7 @@ MacOSKeychainStorage.prototype = {
 
 
 		if (! MacOSKeychain.supportedURL(hostname)) {
-			Logger.warning('Chrome URLs are not currently supported. Falling back on mozilla storage...');
+			Logger.warning('URL scheme not currently supported. Falling back on mozilla storage...');
 			return MacOSKeychain.defaultStorage.findLogins(count, hostname, formSubmitURL, httpRealm);
 		}
 
@@ -348,7 +348,7 @@ MacOSKeychainStorage.prototype = {
 
 
 		if (! MacOSKeychain.supportedURL(hostname)) {
-			Logger.warning('Chrome URLs are not currently supported. Falling back on mozilla storage...');
+			Logger.warning('URL scheme not currently supported. Falling back on mozilla storage...');
 			return MacOSKeychain.defaultStorage.countLogins(hostname, formSubmitURL, httpRealm);
 		}
 

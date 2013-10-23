@@ -41,14 +41,13 @@ Components.utils.import('resource://macos-keychain/frameworks/Security.jsm');
 Components.utils.import('resource://macos-keychain/KeychainServices.jsm');
 Components.utils.import('resource://macos-keychain/Logger.jsm');
 Components.utils.import('resource://macos-keychain/Preferences.jsm');
+Components.utils.import('resource://macos-keychain/URL.jsm');
 
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
 const ContractID_LoginInfo = '@mozilla.org/login-manager/loginInfo;1';
-const ContractID_IOService = '@mozilla.org/network/io-service;1';
-const ContractID_StandardURL = '@mozilla.org/network/standard-url;1';
 
 /** @module MacOSKeychain */
 
@@ -67,47 +66,6 @@ const LoginInfo = new Components.Constructor(
 // Holds an instance of the default storage component we replaced
 var _defaultStorage = null;
 
-/**
- * Return a new URI object for the given string
- */
-function _uri (uriString) {
-	var ios = Cc[ContractID_IOService].getService(Ci.nsIIOService);
-
-	var scheme = uriString.replace(/^([^:]+):.*$/, '$1');
-
-	// The default parser doesn't seem to support port numbers for IMAP, so
-	//  even things like imap://localhost:143/ won't parse. We therefore
-	//  avoid the default parser.
-	// https://bugzilla.mozilla.org/show_bug.cgi?id=902688
-/****
-Comment from the above bug:
-> Which sounds like what I want, but it doesn't seem like this works at all if
-> you can't parse arbitrary URIs with it.
-When you ask the IO service for a new URI, then you're right, we don't accept
-arbitrary URIs. We only accept URIs that we stand a chance of handling.
-
-If you want to parse a string in a known URI format, then you probably want to
-use one of the nsIURLParser services. The default parser has contract id
-@mozilla.org/network/url-parser;1?auth=maybe but you can also use yes and no.
-****/
-	if ( scheme != 'imap'
-			&& (ios.getProtocolHandler(scheme).defaultPort != 0) ) {
-		return ios.newURI(uriString, null, null);
-	} else { // rather than use Mozilla's default handler, we make our own
-			 // so we can support more port numbers
-		var protocol = Security.protocolForScheme(scheme);
-
-		if (protocol != null) {
-			var url = Cc[ContractID_StandardURL].
-						createInstance(Ci.nsIStandardURL);
-			url.init(url.URLTYPE_STANDARD, protocol.defaultPort,
-						uriString, null, null);
-			return url.QueryInterface(Ci.nsIURI);
-		} else {
-			throw Error('Unsupported URI: ' + uriString);
-		}
-	}
-};
 
 /**
  * @namespace module:MacOSKeychain.MacOSKeychain
@@ -197,14 +155,13 @@ MacOSKeychain.convertKeychainItemToLoginInfo = function (item) {
 			+ this.debugStringForKeychainItem(item) + ')');
 	var info = new LoginInfo();
 
-	var uriString = item.uriString;
-	Logger.log('  URI String: ' + uriString);
-	var uri = _uri(uriString);
-	// Remove the trailing slash from the URI since LoginManager doesn't put
-	//	it there and uses a strict string comparison when checking the results
-	//	of a find operation to determine if any of the LoginInfos is an exact match.
-	var hostname = uri.spec.substring(0, uri.spec.length - 1);
-	Logger.log('  Parsed URI: ' + hostname);
+	var urlString = item.uriString;
+	Logger.log('  Item URL: ' + urlString);
+	var url = URL.newURL(urlString);
+	_clearDefaultPort(url);
+
+	var hostname = url.prePath;
+	Logger.log('  Inferred Mozilla URL: ' + hostname);
 
 	var formSubmitURL, httpRealm;
 	if (Security.kSecAuthenticationTypeHTMLForm == item.authenticationType) {
@@ -452,10 +409,11 @@ MacOSKeychain.splitLoginInfoHostname = function (hostname) {
 	var port = null;
 	if (hostname) {
 		try {
-			var uri = _uri(hostname);
-			scheme = uri.scheme;
-			host = uri.host;
-			port = uri.port;
+			var url = URL.newURL(hostname);
+			_clearDefaultPort(url)
+			scheme = url.scheme;
+			host = url.host;
+			port = url.port;
 		} catch (e) {
 			throw Error('Unable to split hostname: ' + e);
 		}
@@ -551,7 +509,17 @@ MacOSKeychain.addLogin = function (login) {
  * @returns {boolean}
  */
 MacOSKeychain.supportedURL = function(hostname) {
-	return ! /^chrome:\/\//.test(hostname);
+	if (!hostname)
+		return true;
+
+	try {
+		var uri = URL.newURI(hostname);
+		var protocol = Security.protocolForScheme(uri.scheme);
+		return (protocol != null);
+	} catch (e) {
+		Logger.error(e);
+		return false;
+	}
 };
 
 
@@ -734,3 +702,9 @@ MacOSKeychain.confirmSanitizePasswords = function(showCancel) {
 		return true; // After updating preferences, shutdown can proceed
 	}
 };
+
+function _clearDefaultPort(url) {
+	var protocolData = Security.protocolForScheme(url.scheme);
+	if (protocolData && protocolData.defaultPort == url.port)
+		url.port = -1;
+}
