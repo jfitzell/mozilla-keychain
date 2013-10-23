@@ -44,6 +44,8 @@ Cu.import('resource://macos-keychain/frameworks/Security.jsm');
 Cu.import('resource://macos-keychain/Logger.jsm');
 Cu.import('resource://macos-keychain/Preferences.jsm');
 Cu.import('resource://macos-keychain/KeychainItem.jsm');
+Cu.import('resource://macos-keychain/System.jsm');
+
 
 /**
  * @module KeychainServices
@@ -126,6 +128,8 @@ var KeychainServices =
 
 		try {
 			var item = new KeychainItem(keychainItemRef);
+			item.creator = System.applicationCreatorCode();
+
 			if (comment)
 				item.comment = comment;
 

@@ -51,7 +51,10 @@ System.applicationCreatorCode = function() {
 
 	var creator = new MacTypes.UInt32;
 	CoreFoundation.CFBundleGetPackageInfo(bundle, null, creator.address());
-	return MacTypes.stringFromFourCharCode(creator.value);
+	if (creator.value == 0)
+		return null;
+	else
+		return creator.value;
 };
 
 System.launchApplication = function(bundleId) {
