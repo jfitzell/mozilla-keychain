@@ -58,6 +58,7 @@ cf.CFURLRef = new ctypes.StructType('__CFURL').ptr;
 cf.CFDataRef = new ctypes.StructType('__CFData').ptr;
 cf.CFAllocatorRef = new ctypes.StructType('__CFAllocator').ptr;
 cf.CFArrayRef = new ctypes.StructType('__CFArray').ptr;
+cf.CFBundleRef = new ctypes.StructType('__CFBundle').ptr;
 
 
 /*
@@ -132,6 +133,21 @@ cf.declare('CFArrayCreate',
 				ctypes.voidptr_t.ptr, // values
 				CoreFoundation.CFIndex, // numValues
 				ctypes.voidptr_t); // CFArrayCallbacks* callBacks
+
+
+/*
+ * CFBundle functions
+ */
+cf.declare('CFBundleGetMainBundle',
+				ctypes.default_abi,
+				CoreFoundation.CFBundleRef);
+
+cf.declare('CFBundleGetPackageInfo',
+				ctypes.default_abi,
+				ctypes.void_t,
+				CoreFoundation.CFBundleRef,  // bundle
+				MacTypes.UInt32.ptr, // packageType
+				MacTypes.UInt32.ptr); // packageCreator
 
 
 /*
