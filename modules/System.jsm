@@ -35,6 +35,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 Components.utils.import('resource://macos-keychain/frameworks/CoreFoundation.jsm');
+Components.utils.import('resource://macos-keychain/frameworks/CoreServices.jsm');
 Components.utils.import('resource://macos-keychain/frameworks/MacTypes.jsm');
 
 /** @module System */
@@ -51,4 +52,14 @@ System.applicationCreatorCode = function() {
 	var creator = new MacTypes.UInt32;
 	CoreFoundation.CFBundleGetPackageInfo(bundle, null, creator.address());
 	return MacTypes.stringFromFourCharCode(creator.value);
-}
+};
+
+System.launchApplication = function(bundleId) {
+	var fsRef = new CoreServices.FSRef();
+	var bundleIdString = CoreFoundation.JSStringToCFString(bundleId);
+	CoreServices.LSFindApplicationForInfo(0, bundleIdString, null, fsRef.address(), null);
+	CoreFoundation.CFRelease(bundleIdString);
+	CoreServices.LSOpenFSRef(fsRef.address(), null);
+	CoreServices.close();
+	CoreFoundation.close();
+};
