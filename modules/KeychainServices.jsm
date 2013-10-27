@@ -88,7 +88,9 @@ var KeychainServices =
 									securityDomain,
 									comment,
 									label) {
-		Logger.trace(arguments);
+		cleanArgs = Array.slice(arguments);
+		cleanArgs[1] = '(omitted)';
+		Logger.trace(cleanArgs);
 
 		// Set default values for optional parameters that Keychain requires
 		port = port || 0;
@@ -153,7 +155,9 @@ var KeychainServices =
 									serviceName,
 									comment,
 									label) {
-		Logger.trace(arguments);
+		cleanArgs = Array.slice(arguments);
+		cleanArgs[1] = '(omitted)';
+		Logger.trace(cleanArgs);
 
 		var serviceNameData = convertString(serviceName, ctypes.char.ptr);
 		var accountNameData = convertString(accountName, ctypes.char.ptr);
