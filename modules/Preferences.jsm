@@ -44,31 +44,23 @@ Components.utils.import('resource://macos-keychain/Constants.jsm', constants);
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
-const branchName = 'extensions.' + constants.extensionId + '.';
+const defaultBranchName = 'extensions.' + constants.extensionId + '.';
+const defaultBranch = Services.prefs.getBranch(defaultBranchName);
 
 const EXPORTED_SYMBOLS = ['Preferences'];
 
 var Preferences = {};
 
-var __branch = null;
-function defaultBranch() {
-	if (!__branch) {
-		__branch = Services.prefs.getBranch(branchName);
-		__branch.QueryInterface(Ci.nsIPrefBranch);
-	}
 
-	return __branch;
-};
-
-var Preference = function (branch) {
-	if (branch) {
-		this._branch = Services.prefs.getBranch(branch);
-		this._branch.QueryInterface(Ci.nsIPrefBranch);
-	} else {
-		this._branch = defaultBranch();
-	}
-};
+var Preference = function () {};
 Preference.prototype = {
+	init: function (name, type, branch) {
+		this._name = name;
+		this._expectedType = type;
+		this._branch = branch ?
+			Services.prefs.getBranch(branch) : defaultBranch;
+	},
+
 	get name() {
 		return this._name;
 	},
@@ -77,8 +69,49 @@ Preference.prototype = {
 		this._name = prefName;
 	},
 
+	get value() {
+		if (! this.hasValue()) {
+			Logger.trace('Using default value for preference ' + this.path
+					+ ': ' + this.defaultValue);
+			return this.defaultValue;
+		} else if (this._branch.getPrefType(this.name) != this._expectedType) {
+			throw new Error('Preference ' + this.path
+				+ ' does not have expected type.');
+		} else {
+			try {
+				var prefValue = this._getValue();
+				Logger.trace('Preference ' + this.path
+					+ ' has value: ' + prefValue);
+				return prefValue;
+			} catch (e) {
+				Logger.error('Getting preference failed', e);
+				return undefined;
+			}
+		}
+	},
+
+	set value(prefValue) {
+		try {
+			Logger.trace('Setting preference ' + this.path +
+				' to ' + prefValue);
+			this._setValue(prefValue);
+		} catch (e) {
+			Logger.error('Setting preference failed', e);
+			throw e;
+		}
+	},
+
+	get defaultValue() {
+		return null;
+	},
+
 	get path() {
-		return this._branch.root + this._name;
+		return this._branch.root + this.name;
+	},
+
+	hasValue: function() {
+		return this._branch.getPrefType(this.name) !=
+			defaultBranch.PREF_INVALID;
 	},
 
 	hasUserValue: function() {
@@ -91,58 +124,39 @@ Preference.prototype = {
 };
 
 var BoolPreference = function (prefName, branch) {
-	Preference.call(this, branch);
-	this.name = prefName;
+	this.init(prefName, defaultBranch.PREF_BOOL, branch);
 };
 BoolPreference.prototype = new Preference();
 
-BoolPreference.prototype.__defineGetter__('value', function () {
-	try {
-		var value = this._branch.getBoolPref(this.name);
-		Logger.trace('Boolean preference ' + this.path
-			+ ' has value: ' + value);
-		return value;
-	} catch (e) {
-		Logger.warning('Getting preference failed with: ' + e);
-		return undefined;
-	}
-});
+BoolPreference.prototype._getValue = function () {
+	return this._branch.getBoolPref(this.name);
+};
 
-BoolPreference.prototype.__defineSetter__('value', function (value) {
-	Logger.trace('Setting boolean preference ' + this.path + ' to ' + value);
+BoolPreference.prototype._setValue = function (value) {
 	this._branch.setBoolPref(this.name, value);
-});
+};
 
 
 var StringPreference = function (prefName, branch) {
-	Preference.call(this, branch);
-	this.name = prefName;
+	this.init(prefName, defaultBranch.PREF_STRING, branch);
 };
 StringPreference.prototype = new Preference();
 
-StringPreference.prototype.__defineGetter__('value', function () {
-	try {
-		var value = this._branch
+StringPreference.prototype._getValue = function () {
+	return this._branch
 			.getComplexValue(this.name, Ci.nsISupportsString)
 			.data;
-		Logger.trace('String preference ' + this.path
-			+ ' has value: ' + value);
-		return value;
-	} catch (e) {
-		Logger.warning('Getting preference failed with: ' + e);
-		return undefined;
-	}
-});
+};
 
-StringPreference.prototype.__defineSetter__('value', function (value) {
-	Logger.trace('Setting string preference ' + this.path + ' to ' + value);
+StringPreference.prototype._setValue = function (value) {
 	var str = Cc['@mozilla.org/supports-string;1']
 		.createInstance(Ci.nsISupportsString);
 	str.data = value;
 	this._branch.setComplexValue(this.name, Ci.nsISupportsString, str);
-});
+};
 
-
+Preferences.BoolPreference = BoolPreference;
+Preferences.StringPreference = StringPreference;
 
 Preferences.startupImportPrompt = new BoolPreference('startup-import-prompt');
 Preferences.writeFile = new StringPreference('write-file');
@@ -169,7 +183,6 @@ Preferences.mozilla.sanitizePasswords =
 Preferences._migrateNamespace = function() {
 	var oldBranch = Services.prefs.getBranch(
 			'extensions.macos-keychain@fitzell.ca.');
-	oldBranch.QueryInterface(Ci.nsIPrefBranch);
 
 	if (oldBranch.prefHasUserValue('startup-import-prompt')) {
 		Logger.log('Migrating preferences...');
