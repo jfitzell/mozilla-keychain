@@ -56,9 +56,7 @@ URL.parse = function(urlString) {
 		spec: urlString
 	};
 
-	function setAttribute(attribute, str, positionAndLength) {
-		let position = positionAndLength[0].value;
-		let length = positionAndLength[1].value;
+	function setAttribute(attribute, str, position, length) {
 		url[attribute] = (length <= 0) ? null :
 			str.substr(position, length);
 	}
