@@ -513,8 +513,8 @@ MacOSKeychain.supportedURL = function(hostname) {
 		return true;
 
 	try {
-		var uri = URL.newURI(hostname);
-		var protocol = Security.protocolForScheme(uri.scheme);
+		var url = URL.newURL(hostname);
+		var protocol = Security.protocolForScheme(url.scheme);
 		return (protocol != null);
 	} catch (e) {
 		Logger.error(e);
