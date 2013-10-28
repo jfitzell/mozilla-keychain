@@ -363,7 +363,7 @@ MacOSKeychain.findKeychainItems = function (username, hostname, formSubmitURL, h
 	var authType;
 	if ('' == formSubmitURL && '' == httpRealm) // match ANY type
 		authType = null;
-	else if (null != formSubmitURL) // match form logins only
+	else if (formSubmitURL) // not null or '', so match form logins only
 		authType = Security.kSecAuthenticationTypeHTMLForm;
 	else // match non-form logins only
 		authType = Security.kSecAuthenticationTypeDefault;
