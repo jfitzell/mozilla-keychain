@@ -2,6 +2,9 @@
 - Warn and try to catch when the Sanitizer is set to clear passwords on
   shutdown. Prompt the user the first time this happens and ask them
   whether this is what they intended. [Issue 50]
+- Handle trying to read preferences that aren't set
+- Make sure we don't log passwords to disk, even if trace leve logging
+  is enabled
 
 1.1.6
 - Fix "Manage Passwords..." button on the security preferences panel

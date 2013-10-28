@@ -160,6 +160,11 @@ MacOSKeychain.convertKeychainItemToLoginInfo = function (item) {
 	var url = URL.newURL(urlString);
 	_clearDefaultPort(url);
 
+	if (url.scheme == 'pop' && _needPOPRewrite()) {
+		Logger.log('  (rewriting pop:// to mailbox://)');
+		url.scheme = 'mailbox';
+	}
+
 	var hostname = url.prePath;
 	Logger.log('  Inferred Mozilla URL: ' + hostname);
 
@@ -419,9 +424,14 @@ MacOSKeychain.splitLoginInfoHostname = function (hostname) {
 		}
 		if (port == -1) // -1 indicates default port for the protocol
 			port = null;
+
+		if ((scheme == 'mailbox' || scheme == 'pop3') && _needPOPRewrite()) {
+			Logger.log('  (rewriting ' + scheme + ':// to pop://)');
+			scheme = 'pop';
+		}
 	}
 
-	Logger.log('  scheme:' + scheme + ' host:' + host + ' port:' + port);
+	Logger.trace('  scheme:' + scheme + ' host:' + host + ' port:' + port);
 	return [scheme, host, port];
 };
 
@@ -515,7 +525,8 @@ MacOSKeychain.supportedURL = function(hostname) {
 	try {
 		var url = URL.newURL(hostname);
 		var protocol = Security.protocolForScheme(url.scheme);
-		return (protocol != null);
+		return (protocol != null) || (url.scheme == 'mailbox')
+			|| (url.scheme == 'pop3');
 	} catch (e) {
 		Logger.error(e);
 		return false;
@@ -707,4 +718,11 @@ function _clearDefaultPort(url) {
 	var protocolData = Security.protocolForScheme(url.scheme);
 	if (protocolData && protocolData.defaultPort == url.port)
 		url.port = -1;
+}
+
+function _needPOPRewrite() {
+	// Thunderbird uses pop3:// and mailbox:// instead of pop://
+	//  so we need to convert
+	return Services.io.getProtocolHandler('pop').scheme == 'pop3'
+		&& Services.io.getProtocolHandler('mailbox').scheme == 'mailbox'
 }
