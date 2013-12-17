@@ -90,7 +90,7 @@ var KeychainServices =
 									securityDomain,
 									comment,
 									label) {
-		cleanArgs = Array.slice(arguments);
+		var cleanArgs = Array.slice(arguments);
 		cleanArgs[1] = '(omitted)';
 		Logger.trace(cleanArgs);
 
