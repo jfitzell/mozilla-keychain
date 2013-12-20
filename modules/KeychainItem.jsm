@@ -77,7 +77,7 @@ KeychainItem.prototype = {
 			negative: Security.kSecNegativeItemAttr,
 			account: Security.kSecAccountItemAttr,
 			service: Security.kSecServiceItemAttr,
-			//securityDomain: Security.kSecSecurityDomainItemAttr,
+			securityDomain: Security.kSecSecurityDomainItemAttr,
 			server: Security.kSecServerItemAttr,
 			authenticationType: Security.kSecAuthenticationTypeItemAttr,
 			port: Security.kSecPortItemAttr,

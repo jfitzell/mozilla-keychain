@@ -168,6 +168,11 @@ MacOSKeychain.convertKeychainItemToLoginInfo = function (item) {
 	var hostname = url.prePath;
 	Logger.log('  Inferred Mozilla URL: ' + hostname);
 
+	/* From https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginInfo
+	   formSubmitURL: "This field is null for logins attained from
+	     protocol authentications"
+	   on httpRealm: "For logins obtained from HTML forms, this field is null."
+	*/
 	var formSubmitURL, httpRealm;
 	if (Security.kSecAuthenticationTypeHTMLForm == item.authenticationType) {
 		// nsLoginInfo.matches() allows two instances to match on the
@@ -178,7 +183,7 @@ MacOSKeychain.convertKeychainItemToLoginInfo = function (item) {
 		httpRealm = null;
 	} else { // non-form logins
 		formSubmitURL = null;
-		httpRealm = item.securityDomain;
+		httpRealm = item.securityDomain || '';
 	}
 
 	// We cannot store the usernameField and passwordField. According to:
@@ -360,13 +365,27 @@ MacOSKeychain.findKeychainItems = function (username, hostname, formSubmitURL, h
 	else
 		securityDomain = httpRealm;
 
-	var authType;
-	if ('' == formSubmitURL && '' == httpRealm) // match ANY type
+	var authType, securityDomain;
+	if (null == formSubmitURL && null == httpRealm) {
+		// nulls match no entries
+		return [];
+	} else if ('' == formSubmitURL && '' == httpRealm) {
+		// match ANY type and ANY domain
 		authType = null;
-	else if (formSubmitURL) // not null or '', so match form logins only
+		securityDomain = null;
+	} else if (null != formSubmitURL) {
+		// match form logins only
 		authType = Security.kSecAuthenticationTypeHTMLForm;
-	else // match non-form logins only
+		// Form logins shouldn't have a realm; we just ignore for searching
+		//  in case some other application has set one
+		securityDomain = null;
+	} else if (null != httpRealm) {
+		// match non-form logins only
 		authType = Security.kSecAuthenticationTypeDefault;
+		securityDomain = httpRealm;
+	} else {
+		throw Error("Invalid state!");
+	}
 
 	var protocol = scheme === null ? null : Security.protocolTypeForScheme(scheme);
 
