@@ -16,3 +16,18 @@ KeychainServices.addInternetPassword();
 
 KeychainServices.addInternetPassword(null, null, null, null, null,
 		null, null, null, null, null);
+
+
+var loginManager = Components.classes["@mozilla.org/login-manager;1"].getService(
+	Components.interfaces.nsILoginManager
+);
+
+var nsLoginInfo = new Components.Constructor(
+	"@mozilla.org/login-manager/loginInfo;1",
+	Components.interfaces.nsILoginInfo,
+	"init"
+);
+
+var login = new nsLoginInfo('about:me', null, 'User Registration', 'bob', '123sEcReT', '', '');
+
+loginManager.addLogin(login);
