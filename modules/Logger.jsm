@@ -40,6 +40,11 @@ Components.utils.import('resource://gre/modules/Services.jsm');
 var constants = {};
 Components.utils.import('resource://macos-keychain/Constants.jsm', constants);
 
+var WebAPI = {};
+// https://developer.mozilla.org/en-US/docs/Web/API/console
+XPCOMUtils.defineLazyModuleGetter(WebAPI, "console",
+                                 "resource://gre/modules/devtools/Console.jsm");
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
@@ -64,6 +69,32 @@ function logSystemConsoleMessage(message) {
 	dump(constants.logPrefix + ': ' + message + "\n");
 };
 
+/**
+ * Log a stack trace to the system console
+ * @param {Array} stack An array of stack frame objects as returned
+ *  by {@link stackTrace()}
+ */
+function logStackTrace(stack) {
+	var frame = stack[0];
+	if (! frame)
+		return;
+
+	var consoleEvent = {
+		ID: "keychain",
+		innerID: frame.filename,
+		level: "trace",
+		filename: frame.filename,
+		lineNumber: frame.lineNumber,
+		functionName: frame.functionName,
+		timeStamp: Date.now(),
+		arguments: [],
+		stacktrace: stack,
+	};
+
+	consoleEvent.wrappedJSObject = consoleEvent;
+
+	Services.obs.notifyObservers(consoleEvent, "console-api-log-event", null);
+};
 
 // mirrors signon.debug
 var _debugEnabled = false;
@@ -111,7 +142,7 @@ initDebugEnabled();
  * Generate a stack trace for the caller or, if provided, an exception
  *
  * @param {exception} [e] An exception from which to generate a stack trace
- * @returns {Array<{fn:String, file:String, line:String}>}
+ * @returns {Array<{functionName:String, filename:String, lineNumber:String}>}
  */
 function stackTrace(e) {
 	var exception = e;
@@ -129,9 +160,9 @@ function stackTrace(e) {
 	return exception.stack.split("\n").slice(drop,-1).map(function(s) {
 		var matches = /^([^@]*)@(.*):(\d*)$/.exec(s);
 		return {
-			fn: matches[1] || null,
-			file: matches[2] || null,
-			line: matches[3] || null
+			functionName: matches[1] || null,
+			filename: matches[2] || null,
+			lineNumber: matches[3] || null
 		};
 	});
 };
@@ -143,12 +174,12 @@ function stackTrace(e) {
  * @param {object} frame A stack frame object returned by {@link stackTrace()}
  */
 function sourceLineLocation(frame) {
-	if (frame.file || frame.line) {
+	if (frame.filename || frame.lineNumber) {
 		return ' ['
-			+ (frame.file
-				? frame.file.split('/').slice(-2).join('/')
+			+ (frame.filename
+				? frame.filename.split('/').slice(-2).join('/')
 				: '')
-			+ (frame.line ? (':' + frame.line) : '')
+			+ (frame.lineNumber ? (':' + frame.lineNumber) : '')
 			+ ']';
 	} else {
 		return '';
@@ -184,15 +215,15 @@ function logScriptError(flags, loggerFrames, messageOrException, exception) {
 
 	// Get a stack trace from the exception if it was passed in, or from
 	//  our caller otherwise, and grab the top stack frame
-	var frame;
+	var stack;
 	if (exception && exception.stack) {
-		frame = stackTrace(exception)[0];
+		stack = stackTrace(exception);
 	} else {
 		// 1 for this function, frames in the logger module, and user frames
-		frame = stackTrace().slice(1 + loggerFrames)[0];
+		stack = stackTrace().slice(1 + loggerFrames);
 	}
 	// make sure we don't have an undefined frame
-	frame = frame || {};
+	var frame = stack[0] || {};
 
 
 	// First log to the system console if we're debugging
@@ -207,9 +238,12 @@ function logScriptError(flags, loggerFrames, messageOrException, exception) {
 	var scriptError = Cc["@mozilla.org/scripterror;1"]
 			.createInstance(Ci.nsIScriptError);
 	scriptError.init(constants.logPrefix + ': ' + message,
-			frame.file, null, frame.line, null,
+			frame.filename, null, frame.lineNumber, null,
 			flags, 'component javascript');
 	Services.console.logMessage(scriptError);
+
+	if (_debugEnabled)
+		logStackTrace(stack);
 }
 
 /**
@@ -290,8 +324,10 @@ var Logger = {
 
 		logSystemConsoleMessage('+  '
 				+ message
-				+ ((message && frame.fn) ? '   in ' : '')
-				+ (frame.fn ? (frame.fn + '(' + args + ')') : '')
+				+ ((message && frame.functionName) ? '   in ' : '')
+				+ (frame.functionName ?
+					(frame.functionName + '(' + args + ')') :
+					'')
 				+ sourceLineLocation(frame) );
 	},
 
@@ -319,5 +355,23 @@ var Logger = {
 		// Log an error and drop one stack frame
 		logScriptError(Ci.nsIScriptError.errorFlag, 1,
 				messageOrException, exception);
+	},
+
+	/**
+	 * Log a full representation of an object to the Browser Console
+	 *
+	 * @param {*} object the object to dump
+	 */
+	dump: function(object) {
+		if (_debugEnabled)
+			WebAPI.console.log(object);
+	},
+
+	/**
+	 * Log a stack trace from this point to the Browser Console
+	 */
+	stackTrace: function() {
+		if (_debugEnabled)
+			WebAPI.console.trace();
 	},
 };
