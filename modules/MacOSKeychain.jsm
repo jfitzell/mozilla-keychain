@@ -213,11 +213,22 @@ MacOSKeychain.convertKeychainItemToLoginInfo = function (item) {
 				item.account, null,
 				'' /*usernameField*/, '' /*passwordField*/);
 
-	info.wrappedJSObject.__defineGetter__('password', function() {return item.password});
+	// Proxy requires Gecko 18
+	// @see {https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy}
+	var passwordHandler = {
+		get: function(target, name) {
+			if (name == "password") {
+				console.trace();
+				return item.password;
+			} else
+				return target[name];
+		}
+	};
+	var infoProxy = new Proxy(info, passwordHandler);
 
-	Logger.trace('Converted LoginInfo: ' + this.debugStringForLoginInfo(info));
+	Logger.trace('Converted LoginInfo: ' + this.debugStringForLoginInfo(infoProxy));
 
-	return info;
+	return infoProxy;
 };
 
 /**
