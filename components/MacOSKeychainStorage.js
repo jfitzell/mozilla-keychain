@@ -153,7 +153,7 @@ MacOSKeychainStorage.prototype = {
 	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#modifyLogin()}
 	 */
 	modifyLogin: function (oldLogin, newLoginData) {
-		Logger.log('-> removeLogin('
+		Logger.log('-> modifyLogin('
 			+ MacOSKeychain.debugStringForLoginInfo(oldLogin)
 			+ ', '
 			+ ((newLoginData instanceof Ci.nsILoginInfo) ?
