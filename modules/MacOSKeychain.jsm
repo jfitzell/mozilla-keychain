@@ -125,22 +125,20 @@ MacOSKeychain.__defineGetter__('defaultStorage', function() {
  * @param {external:nsIFile} [inFile]
  * @param {external:nsIFile} [outFile]
  */
-MacOSKeychain.initializeDefaultStorage = function (inFile, outFile) {
-	try {
-		if ('@mozilla.org/login-manager/storage/mozStorage;1' in Cc) {
-			_defaultStorage =
-					Cc['@mozilla.org/login-manager/storage/mozStorage;1']
-					.createInstance(Ci.nsILoginManagerStorage);
-		} else {
-			_defaultStorage =
-					Cc['@mozilla.org/login-manager/storage/legacy;1']
-					.createInstance(Ci.nsILoginManagerStorage);
-		}
+MacOSKeychain.initializeDefaultStorage = function () {
+	Logger.trace(arguments);
 
-		if (inFile || outFile)
-			_defaultStorage.initWithFile(inFile, outFile);
-		else
-			_defaultStorage.init();
+	try {
+		// JSON storage became default and mozStorage and legacy storage
+		//  were removed in FF 32
+		//  See https://bugzilla.mozilla.org/show_bug.cgi?id=956332
+		if ('@mozilla.org/login-manager/storage/json;1' in Cc) {
+			_defaultStorage = Cc['@mozilla.org/login-manager/storage/json;1']
+				.getService(Ci.nsILoginManagerStorage);
+			_defaultStorage.initialize();
+		} else {
+			throw Error('Cannot find a default implementation of nsILoginManagerStorage');
+		}
 	} catch (e) {
 		Logger.error(
 				'Initialization of mozilla login storage component failed',

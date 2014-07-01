@@ -55,6 +55,8 @@ const Ci = Components.interfaces;
 */
 
 Components.utils.import('resource://gre/modules/XPCOMUtils.jsm');
+// Promises require Gecko 25 (FF 25, TB 25, SeaMonkey 2.22)
+Components.utils.import("resource://gre/modules/Promise.jsm");
 
 /**
  * This interface is implemented by modules that wish to provide storage
@@ -81,27 +83,36 @@ MacOSKeychainStorage.prototype = {
 	 */
 
 	/**
-	 * We pass the filenames on to our mozilla storage instance. The filenames
-	 *	are kind of useless to this implementation of the storage interface so I
-	 *	don't know what else we'd do with them.
-	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#initWithFile()}
+	 * Initialize the component.
+	 *
+	 * At present, other methods of this interface may be called before the
+	 * returned promise is resolved or rejected.
+	 *
+	 * @return {Promise}
+	 * @resolves When initialization is complete.
+	 * @rejects JavaScript exception.
 	 */
-	initWithFile: function (aInputFile, aOutputFile) {
-		Logger.log('-> initWithFile('
-			+ [aInputFile, aOutputFile].map(Logger.stringify).toString()
-			+ ')');
+	initialize: function () {
+		Logger.log('-> initialize()');
 
-		MacOSKeychain.initializeDefaultStorage(aInputFile, aOutputFile);
+		return Promise.resolve();
 	},
-
 
 	/**
-	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#init()}
+	 * Ensures that all data has been written to disk and all files are closed.
+	 *
+	 * At present, this method is called by regression tests only.  Finalization
+	 * on shutdown is done by observers within the component.
+	 *
+	 * @return {Promise}
+	 * @resolves When finalization is complete.
+	 * @rejects JavaScript exception.
 	 */
-	init: function () {
-		Logger.log('-> init()');
-	},
+	terminate: function () {
+		Logger.log('-> terminate()');
 
+		return Promise.resolve();
+	},
 
 	/**
 	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#addLogin()}
