@@ -9,4 +9,14 @@ category login-manager-storage nsILoginManagerStorage @fitzell.ca/macos-keychain
 
 resource	macos-keychain	modules/
 content		macos-keychain	chrome/content/
+
+# ==========================
+# Override chrome to indicate that the extension is active
+# ==========================
+# Firefox preferences dialog:
 overlay		chrome://browser/content/preferences/security.xul chrome://macos-keychain/content/preferences-security-overlay.xul
+# New Mozilla in-content preferences:
+overlay		about:preferences chrome://macos-keychain/content/preferences-security-overlay.xul
+# The actual chrome URL for in-content preferences:
+#  (not sure if this is actually needed - Firefox seems to use the about: URL)
+overlay		chrome://browser/content/preferences/in-content/preferences.xul chrome://macos-keychain/content/preferences-security-overlay.xul

@@ -1,3 +1,6 @@
+1.??
+- Updated chrome overlay to work with new in-content preferences (see https://bugzilla.mozilla.org/show_bug.cgi?id=718011)
+
 1.18
 - Added support for new nsILoginManagerStorage initialization interfaces
   and JSON storage defined in Gecko 32. Removed references to other storage
