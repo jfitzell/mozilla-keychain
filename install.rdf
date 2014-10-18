@@ -82,5 +82,6 @@
     <em:name>Keychain Services Integration</em:name>
     <em:description>Store usernames and passwords using Apple's Keychain Services.</em:description>
     <em:creator>Julian Fitzell</em:creator>
+    <em:multiprocessCompatible>true</em:multiprocessCompatible>
   </Description>
 </RDF>
