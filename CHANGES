@@ -1,5 +1,6 @@
-1.??
+1.1.9
 - Updated chrome overlay to work with new in-content preferences (see https://bugzilla.mozilla.org/show_bug.cgi?id=718011)
+- Test with e10s and add flag to install.rdf to indicate we work ok
 
 1.1.8
 - Added support for new nsILoginManagerStorage initialization interfaces

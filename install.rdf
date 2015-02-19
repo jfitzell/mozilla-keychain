@@ -40,7 +40,7 @@
   <Description about="urn:mozilla:install-manifest">
     <em:id>macos-keychain@fitzell.ca</em:id>
     <em:type>2</em:type> <!-- Extensions -->
-    <em:version>1.1.8</em:version>
+    <em:version>1.1.9</em:version>
 	<em:optionsURL>chrome://macos-keychain/content/options.xul</em:optionsURL>
 	<em:optionsType>2</em:optionsType>
 
@@ -51,7 +51,7 @@
       <Description>
         <em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id>
         <em:minVersion>32.0a1</em:minVersion>
-        <em:maxVersion>32.*</em:maxVersion>
+        <em:maxVersion>37.*</em:maxVersion>
       </Description>
     </em:targetApplication>
     <!-- Thunderbird -->
@@ -59,7 +59,7 @@
       <Description>
         <em:id>{3550f703-e582-4d05-9a08-453d09bdfdc6}</em:id>
         <em:minVersion>32.0a1</em:minVersion>
-        <em:maxVersion>32.*</em:maxVersion>
+        <em:maxVersion>38.*</em:maxVersion>
       </Description>
     </em:targetApplication>
     <!-- Gecko Toolkit Applications -->
@@ -67,7 +67,7 @@
       <Description>
         <em:id>toolkit@mozilla.org</em:id>
         <em:minVersion>32.0a1</em:minVersion>
-        <em:maxVersion>32.*</em:maxVersion>
+        <em:maxVersion>37.*</em:maxVersion>
       </Description>
     </em:targetApplication>
     <em:targetApplication>
@@ -75,7 +75,7 @@
 	    <!-- SeaMonkey's UUID -->
 	    <em:id>{92650c4d-4b8e-4d2a-b7eb-24ecf4f6b63a}</em:id>
 	    <em:minVersion>2.29a1</em:minVersion>
-	    <em:maxVersion>2.29.*</em:maxVersion>
+	    <em:maxVersion>2.35.*</em:maxVersion>
 	  </Description>
     </em:targetApplication>	
     <!-- front-end metadata -->
