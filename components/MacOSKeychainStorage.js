@@ -169,7 +169,9 @@ MacOSKeychainStorage.prototype = {
 			+ ', '
 			+ ((newLoginData instanceof Ci.nsILoginInfo) ?
 				MacOSKeychain.debugStringForLoginInfo(newLoginData) :
-				MacOSKeychain.debugStringForPropertyBag(newLoginData))
+				((newLoginData instanceof Ci.nsIPropertyBag) ?
+				  MacOSKeychain.debugStringForPropertyBag(newLoginData, ['password']) :
+				  Logger.stringify(newLoginData)))
 			+ ')');
 		//return MacOSKeychain.defaultStorage.modifyLogin(oldLogin, newLogin);
 
@@ -398,39 +400,39 @@ MacOSKeychainStorage.prototype = {
 	/**
 	 * @see {@link https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsILoginManagerStorage#searchLogins()}
 	 */
-	searchLogins: function(count, searchFor) {
+	searchLogins: function(count, matchData) {
+		Logger.log('-> searchLogins('
+				+ MacOSKeychain.debugStringForPropertyBag(matchData, ['password'])
+				+ ')');
+
 	/* You have two ways of accessing a property in a nsIPropertyBag:
 	1. get propertyBag.enumerator, then on the enumerator do
-	enumerator.getNext().QueryInterface(Components.interfaces.nsIProperty) 
+	enumerator.getNext().QueryInterface(Components.interfaces.nsIProperty)
 	- which is the WORST way of adding type casting to JavaScript I've ever seen! Except for all the others.
-	
+
 	2. is the simpler way: just do propertyBag.getProperty("propertyName").
 	of course, you have to put it in a try{} as if the property does not exist it will throw an error.
 	*/
-	
+
 		var host, form, realm;
-		
+
 		//try to pull the properties out of the bag. If they are not there, use defaults (wildcard specifiers to be fed to findLogins() - see the note below).
 		try{
-			host = searchFor.getProperty("hostname");
+			host = matchData.getProperty("hostname");
 		} catch(e){
 		 	host = '';
 		}
 		try{
-			form = searchFor.getProperty("formSubmitURL");
+			form = matchData.getProperty("formSubmitURL");
 		} catch(e){
 		 	form = '';
 		}
 		try{
-			realm = searchFor.getProperty("httpRealm");
+			realm = matchData.getProperty("httpRealm");
 		} catch(e){
 		 	realm = '';
 		}
-		
-		Logger.log('-> searchLogins('
-				+ [host, form, realm].map(Logger.stringify).toString()
-				+ ')');
-		
+
 		return this.findLogins(count, host, form, realm);
 		/* A note about the behavior of wildcards: The API spec says that searchLogins is different than findLogins, in that 'wildcards are not specified'. I ASSUME THAT TO MEAN that if data is not provided (null), it's a wildcard and have programmed this function accordingly. If it is otherwise, feel free to fix this behavior.*/
 	},

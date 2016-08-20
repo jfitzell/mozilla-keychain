@@ -501,11 +501,25 @@ MacOSKeychain.debugStringForKeychainItem = function (item) {
  * Get a text string describing an nsIPropertyBag
  * @memberof module:MacOSKeychain.MacOSKeychain
  */
-MacOSKeychain.debugStringForPropertyBag = function (bag) {
+MacOSKeychain.debugStringForPropertyBag = function (bag, hide) {
+	var hiddenPropNames = (hide === undefined) ? [] : hide;
+
 	if (bag === null)
 		return 'null';
 
-	return '{nsIPropertyBag}';
+	var output = '';
+
+	var propEnum = bag.enumerator;
+	var propStrings = [];
+	while (propEnum.hasMoreElements()) {
+		var prop = propEnum.getNext().QueryInterface(Ci.nsIProperty);
+		var value = hiddenPropNames.indexOf(prop.name) >= 0
+			? '****'
+			: Logger.stringify(prop.value);
+		propStrings.push(prop.name + ': ' + value);
+	}
+
+	return 'nsIPropertyBag{' + propStrings.join(', ') + '}';
 };
 
 /**
