@@ -173,12 +173,12 @@ MacOSKeychainStorage.prototype = {
 				  MacOSKeychain.debugStringForPropertyBag(newLoginData, ['password']) :
 				  Logger.stringify(newLoginData)))
 			+ ')');
-		//return MacOSKeychain.defaultStorage.modifyLogin(oldLogin, newLogin);
+		//return MacOSKeychain.defaultStorage.modifyLogin(oldLogin, newLoginData);
 
 
 		if (! MacOSKeychain.supportedURL(oldLogin.hostname)) {
 			Logger.warning('Chrome URLs are not currently supported. Falling back on mozilla storage...');
-			return MacOSKeychain.defaultStorage.modifyLogin(oldLogin, newLogin);
+			return MacOSKeychain.defaultStorage.modifyLogin(oldLogin, newLoginData);
 		}
 
 		var item = MacOSKeychain.findKeychainItemForLoginInfo(oldLogin);
