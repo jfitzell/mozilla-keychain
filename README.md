@@ -27,5 +27,5 @@ To help out with development:
 To create a new package:
 
 1. Update `install.rdf` with new version number and update minVersion and maxVersion as appropriate
-2. Update CHANGES with the major changes since the last release
+2. Update `CHANGES` with the major changes since the last release
 3. Zip up the folder. From inside the repository run `zip -r ../releases/macos-keychain-VERSION.xpi *`
