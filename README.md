@@ -23,4 +23,9 @@ To help out with development:
 6. Enable logging by setting `signon.debug` to `true`; logging is visible in the Browser Console. For trace level logging, start Firefox from the command line with `/path/to/Firefox.app/Contents/MacOS/firefox-bin -ProfileManager`.
 7. It can also be useful to use another keychain specifically for development and testing. In `about:config` set `extensions.macos-keychain.search-path` and `extensions.macos-keychain.write-file` to e.g. `~/Library/Keychains/test.keychain`
 
+# Packaging
+To create a new package:
 
+1. Update `install.rdf` with new version number and update minVersion and maxVersion as appropriate
+2. Update CHANGES with the major changes since the last release
+3. Zip up the folder. From inside the repository run `zip -r ../releases/macos-keychain-VERSION.xpi *`
