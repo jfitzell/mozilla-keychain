@@ -7,3 +7,20 @@ The first time you run Firefox with this extension enabled, you will be prompted
 This extension tries as hard as possible to avoid requesting access to your passwords until it needs them, however it is ultimately Firefox/Thunderbird that decides what passwords to ask for when. If you find you're getting a lot of prompts, your only real option is to click "Always Allow" (or ask Mozilla to avoid asking for passwords until they actually need them).
 
 To enable detailed logging, go to `about:config` and set the `signon.debug` preference to `true`. Some log messages will appear in the Browser Console; yet more detail should be visible in OS X's Console.app.
+
+# Development
+To help out with development:
+
+1. Get the code:
+`git clone git@github.com:jfitzell/mozilla-keychain.git`
+2. Download a version of Firefox [Developer Edition](https://www.mozilla.org/en-GB/firefox/developer/), [Nightly](https://www.mozilla.org/en-US/firefox/nightly/), or an [unbranded build](https://wiki.mozilla.org/Add-ons/Extension_Signing#Unbranded_Builds)
+3. (Optional) Create a [profile for development](https://developer.mozilla.org/en-US/Add-ons/Setting_up_extension_development_environment#Development_profile) (some of the other recommendations in that link may also be helpful)
+4. Enabled unsigned extensions:
+  1. type `about:config` into the URL bar in Firefox
+  2. in the Search box type `xpinstall.signatures.required`
+  3. double-click the preference, or right-click and select "Toggle", to set it to `false`.
+5. Tell Firefox to [load the extension directly from the folder](https://developer.mozilla.org/en-US/Add-ons/Setting_up_extension_development_environment#Firefox_extension_proxy_file) where you cloned the repository
+6. Enable logging by setting `signon.debug` to `true`; logging is visible in the Browser Console. For trace level logging, start Firefox from the command line with `/path/to/Firefox.app/Contents/MacOS/firefox-bin -ProfileManager`.
+7. It can also be useful to use another keychain specifically for development and testing. In `about:config` set `extensions.macos-keychain.search-path` and `extensions.macos-keychain.write-file` to e.g. `~/Library/Keychains/test.keychain`
+
+
