@@ -1,3 +1,6 @@
+1.1.10
+- Basic searchLogins() implementation to support FF 49 [Issue 83, Issue 36]
+
 1.1.9
 - Updated chrome overlay to work with new in-content preferences (see https://bugzilla.mozilla.org/show_bug.cgi?id=718011)
 - Test with e10s and add flag to install.rdf to indicate we work ok
