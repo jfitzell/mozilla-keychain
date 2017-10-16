@@ -224,14 +224,25 @@ MacOSKeychain.convertKeychainItemToLoginInfo = function (item) {
 	//   nsILoginManager.modifyLogin() in order to store the new credentials.
 	// Proxy requires Gecko 18
 	// @see {https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy}
-	var passwordHandler = {
-		get: function(target, property) {
-			if (property == "password" && target[property] === null) {
-				return item.password;
-			} else
-				return target[property];
-		}
-	};
+
+	var passwordHandler = (function() {
+		var valueSet = false;
+		return {
+			get: function(target, property) {
+				if (property == "password" && ! valueSet)
+					return item.password;
+				else
+					return target[property];
+			},
+			set: function(target, property, value, receiver) {
+				if (property == "password")
+					valueSet = true;
+
+				target[property] = value;
+				return true;
+			}
+		};
+	})();
 	var infoProxy = new Proxy(info, passwordHandler);
 
 	return infoProxy;
