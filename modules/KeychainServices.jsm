@@ -134,8 +134,8 @@ var KeychainServices =
 			if (label)
 				item.label = label;
 		} catch (e) {
-			Security.SecKeychainItemDelete(keychainItemRef);
-			// DEBUG: log the status in case it fails
+			status = Security.SecKeychainItemDelete(keychainItemRef);
+			testStatus(status, 'SecKeychainItemDelete');
 			throw e;
 		}
 
