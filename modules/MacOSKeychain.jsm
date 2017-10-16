@@ -213,14 +213,23 @@ MacOSKeychain.convertKeychainItemToLoginInfo = function (item) {
 
 	Logger.trace('Converted LoginInfo: ' + this.debugStringForLoginInfo(info));
 
+	// We want to delay fetching the password until someone acutally asks for
+	//   it because a search may return several passwords and we don't want to
+	//   cause a permission prompt to the user unless the password is actually
+	//   requested.
+	//
+	// When a password is set, we store it and start returning that instead of
+	//   the one in the keychain. We don't actually write it to the keychain
+	//   here because the LoginInfo would need to be passed back into
+	//   nsILoginManager.modifyLogin() in order to store the new credentials.
 	// Proxy requires Gecko 18
 	// @see {https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy}
 	var passwordHandler = {
-		get: function(target, name) {
-			if (name == "password") {
+		get: function(target, property) {
+			if (property == "password" && target[property] === null) {
 				return item.password;
 			} else
-				return target[name];
+				return target[property];
 		}
 	};
 	var infoProxy = new Proxy(info, passwordHandler);
